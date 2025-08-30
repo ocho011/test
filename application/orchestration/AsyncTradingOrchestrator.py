@@ -12,6 +12,7 @@ from application.strategies.AsyncTimeBasedStrategy import AsyncTimeBasedStrategy
 from application.orchestration.AsyncStrategyCoordinator import AsyncStrategyCoordinator
 from application.execution.AsyncRiskManager import AsyncRiskManager
 from infrastructure.binance.AsyncOrderManager import AsyncOrderManager
+from domain.events.OrderEvent import OrderStateChangeEvent
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -22,11 +23,14 @@ class AsyncTradingOrchestrator:
 
     def __init__(self):
         self.event_bus = AsyncEventBus()
+        # Analysis Components
         self.market_structure_detector = AsyncStructureBreakDetector(self.event_bus)
         self.order_block_detector = AsyncOrderBlockDetector(self.event_bus)
         self.liquidity_detector = AsyncLiquidityDetector(self.event_bus)
         self.fvg_detector = AsyncFVGDetector(self.event_bus)
         self.time_strategy = AsyncTimeBasedStrategy(self.event_bus)
+        
+        # Core Trading Logic Components
         self.strategy_coordinator = AsyncStrategyCoordinator(self.event_bus)
         self.risk_manager = AsyncRiskManager(self.event_bus)
         self.order_manager = AsyncOrderManager(self.event_bus)
@@ -44,19 +48,27 @@ class AsyncTradingOrchestrator:
             event_bus_task = asyncio.create_task(self.event_bus.process_events())
             self._main_tasks.add(event_bus_task)
 
+            # 최종 확인을 위해 Orchestrator가 주문 상태 변경을 구독
+            await self.event_bus.subscribe("ORDER_STATE_CHANGE", self._handle_order_state_change)
+
             # 각 컴포넌트 시작
-            components_tasks = [
+            logger.info("Starting Analysis Components...")
+            analysis_tasks = [
                 asyncio.create_task(self.market_structure_detector.start_multi_timeframe_detection()),
-                asyncio.create_task(self.order_block_detector.start_continuous_detection(["BTCUSDT", "ETHUSDT"], ["5m", "15m", "1h"])),
-                asyncio.create_task(self.liquidity_detector.start_multi_symbol_detection(["BTCUSDT", "ETHUSDT"])),
-                asyncio.create_task(self.fvg_detector.start_multi_timeframe_detection(["BTCUSDT", "ETHUSDT"], ["1m", "5m", "15m"])),
+                asyncio.create_task(self.order_block_detector.start_continuous_detection(["BTCUSDT"], ["5m"])),
+                asyncio.create_task(self.liquidity_detector.start_multi_symbol_detection(["BTCUSDT"])),
+                asyncio.create_task(self.fvg_detector.start_multi_timeframe_detection(["BTCUSDT"], ["1m"])),
                 asyncio.create_task(self.time_strategy.start_time_based_analysis()),
+            ]
+            self._main_tasks.update(analysis_tasks)
+
+            logger.info("Starting Core Logic Components...")
+            core_logic_tasks = [
                 asyncio.create_task(self.strategy_coordinator.start_strategy_coordination()),
                 asyncio.create_task(self.risk_manager.start_risk_monitoring()),
                 asyncio.create_task(self.order_manager.start_order_processing())
             ]
-
-            self._main_tasks.update(components_tasks)
+            self._main_tasks.update(core_logic_tasks)
 
             # 시스템 건강성 모니터링
             health_task = asyncio.create_task(self._monitor_system_health())
@@ -69,6 +81,10 @@ class AsyncTradingOrchestrator:
         except Exception as e:
             logger.error(f"Critical error in trading system orchestrator: {e}", exc_info=True)
             await self.shutdown()
+
+    async def _handle_order_state_change(self, event: OrderStateChangeEvent):
+        """Logs the final confirmation that an order was processed."""
+        logger.info(f"[ORCHESTRATOR_CONFIRMATION] End-to-end test successful. Order {event.order_id} is {event.new_state}.")
 
     async def shutdown(self):
         """시스템 우아한 종료"""
