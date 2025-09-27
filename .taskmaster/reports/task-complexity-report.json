@@ -1,0 +1,109 @@
+{
+	"meta": {
+		"generatedAt": "2025-09-27T09:54:53.351Z",
+		"tasksAnalyzed": 12,
+		"totalTasks": 12,
+		"analysisCount": 12,
+		"thresholdScore": 5,
+		"projectName": "Taskmaster",
+		"usedResearch": true
+	},
+	"complexityAnalysis": [
+		{
+			"taskId": 1,
+			"taskTitle": "프로젝트 초기 설정 및 환경 구성",
+			"complexityScore": 3,
+			"recommendedSubtasks": 4,
+			"expansionPrompt": "Python 프로젝트 구조 생성, Poetry/pip-tools 설정, 의존성 정의(python-binance, asyncio, pydantic 등), 디렉터리 구조(src/trading_bot, tests, config, logs, data) 생성, .env 파일 템플릿 작성, pyproject.toml 구성으로 세분화",
+			"reasoning": "표준적인 Python 프로젝트 초기 설정 작업. 요구사항이 명확하고 기존 패턴이 잘 정립되어 있음. 복잡한 비즈니스 로직 없이 구조적 설정만 필요"
+		},
+		{
+			"taskId": 2,
+			"taskTitle": "이벤트 기반 아키텍처 프레임워크 구축",
+			"complexityScore": 8,
+			"recommendedSubtasks": 6,
+			"expansionPrompt": "BaseComponent 추상 클래스 설계, EventBus 발행-구독 패턴 구현, MessageHub 중앙 통신 허브 개발, 이벤트 타입 정의(MarketDataEvent, SignalEvent 등), DI 컨테이너 구현, 컴포넌트 라이프사이클 관리로 분할",
+			"reasoning": "복잡한 아키텍처 설계가 필요한 핵심 프레임워크. asyncio 기반 비동기 처리, 의존성 주입, 이벤트 시스템 등 고급 설계 패턴 구현. 전체 시스템의 기반이 되는 중요한 작업"
+		},
+		{
+			"taskId": 3,
+			"taskTitle": "바이낸스 API 연동 및 시장 데이터 수신 모듈",
+			"complexityScore": 7,
+			"recommendedSubtasks": 5,
+			"expansionPrompt": "BinanceClient 래퍼 클래스 구현, WebSocket 실시간 데이터 수신, 자동 재연결 로직(exponential backoff), API 레이트 리미트 관리, 히스토리컬 데이터 캐싱 시스템으로 구분",
+			"reasoning": "외부 API 연동의 복잡성과 네트워크 안정성 처리가 필요. WebSocket 연결 관리, 레이트 리미팅, 오류 처리 등 실제 운영 환경에서 중요한 요소들을 다뤄야 함"
+		},
+		{
+			"taskId": 4,
+			"taskTitle": "ICT 기술적 분석 엔진 개발",
+			"complexityScore": 9,
+			"recommendedSubtasks": 7,
+			"expansionPrompt": "OrderBlockDetector 스윙 하이/로우 분석, FairValueGapAnalyzer 갭 감지 및 무효화 로직, MarketStructureAnalyzer BOS/CHoCH 감지, TimeFrameManager 다중 시간대 처리, 기술적 지표 계산, 패턴 검증 시스템, 성능 최적화로 세분화",
+			"reasoning": "전문적인 금융 알고리즘과 복잡한 수학적 계산이 필요한 고난도 작업. ICT 이론의 정확한 구현, 다중 시간대 분석, 실시간 성능 최적화 등 전문 지식과 정밀한 구현이 요구됨"
+		},
+		{
+			"taskId": 5,
+			"taskTitle": "매매 신호 생성 및 검증 시스템",
+			"complexityScore": 8,
+			"recommendedSubtasks": 6,
+			"expansionPrompt": "SignalGenerator 핵심 로직 구현, ConfluenceValidator 다중 조건 검증, SignalStrengthCalculator 점수화 시스템, 거짓 신호 필터링 로직, 시간대별 바이어스 체크, 신호 유효성 관리로 분할",
+			"reasoning": "ICT 패턴의 정확한 조합과 복잡한 검증 로직이 필요. 백테스팅 기반 임계값 설정, 다중 confluence 검증 등 정교한 알고리즘 구현이 요구되는 고복잡도 작업"
+		},
+		{
+			"taskId": 6,
+			"taskTitle": "리스크 관리 시스템 구현",
+			"complexityScore": 7,
+			"recommendedSubtasks": 5,
+			"expansionPrompt": "PositionSizeCalculator 2% 리스크 계산, DrawdownController 일일/월간 제한, ConsecutiveLossTracker 연속 손실 관리, VolatilityFilter ATR 기반 필터링, 실시간 위험 지표 모니터링으로 구성",
+			"reasoning": "정밀한 수학적 계산과 실시간 모니터링이 필요한 중요한 시스템. Kelly Criterion 등 고급 리스크 관리 기법과 실시간 성능이 요구되는 복잡한 작업"
+		},
+		{
+			"taskId": 7,
+			"taskTitle": "주문 실행 및 포지션 관리 모듈",
+			"complexityScore": 8,
+			"recommendedSubtasks": 6,
+			"expansionPrompt": "OrderExecutor 주문 실행 엔진, MarketOrderManager/LimitOrderManager 주문 타입별 처리, PositionTracker 실시간 손익 추적, PartialTakeProfitManager 부분 익절 로직, TrailingStopManager 트레일링 스탑, OrderRetryHandler 재시도 로직으로 분할",
+			"reasoning": "실제 거래 실행의 핵심 모듈로 높은 신뢰성과 정확성이 요구됨. 슬리피지 관리, 부분 익절, 오류 처리 등 복잡한 거래 로직과 실시간 처리가 필요한 고복잡도 작업"
+		},
+		{
+			"taskId": 8,
+			"taskTitle": "Discord 알림 및 모니터링 시스템",
+			"complexityScore": 5,
+			"recommendedSubtasks": 4,
+			"expansionPrompt": "Discord 봇 구현 및 연결, NotificationManager 알림 처리, DiscordFormatter 메시지 포맷팅, SystemHealthChecker 시스템 모니터링, PerformanceReporter 성과 리포트 생성으로 구성",
+			"reasoning": "discord.py 라이브러리 활용한 상대적으로 직관적인 작업. 메시지 포맷팅과 시스템 모니터링 로직이 있지만 기존 패턴이 잘 정립되어 있는 중간 복잡도 작업"
+		},
+		{
+			"taskId": 9,
+			"taskTitle": "설정 관리 및 로깅 시스템",
+			"complexityScore": 4,
+			"recommendedSubtasks": 4,
+			"expansionPrompt": "ConfigManager YAML 설정 관리, 환경별 설정 파일(dev/prod/test), LogManager 구조화된 로깅, 로그 로테이션 및 압축, 민감 정보 마스킹으로 분할",
+			"reasoning": "표준적인 설정 관리와 로깅 시스템 구현. pydantic 검증, 로그 로테이션 등 잘 정립된 패턴을 활용하는 중간 난이도 작업"
+		},
+		{
+			"taskId": 10,
+			"taskTitle": "백테스팅 엔진 및 성과 분석 도구",
+			"complexityScore": 8,
+			"recommendedSubtasks": 6,
+			"expansionPrompt": "BacktestEngine 히스토리컬 시뮬레이션, PerformanceAnalyzer 샤프 비율/드로우다운 계산, TradeAnalyzer 거래별 분석, WalkForwardOptimizer 파라미터 최적화, MonteCarloSimulator 위험 분석, 결과 시각화 및 내보내기로 세분화",
+			"reasoning": "복잡한 금융 수학과 통계 분석이 필요한 고난도 작업. 몬테카를로 시뮬레이션, 워크 포워드 분석 등 고급 분석 기법과 정확한 성과 지표 계산이 요구됨"
+		},
+		{
+			"taskId": 11,
+			"taskTitle": "전략 추상화 및 확장 프레임워크",
+			"complexityScore": 7,
+			"recommendedSubtasks": 5,
+			"expansionPrompt": "AbstractStrategy 인터페이스 설계, ICTStrategy/TraditionalIndicatorStrategy 구현, StrategyRegistry 등록 시스템, StrategySelector 실시간 교체, StrategyPerformanceTracker 성과 추적으로 구성",
+			"reasoning": "확장 가능한 플러그인 아키텍처 설계가 필요한 복잡한 작업. 전략 추상화, 동적 로딩, A/B 테스팅 등 고급 설계 패턴과 소프트웨어 아키텍처 지식이 요구됨"
+		},
+		{
+			"taskId": 12,
+			"taskTitle": "시스템 통합 및 배포 준비",
+			"complexityScore": 8,
+			"recommendedSubtasks": 6,
+			"expansionPrompt": "SystemIntegrator 통합 관리, Docker 컨테이너화, docker-compose 오케스트레이션, Vultr VM 배포 스크립트, systemd 서비스 설정, 모니터링 대시보드 구축으로 분할",
+			"reasoning": "DevOps와 시스템 통합의 복합적 복잡성을 다루는 고난도 작업. Docker, 클라우드 배포, 시스템 서비스 관리, 통합 테스트 등 다양한 기술 영역의 전문 지식이 필요함"
+		}
+	]
+}

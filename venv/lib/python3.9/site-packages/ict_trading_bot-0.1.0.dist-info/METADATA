@@ -1,0 +1,121 @@
+Metadata-Version: 2.4
+Name: ict-trading-bot
+Version: 0.1.0
+Summary: ICT 기반 자동매매 시스템 - Order Block + FVG 전략
+Author-email: User <user@example.com>
+License: MIT
+Project-URL: Homepage, https://github.com/user/ict-trading-bot
+Project-URL: Repository, https://github.com/user/ict-trading-bot.git
+Project-URL: Issues, https://github.com/user/ict-trading-bot/issues
+Keywords: trading,binance,ict,automated,crypto
+Classifier: Development Status :: 3 - Alpha
+Classifier: Intended Audience :: Financial and Insurance Industry
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Requires-Python: >=3.9
+Description-Content-Type: text/markdown
+Requires-Dist: python-binance>=1.0.19
+Requires-Dist: aiohttp>=3.9.0
+Requires-Dist: pydantic>=2.0.0
+Requires-Dist: discord.py>=2.3.0
+Requires-Dist: pandas>=2.1.0
+Requires-Dist: numpy>=1.24.0
+Requires-Dist: pyyaml>=6.0
+Requires-Dist: python-dotenv>=1.0.0
+Requires-Dist: asyncio-mqtt>=0.16.0
+Requires-Dist: ta>=0.10.2
+Requires-Dist: plotly>=5.17.0
+Requires-Dist: fastapi>=0.104.0
+Requires-Dist: uvicorn>=0.24.0
+Provides-Extra: dev
+Requires-Dist: pytest>=7.4.0; extra == "dev"
+Requires-Dist: pytest-asyncio>=0.21.0; extra == "dev"
+Requires-Dist: pytest-cov>=4.1.0; extra == "dev"
+Requires-Dist: black>=23.0.0; extra == "dev"
+Requires-Dist: flake8>=6.0.0; extra == "dev"
+Requires-Dist: mypy>=1.5.0; extra == "dev"
+Requires-Dist: isort>=5.12.0; extra == "dev"
+Requires-Dist: pre-commit>=3.4.0; extra == "dev"
+Provides-Extra: test
+Requires-Dist: pytest>=7.4.0; extra == "test"
+Requires-Dist: pytest-asyncio>=0.21.0; extra == "test"
+Requires-Dist: pytest-cov>=4.1.0; extra == "test"
+Requires-Dist: pytest-mock>=3.11.0; extra == "test"
+
+# ICT Trading Bot
+
+ICT (Inner Circle Trader) 이론을 기반으로 한 자동매매 시스템입니다.
+
+## 주요 특징
+
+- **전략**: ICT Order Block + Fair Value Gap (FVG) 조합
+- **거래소**: Binance Futures (USDT 무기한 계약)
+- **리스크 관리**: 거래당 2% 위험 관리
+- **목표 수익률**: 월 10-15%
+- **아키텍처**: 이벤트 기반 비동기 시스템
+
+## 기술 스택
+
+- **언어**: Python 3.9+
+- **주요 라이브러리**:
+  - python-binance: 공식 바이낸스 API
+  - asyncio/aiohttp: 비동기 처리
+  - pydantic: 설정 관리 및 데이터 검증
+  - pandas/numpy: 데이터 분석
+  - discord.py: 알림 시스템
+
+## 프로젝트 구조
+
+```
+src/trading_bot/
+├── core/          # 핵심 시스템 (EventBus, BaseComponent)
+├── strategies/    # 거래 전략 (ICTStrategy)
+├── analysis/      # 기술적 분석 (OrderBlock, FVG 감지)
+├── risk/          # 리스크 관리 (포지션 사이징, 드로우다운)
+├── execution/     # 주문 실행 (OrderExecutor, PositionManager)
+├── notifications/ # 알림 시스템 (Discord)
+├── config/        # 설정 관리
+└── utils/         # 유틸리티 함수
+
+tests/
+├── unit/          # 단위 테스트
+└── integration/   # 통합 테스트
+
+config/            # 설정 파일
+logs/              # 로그 파일
+data/              # 히스토리컬 데이터
+```
+
+## 설치 및 실행
+
+1. **의존성 설치**:
+```bash
+pip install -e .
+```
+
+2. **개발 환경 설정**:
+```bash
+pip install -e ".[dev]"
+```
+
+3. **환경 변수 설정**:
+```bash
+cp .env.example .env
+# .env 파일에 API 키 설정
+```
+
+4. **테스트 실행**:
+```bash
+pytest
+```
+
+## 라이선스
+
+MIT License
+
+## 주의사항
+
+이 시스템은 교육 및 연구 목적으로 제작되었습니다. 실제 거래에 사용하기 전에 충분한 백테스팅과 페이퍼 트레이딩을 권장합니다.

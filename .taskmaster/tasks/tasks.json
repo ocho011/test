@@ -1,0 +1,738 @@
+{
+  "master": {
+    "tasks": [
+      {
+        "id": 1,
+        "title": "프로젝트 초기 설정 및 환경 구성",
+        "description": "Python 기반 자동매매 시스템의 기본 프로젝트 구조 설정 및 의존성 관리",
+        "details": "Python 3.9+ 환경에서 poetry 또는 pip-tools를 사용한 의존성 관리 설정. 주요 라이브러리: python-binance>=1.0.19 (공식 바이낸스 API), asyncio, aiohttp>=3.9.0, pydantic>=2.0 (설정 관리), discord.py>=2.3.0 (알림), pandas>=2.1.0 (데이터 처리), numpy>=1.24.0, pytest>=7.4.0 (테스팅). 프로젝트 디렉토리 구조: src/trading_bot (메인 소스), tests/ (테스트), config/ (설정 파일), logs/ (로그), data/ (히스토리컬 데이터). .env 파일로 API 키 관리, pyproject.toml로 의존성 정의.",
+        "testStrategy": "의존성 설치 확인, 기본 프로젝트 구조 검증, 환경변수 로딩 테스트",
+        "priority": "high",
+        "dependencies": [],
+        "status": "done",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Python 프로젝트 기본 구조 생성",
+            "description": "pyproject.toml 설정 및 기본 디렉토리 구조 생성",
+            "dependencies": [],
+            "details": "Poetry를 사용한 프로젝트 초기화, pyproject.toml 작성으로 프로젝트 메타데이터 및 기본 설정 구성. src/trading_bot (메인 소스코드), tests/ (테스트 코드), config/ (설정 파일), logs/ (로그 파일), data/ (히스토리컬 데이터) 디렉토리 구조 생성. __init__.py 파일들을 적절한 위치에 배치하여 Python 패키지 구조 완성.",
+            "status": "done",
+            "testStrategy": ""
+          },
+          {
+            "id": 2,
+            "title": "의존성 라이브러리 정의 및 설치",
+            "description": "자동매매 시스템에 필요한 핵심 라이브러리들 pyproject.toml에 정의",
+            "dependencies": [],
+            "details": "python-binance>=1.0.19, asyncio, aiohttp>=3.9.0, pydantic>=2.0, discord.py>=2.3.0, pandas>=2.1.0, numpy>=1.24.0, pytest>=7.4.0 등 핵심 라이브러리를 pyproject.toml의 dependencies 섹션에 정의. 개발용 의존성 (black, flake8, mypy 등)도 dev-dependencies에 추가. poetry install 명령으로 가상환경 생성 및 의존성 설치 확인.",
+            "status": "done",
+            "testStrategy": ""
+          },
+          {
+            "id": 3,
+            "title": "환경 설정 파일 템플릿 작성",
+            "description": ".env 파일 템플릿 및 설정 관리 시스템 구축",
+            "dependencies": [],
+            "details": ".env.example 파일 생성으로 필요한 환경변수 템플릿 제공 (BINANCE_API_KEY, BINANCE_SECRET_KEY, DISCORD_WEBHOOK_URL 등). .env 파일은 .gitignore에 추가하여 보안 유지. pydantic Settings 클래스를 사용한 환경변수 검증 및 타입 안전성 확보. config/settings.py에서 모든 설정을 중앙 집중 관리.",
+            "status": "done",
+            "testStrategy": ""
+          },
+          {
+            "id": 4,
+            "title": "프로젝트 초기화 검증 및 기본 테스트",
+            "description": "설정된 프로젝트 구조와 의존성이 올바르게 작동하는지 검증",
+            "dependencies": [],
+            "details": "pytest를 사용한 기본 테스트 케이스 작성으로 프로젝트 초기화 상태 검증. 의존성 import 테스트, 환경변수 로딩 테스트, 기본 디렉토리 존재 확인 테스트 구현. poetry run pytest 명령으로 전체 테스트 실행 확인. pre-commit 훅 설정으로 코드 품질 자동 검사 체계 구축.",
+            "status": "done",
+            "testStrategy": ""
+          }
+        ]
+      },
+      {
+        "id": 2,
+        "title": "이벤트 기반 아키텍처 프레임워크 구축",
+        "description": "비동기 이벤트 버스 및 메시지 허브를 중심으로 한 느슨한 결합 아키텍처 설계",
+        "details": "EventBus 클래스로 발행-구독 패턴 구현. asyncio.Queue 기반 비동기 메시지 처리. 이벤트 타입: MarketDataEvent, SignalEvent, OrderEvent, RiskEvent. MessageHub가 모든 컴포넌트 간 통신 조율. 이벤트 직렬화/역직렬화를 위한 pydantic 모델 사용. 컴포넌트 간 의존성 주입을 위한 DI 컨테이너 구현. 각 컴포넌트는 BaseComponent 추상 클래스 상속하여 일관된 인터페이스 제공.",
+        "testStrategy": "이벤트 발행/구독 테스트, 비동기 메시지 처리 성능 테스트, 컴포넌트 간 통신 검증",
+        "priority": "high",
+        "dependencies": [
+          1
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "BaseComponent 추상 클래스 설계 및 구현",
+            "description": "모든 시스템 컴포넌트가 상속받을 기본 인터페이스 클래스 설계",
+            "dependencies": [],
+            "details": "BaseComponent 추상 클래스 정의. start(), stop(), is_running() 메서드 포함. 컴포넌트 라이프사이클 관리를 위한 상태 관리. 로깅 및 에러 핸들링 기본 기능 제공. 컴포넌트 간 표준화된 인터페이스 보장.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 2,
+            "title": "이벤트 타입 및 모델 정의",
+            "description": "시스템에서 사용할 이벤트 타입들과 pydantic 모델 정의",
+            "dependencies": [
+              "2.1"
+            ],
+            "details": "MarketDataEvent, SignalEvent, OrderEvent, RiskEvent 클래스 정의. pydantic 기반 이벤트 직렬화/역직렬화 모델. 이벤트 메타데이터(타임스탬프, 우선순위 등) 포함. 이벤트 검증 로직 구현.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 3,
+            "title": "EventBus 발행-구독 패턴 구현",
+            "description": "asyncio 기반 비동기 이벤트 발행 및 구독 시스템 구축",
+            "dependencies": [
+              "2.2"
+            ],
+            "details": "EventBus 클래스 구현. subscribe(), unsubscribe(), publish() 메서드. asyncio.Queue 기반 비동기 메시지 처리. 이벤트 타입별 구독자 관리. 이벤트 필터링 및 라우팅 기능.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 4,
+            "title": "MessageHub 중앙 통신 허브 개발",
+            "description": "모든 컴포넌트 간 통신을 조율하는 중앙 메시지 허브 구현",
+            "dependencies": [
+              "2.3"
+            ],
+            "details": "MessageHub 클래스로 컴포넌트 간 통신 중재. 메시지 라우팅 및 변환 기능. 통신 상태 모니터링 및 로깅. 메시지 큐 관리 및 백프레셔 처리. 컴포넌트 등록/해제 관리.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 5,
+            "title": "의존성 주입(DI) 컨테이너 구현",
+            "description": "컴포넌트 간 의존성 관리를 위한 DI 컨테이너 시스템 구축",
+            "dependencies": [
+              "2.1"
+            ],
+            "details": "DIContainer 클래스 구현. 컴포넌트 등록 및 자동 해결. 싱글톤 및 트랜지언트 라이프사이클 지원. 순환 의존성 감지 및 방지. 런타임 의존성 주입 기능.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 6,
+            "title": "컴포넌트 라이프사이클 관리 시스템",
+            "description": "컴포넌트의 시작, 정지, 재시작을 관리하는 라이프사이클 매니저 구현",
+            "dependencies": [
+              "2.4",
+              "2.5"
+            ],
+            "details": "ComponentLifecycleManager 클래스 구현. 컴포넌트 시작 순서 및 의존성 기반 초기화. 우아한 종료(graceful shutdown) 처리. 컴포넌트 헬스체크 및 자동 재시작. 라이프사이클 이벤트 발행 및 모니터링.",
+            "status": "pending",
+            "testStrategy": ""
+          }
+        ]
+      },
+      {
+        "id": 3,
+        "title": "바이낸스 API 연동 및 시장 데이터 수신 모듈",
+        "description": "바이낸스 선물 거래소 API 연동 및 실시간 시장 데이터 수신 시스템 구축",
+        "details": "BinanceClient 클래스로 python-binance 라이브러리 래핑. WebSocket을 통한 실시간 캔들 데이터 수신 (5분, 15분, 4시간, 일봉). MarketDataProvider 컴포넌트로 데이터 정규화 및 이벤트 발행. 연결 끊김 시 자동 재연결 로직 (exponential backoff). API 레이트 리미트 관리 (분당 1200 요청). 히스토리컬 데이터 캐싱을 위한 파일 시스템 기반 저장소. asyncio.Semaphore로 동시 요청 수 제한.",
+        "testStrategy": "WebSocket 연결 안정성 테스트, API 레이트 리미트 테스트, 데이터 무결성 검증",
+        "priority": "high",
+        "dependencies": [
+          2
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "BinanceClient 래퍼 클래스 구현",
+            "description": "python-binance 라이브러리를 래핑하는 BinanceClient 클래스 구현",
+            "dependencies": [],
+            "details": "python-binance 라이브러리를 래핑하여 선물 거래소 API 인터페이스 제공. 비동기 메서드로 시장 데이터 요청, 주문 관리, 계정 정보 조회 기능 구현. 에러 핸들링 및 로깅 기능 포함",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 2,
+            "title": "WebSocket 실시간 데이터 수신 시스템",
+            "description": "실시간 캔들 데이터 수신을 위한 WebSocket 연결 및 데이터 처리",
+            "dependencies": [
+              "3.1"
+            ],
+            "details": "5분, 15분, 4시간, 일봉 캔들 데이터를 WebSocket으로 실시간 수신. MarketDataProvider 컴포넌트로 데이터 정규화 및 이벤트 발행. 멀티플 심볼 동시 구독 지원",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 3,
+            "title": "자동 재연결 로직 구현",
+            "description": "WebSocket 연결 끊김 시 exponential backoff 기반 자동 재연결",
+            "dependencies": [
+              "3.2"
+            ],
+            "details": "네트워크 연결 장애 시 exponential backoff 알고리즘으로 재연결 시도. 최대 재시도 횟수 및 대기 시간 설정 가능. 연결 상태 모니터링 및 알림 기능",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 4,
+            "title": "API 레이트 리미트 관리 시스템",
+            "description": "바이낸스 API 호출 제한 관리 및 요청 큐잉",
+            "dependencies": [
+              "3.1"
+            ],
+            "details": "분당 1200 요청 제한 준수를 위한 레이트 리미터 구현. asyncio.Semaphore로 동시 요청 수 제한. 요청 우선순위 큐 및 대기열 관리",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 5,
+            "title": "히스토리컬 데이터 캐싱 시스템",
+            "description": "파일 시스템 기반 히스토리컬 데이터 저장 및 관리",
+            "dependencies": [
+              "3.1"
+            ],
+            "details": "파일 시스템 기반 히스토리컬 캔들 데이터 캐싱. 데이터 무결성 검증 및 중복 제거. 압축 저장으로 디스크 사용량 최적화. 캐시 만료 정책 및 자동 정리 기능",
+            "status": "pending",
+            "testStrategy": ""
+          }
+        ]
+      },
+      {
+        "id": 4,
+        "title": "ICT 기술적 분석 엔진 개발",
+        "description": "Order Block, Fair Value Gap 감지 및 다중 시간대 구조 분석 알고리즘 구현",
+        "details": "TechnicalAnalyzer 클래스로 ICT 패턴 분석. OrderBlockDetector: 스윙 하이/로우 기반 주문 블록 식별, 최소 3개 캔들 후 유효성 확인. FairValueGapAnalyzer: 갭 크기 및 방향성 분석, 50% 이상 채워지면 무효화. MarketStructureAnalyzer: BOS(Break of Structure), CHoCH(Change of Character) 감지. 다중 시간대 분석을 위한 TimeFrameManager. pandas를 이용한 기술적 지표 계산. numpy 기반 고성능 수치 연산.",
+        "testStrategy": "히스토리컬 데이터 기반 패턴 감지 정확도 테스트, 실시간 분석 성능 측정",
+        "priority": "high",
+        "dependencies": [
+          3
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "OrderBlockDetector 스윙 하이/로우 분석 모듈 개발",
+            "description": "스윙 하이/로우를 기반으로 주문 블록을 식별하는 OrderBlockDetector 클래스 구현",
+            "dependencies": [],
+            "details": "스윙 하이/로우 감지 알고리즘 구현, 최소 3개 캔들 후 유효성 확인 로직, 주문 블록 형성 조건 검증, 히스토리컬 데이터 기반 패턴 매칭, numpy 배열 기반 고성능 계산 최적화",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 2,
+            "title": "FairValueGapAnalyzer 갭 감지 및 무효화 로직 구현",
+            "description": "Fair Value Gap의 감지, 크기 분석, 방향성 판단 및 무효화 조건을 처리하는 분석기 개발",
+            "dependencies": [],
+            "details": "갭 크기 및 방향성 분석 알고리즘, 50% 이상 채워짐 감지 시 무효화 로직, 갭의 품질 평가 지표, 다양한 시간대에서의 갭 유효성 검증, 실시간 갭 상태 모니터링",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 3,
+            "title": "MarketStructureAnalyzer BOS/CHoCH 감지 시스템 개발",
+            "description": "Break of Structure와 Change of Character를 감지하여 시장 구조 변화를 분석하는 시스템 구현",
+            "dependencies": [],
+            "details": "BOS(Break of Structure) 감지 알고리즘, CHoCH(Change of Character) 식별 로직, 시장 구조 변화 패턴 분석, 구조적 레벨 브레이크 확인, 추세 변화 신호 생성",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 4,
+            "title": "TimeFrameManager 다중 시간대 처리 엔진 구축",
+            "description": "여러 시간대의 데이터를 동시에 처리하고 분석할 수 있는 다중 시간대 관리 시스템 개발",
+            "dependencies": [],
+            "details": "다중 시간대 데이터 동기화, 시간대별 분석 결과 통합, 상위 시간대 바이어스 적용, 시간대 간 confluence 검증, 메모리 효율적인 데이터 저장 구조",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 5,
+            "title": "기술적 지표 계산 및 ICT 패턴 통합 모듈",
+            "description": "pandas 기반 기술적 지표 계산과 ICT 패턴 분석을 통합하는 계산 엔진 개발",
+            "dependencies": [
+              "4.1",
+              "4.2",
+              "4.3"
+            ],
+            "details": "pandas 기반 기술적 지표 라이브러리 통합, ICT 패턴과 전통 지표의 융합 분석, 지표 계산 파이프라인 최적화, 실시간 지표 업데이트 시스템, 메모리 사용량 최적화",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 6,
+            "title": "패턴 검증 및 신뢰도 평가 시스템",
+            "description": "감지된 ICT 패턴의 유효성을 검증하고 신뢰도를 평가하는 검증 시스템 구현",
+            "dependencies": [
+              "4.1",
+              "4.2",
+              "4.3",
+              "4.4"
+            ],
+            "details": "패턴 신뢰도 점수 계산 알고리즘, 히스토리컬 백테스트 기반 검증, 패턴 성공률 통계 분석, 거짓 신호 필터링 로직, 패턴 품질 등급 분류 시스템",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 7,
+            "title": "분석 엔진 성능 최적화 및 TechnicalAnalyzer 통합",
+            "description": "모든 분석 모듈을 통합하는 TechnicalAnalyzer 클래스 구현 및 전체적인 성능 최적화",
+            "dependencies": [
+              "4.1",
+              "4.2",
+              "4.3",
+              "4.4",
+              "4.5",
+              "4.6"
+            ],
+            "details": "TechnicalAnalyzer 메인 클래스 구현, 모든 분석 모듈 통합 및 조율, numpy 기반 벡터화 연산 최적화, 메모리 관리 및 가비지 컬렉션 최적화, 실시간 분석 성능 벤치마크",
+            "status": "pending",
+            "testStrategy": ""
+          }
+        ]
+      },
+      {
+        "id": 5,
+        "title": "매매 신호 생성 및 검증 시스템",
+        "description": "ICT 패턴 조합을 통한 매매 신호 생성 및 confluence 검증 로직 구현",
+        "details": "SignalGenerator 클래스로 매매 신호 생성. ConfluenceValidator: 최소 2-3개 confluence 요구 (Order Block + FVG + 시장 구조). SignalStrengthCalculator: 신호 강도 점수화 (0-100). 시간대별 바이어스 확인 로직. 거짓 신호 필터링을 위한 백테스트 기반 임계값 설정. SignalEvent 발행 시 진입가, 스탑로스, 익절가 포함. 신호 유효성 시간 제한 (5분 내 미체결 시 취소).",
+        "testStrategy": "신호 정확도 백테스트, confluence 검증 로직 테스트, 신호 생성 지연시간 측정",
+        "priority": "high",
+        "dependencies": [
+          4
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "SignalGenerator 핵심 클래스 구현",
+            "description": "ICT 패턴 조합을 통한 매매 신호 생성 로직의 핵심 클래스 구현",
+            "dependencies": [],
+            "details": "SignalGenerator 클래스 설계 및 구현. ICT 패턴(Order Block, FVG, 시장 구조) 입력을 받아 매매 신호 생성. 신호 타입(롱/숏) 결정 로직. 기본적인 신호 생성 알고리즘 구현. 패턴 조합 우선순위 정의.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 2,
+            "title": "ConfluenceValidator 다중 조건 검증 시스템",
+            "description": "최소 2-3개 confluence 요구사항을 검증하는 시스템 구현",
+            "dependencies": [
+              "5.1"
+            ],
+            "details": "ConfluenceValidator 클래스 구현. Order Block + FVG + 시장 구조 조합 검증. 최소 confluence 개수 확인 로직. 각 패턴의 신뢰도 가중치 적용. 패턴 간 시간적/공간적 일치성 검증.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 3,
+            "title": "SignalStrengthCalculator 점수화 시스템",
+            "description": "신호 강도를 0-100 점수로 계산하는 시스템 구현",
+            "dependencies": [
+              "5.2"
+            ],
+            "details": "SignalStrengthCalculator 클래스 구현. confluence 개수, 패턴 신뢰도, 시장 조건을 종합한 점수 계산. 0-100 스케일의 신호 강도 산출. 점수 가중치 조정 가능한 파라미터 시스템. 점수 기반 신호 등급 분류.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 4,
+            "title": "시간대별 바이어스 확인 및 거짓 신호 필터링",
+            "description": "시간대별 시장 바이어스 확인과 백테스트 기반 거짓 신호 필터링 로직 구현",
+            "dependencies": [
+              "5.3"
+            ],
+            "details": "시간대별 바이어스 확인 로직 구현. 아시아/런던/뉴욕 세션별 특성 반영. 백테스트 기반 임계값 설정 시스템. 거짓 신호 패턴 학습 및 필터링. 시장 변동성 기반 신호 조정.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 5,
+            "title": "SignalEvent 발행 및 가격 계산 시스템",
+            "description": "진입가, 스탑로스, 익절가를 포함한 SignalEvent 발행 시스템 구현",
+            "dependencies": [
+              "5.4"
+            ],
+            "details": "SignalEvent 클래스 정의 및 발행 로직. 진입가 계산 알고리즘. 리스크 기반 스탑로스 계산. 수익률 목표 기반 익절가 설정. 이벤트 버스를 통한 신호 전파. 신호 메타데이터 포함.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 6,
+            "title": "신호 유효성 관리 및 타임아웃 시스템",
+            "description": "신호 유효성 시간 제한과 5분 내 미체결 시 취소하는 관리 시스템 구현",
+            "dependencies": [
+              "5.5"
+            ],
+            "details": "신호 유효성 타이머 관리 시스템. 5분 유효성 시간 제한 구현. 미체결 신호 자동 취소 로직. 신호 상태 추적 및 업데이트. 만료된 신호 정리 및 알림. 유효성 시간 설정 가능한 파라미터 시스템.",
+            "status": "pending",
+            "testStrategy": ""
+          }
+        ]
+      },
+      {
+        "id": 6,
+        "title": "리스크 관리 시스템 구현",
+        "description": "포지션 크기 계산, 손실 한도 관리 및 드로우다운 제어 시스템 구축",
+        "details": "RiskManager 클래스로 종합적 위험 관리. PositionSizeCalculator: 계좌 잔고의 2% 위험 기준 포지션 크기 계산. DrawdownController: 일일 5%, 월간 15% 드로우다운 제한. ConsecutiveLossTracker: 3회 연속 손실 시 거래 중단. VolatilityFilter: ATR 기반 비정상 변동성 감지. 일일 최대 5회 거래 제한. Kelly Criterion 적용 옵션. 실시간 위험 지표 모니터링.",
+        "testStrategy": "포지션 크기 계산 정확성 테스트, 드로우다운 제한 시뮬레이션, 연속 손실 제어 검증",
+        "priority": "high",
+        "dependencies": [
+          5
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "PositionSizeCalculator 구현",
+            "description": "계좌 잔고의 2% 위험 기준으로 포지션 크기를 계산하는 모듈 개발",
+            "dependencies": [],
+            "details": "계좌 잔고 대비 2% 위험 한도 기준 포지션 크기 계산 로직 구현. Kelly Criterion 적용 옵션 포함. 스탑로스 거리와 위험 허용도를 고려한 정확한 포지션 사이즈 산출",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 2,
+            "title": "DrawdownController 구현",
+            "description": "일일 5%, 월간 15% 드로우다운 제한을 관리하는 제어 시스템 구축",
+            "dependencies": [],
+            "details": "실시간 드로우다운 모니터링 및 제한 적용. 일일/월간 손실 한도 도달 시 자동 거래 중단. 드로우다운 계산 및 복구 추적 기능",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 3,
+            "title": "ConsecutiveLossTracker 구현",
+            "description": "연속 손실 관리 및 3회 연속 손실 시 거래 중단 시스템 개발",
+            "dependencies": [],
+            "details": "연속 손실 거래 추적 및 카운팅. 3회 연속 손실 도달 시 자동 거래 중단 로직. 손실 패턴 분석 및 복구 조건 설정",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 4,
+            "title": "VolatilityFilter 구현",
+            "description": "ATR 기반 변동성 필터링 및 비정상 시장 상황 감지 시스템 구축",
+            "dependencies": [],
+            "details": "ATR(Average True Range) 기반 변동성 측정. 비정상적 변동성 감지 시 거래 제한. 일일 최대 5회 거래 제한 로직 포함",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 5,
+            "title": "RiskManager 통합 및 실시간 모니터링",
+            "description": "모든 리스크 관리 컴포넌트를 통합하고 실시간 위험 지표 모니터링 시스템 구현",
+            "dependencies": [
+              "6.1",
+              "6.2",
+              "6.3",
+              "6.4"
+            ],
+            "details": "RiskManager 클래스로 모든 리스크 컴포넌트 통합. 실시간 위험 지표 계산 및 모니터링. 위험 이벤트 발생 시 즉시 알림 및 대응 시스템",
+            "status": "pending",
+            "testStrategy": ""
+          }
+        ]
+      },
+      {
+        "id": 7,
+        "title": "주문 실행 및 포지션 관리 모듈",
+        "description": "자동 주문 실행, 포지션 모니터링 및 부분 익절 시스템 구현",
+        "details": "OrderExecutor 클래스로 주문 실행. MarketOrderManager와 LimitOrderManager로 주문 타입별 처리. PositionTracker: 실시간 미실현 손익 추적. PartialTakeProfitManager: 1:1 RR에서 50% 익절, 나머지는 1:2 RR. TrailingStopManager: 익절 구간에서 트레일링 스탑 적용. SlippageController: 슬리피지 모니터링 및 제한. OrderRetryHandler: 주문 실패 시 재시도 로직 (최대 3회).",
+        "testStrategy": "주문 실행 성능 테스트, 포지션 추적 정확성 검증, 부분 익절 로직 시뮬레이션",
+        "priority": "high",
+        "dependencies": [
+          6
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "OrderExecutor 주문 실행 엔진 구현",
+            "description": "비동기 주문 실행 엔진과 기본 주문 실행 인터페이스 구현",
+            "dependencies": [],
+            "details": "OrderExecutor 클래스 구현으로 주문 실행의 핵심 로직 제공. 비동기 주문 처리, 주문 상태 추적, 주문 검증 로직 포함. 바이낸스 API와의 안전한 통신 인터페이스 구현",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 2,
+            "title": "MarketOrderManager 및 LimitOrderManager 구현",
+            "description": "시장가 주문과 지정가 주문의 타입별 처리 관리자 구현",
+            "dependencies": [
+              "7.1"
+            ],
+            "details": "MarketOrderManager로 시장가 주문의 즉시 실행 처리. LimitOrderManager로 지정가 주문의 체결 대기 및 모니터링. 각 주문 타입별 특화된 로직과 검증 규칙 적용",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 3,
+            "title": "PositionTracker 실시간 손익 추적 시스템",
+            "description": "포지션의 실시간 미실현 손익 추적 및 상태 관리 구현",
+            "dependencies": [
+              "7.2"
+            ],
+            "details": "실시간 가격 데이터를 기반으로 포지션별 미실현 손익 계산. 포지션 상태(진입, 부분익절, 손절) 추적. 포지션 크기 및 평균 진입가 관리",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 4,
+            "title": "PartialTakeProfitManager 부분 익절 로직 구현",
+            "description": "1:1 RR에서 50% 익절, 나머지는 1:2 RR까지 유지하는 부분 익절 시스템",
+            "dependencies": [
+              "7.3"
+            ],
+            "details": "포지션 크기의 50%를 1:1 리스크 리워드 비율에서 자동 익절. 나머지 50%는 1:2 RR까지 유지하여 수익 극대화. 부분 익절 후 손절가 조정 로직 포함",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 5,
+            "title": "TrailingStopManager 트레일링 스탑 시스템",
+            "description": "익절 구간에서 수익을 보호하는 트레일링 스탑 메커니즘 구현",
+            "dependencies": [
+              "7.4"
+            ],
+            "details": "부분 익절 후 남은 포지션에 대한 트레일링 스탑 적용. 가격 움직임에 따른 동적 손절가 조정. 최대 수익 보호를 위한 스탑 레벨 관리",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 6,
+            "title": "SlippageController 및 OrderRetryHandler 구현",
+            "description": "슬리피지 모니터링과 주문 실패 시 재시도 로직 구현",
+            "dependencies": [
+              "7.5"
+            ],
+            "details": "SlippageController로 실제 체결가와 예상가의 차이 모니터링 및 허용 범위 제한. OrderRetryHandler로 주문 실패 시 최대 3회까지 자동 재시도. 네트워크 오류 및 API 제한 대응 로직",
+            "status": "pending",
+            "testStrategy": ""
+          }
+        ]
+      },
+      {
+        "id": 8,
+        "title": "Discord 알림 및 모니터링 시스템",
+        "description": "실시간 거래 알림, 시스템 상태 모니터링 및 Discord 봇 연동",
+        "details": "NotificationManager 클래스로 Discord 알림 처리. discord.py 라이브러리로 봇 구현. 알림 종류: 거래 진입/청산, 시스템 오류, 일일/주간 수익 요약. DiscordFormatter로 메시지 포맷팅 및 임베드 생성. 알림 우선순위 및 스팸 방지 로직. SystemHealthChecker: API 연결 상태, 메모리 사용량 모니터링. PerformanceReporter: 일일/주간/월간 성과 리포트 자동 생성. 알림 실패 시 로그 파일 백업.",
+        "testStrategy": "Discord 봇 연결 테스트, 알림 발송 확인, 성과 리포트 정확성 검증",
+        "priority": "medium",
+        "dependencies": [
+          7
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Discord 봇 기본 설정 및 연결",
+            "description": "discord.py 라이브러리를 사용하여 Discord 봇을 생성하고 서버에 연결하는 기본 기능 구현",
+            "dependencies": [],
+            "details": "Discord 애플리케이션 생성, 봇 토큰 설정, discord.py 클라이언트 초기화, 봇 권한 설정, 기본 연결 및 상태 확인 기능 구현",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 2,
+            "title": "NotificationManager 알림 처리 시스템",
+            "description": "거래 진입/청산, 시스템 오류, 수익 요약 등 다양한 알림을 처리하는 NotificationManager 클래스 구현",
+            "dependencies": [
+              "8.1"
+            ],
+            "details": "알림 종류별 메시지 템플릿 정의, 알림 우선순위 시스템, 스팸 방지 로직, 알림 큐 관리, 실패 시 재시도 메커니즘 구현",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 3,
+            "title": "DiscordFormatter 메시지 포맷팅",
+            "description": "Discord 임베드 및 메시지 포맷팅을 담당하는 DiscordFormatter 클래스 구현",
+            "dependencies": [
+              "8.2"
+            ],
+            "details": "거래 알림용 임베드 템플릿, 색상 코딩 시스템, 차트 이미지 첨부 기능, 메시지 길이 제한 처리, 이모지 및 포맷팅 규칙 구현",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 4,
+            "title": "SystemHealthChecker 및 PerformanceReporter 구현",
+            "description": "시스템 상태 모니터링과 성과 리포트 생성을 위한 SystemHealthChecker와 PerformanceReporter 클래스 구현",
+            "dependencies": [
+              "8.3"
+            ],
+            "details": "API 연결 상태 모니터링, 메모리 사용량 체크, 시스템 헬스 체크, 일일/주간/월간 성과 리포트 자동 생성, 알림 실패 시 로그 백업 시스템 구현",
+            "status": "pending",
+            "testStrategy": ""
+          }
+        ]
+      },
+      {
+        "id": 9,
+        "title": "설정 관리 및 로깅 시스템",
+        "description": "YAML 기반 설정 관리, 구조화된 로깅 및 환경별 설정 분리",
+        "details": "ConfigManager 클래스로 YAML 설정 파일 관리. 환경별 설정: development.yml, production.yml, testing.yml. pydantic으로 설정 검증 및 타입 체크. LogManager로 구조화된 로깅 (JSON 포맷). 로그 레벨: DEBUG, INFO, WARNING, ERROR, CRITICAL. 로그 로테이션 및 압축. 거래 이벤트 전용 트레이드 로그. 시스템 성능 메트릭 로깅. 민감 정보 마스킹 처리.",
+        "testStrategy": "설정 파일 검증 테스트, 로그 포맷 확인, 로그 로테이션 동작 검증",
+        "priority": "medium",
+        "dependencies": [
+          8
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "ConfigManager 및 YAML 설정 파일 구현",
+            "description": "YAML 기반 설정 관리 시스템과 환경별 설정 파일 구조 구현",
+            "dependencies": [],
+            "details": "ConfigManager 클래스 구현으로 YAML 설정 파일 로딩 및 관리. 환경별 설정 파일 생성: development.yml, production.yml, testing.yml. pydantic 모델을 사용한 설정 검증 및 타입 체크. 환경 변수를 통한 설정 파일 자동 선택 기능. 설정 값 캐싱 및 런타임 설정 변경 지원.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 2,
+            "title": "LogManager 구조화된 로깅 시스템 구현",
+            "description": "JSON 포맷 기반의 구조화된 로깅 시스템 및 로그 레벨 관리",
+            "dependencies": [
+              "9.1"
+            ],
+            "details": "LogManager 클래스로 구조화된 로깅 구현. JSON 포맷으로 로그 출력 및 구조화. 로그 레벨 관리: DEBUG, INFO, WARNING, ERROR, CRITICAL. 컨텍스트 정보 포함한 로그 메시지 생성. 비동기 로깅 지원으로 성능 최적화. 로그 필터링 및 조건부 로깅 기능.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 3,
+            "title": "로그 로테이션 및 압축 시스템 구현",
+            "description": "로그 파일 자동 로테이션, 압축 및 보관 정책 구현",
+            "dependencies": [
+              "9.2"
+            ],
+            "details": "시간/크기 기반 로그 로테이션 구현. 오래된 로그 파일 자동 압축 기능. 로그 보관 정책 설정 (보관 기간, 최대 파일 수). 디스크 공간 모니터링 및 자동 정리. 거래 이벤트 전용 트레이드 로그 분리 관리. 시스템 성능 메트릭 전용 로그 생성.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 4,
+            "title": "민감 정보 마스킹 및 보안 로깅 구현",
+            "description": "API 키, 계정 정보 등 민감한 데이터의 자동 마스킹 처리",
+            "dependencies": [
+              "9.2"
+            ],
+            "details": "민감 정보 자동 탐지 및 마스킹 기능 구현. API 키, 계정 번호, 개인정보 등 패턴 기반 마스킹. 로그 출력 전 민감 정보 스크러빙. 보안 감사를 위한 별도 보안 로그 생성. 마스킹 규칙 설정 파일 관리. 디버깅 모드에서의 선택적 마스킹 해제 기능.",
+            "status": "pending",
+            "testStrategy": ""
+          }
+        ]
+      },
+      {
+        "id": 10,
+        "title": "백테스팅 엔진 및 성과 분석 도구",
+        "description": "히스토리컬 데이터 기반 전략 검증 및 성과 지표 계산 시스템",
+        "details": "BacktestEngine 클래스로 히스토리컬 백테스트. 최소 6개월 데이터로 검증. PerformanceAnalyzer: 샤프 비율, 최대 드로우다운, 승률, 평균 손익비 계산. TradeAnalyzer: 거래별 상세 분석 및 패턴 인식. WalkForwardOptimizer: 워크 포워드 분석으로 파라미터 최적화. MonteCarloSimulator: 몬테카를로 시뮬레이션으로 위험 분석. 백테스트 결과 시각화를 위한 matplotlib 연동. CSV/JSON 형태 결과 내보내기.",
+        "testStrategy": "백테스트 결과 정확성 검증, 성과 지표 계산 확인, 파라미터 최적화 테스트",
+        "priority": "medium",
+        "dependencies": [
+          9
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "BacktestEngine 핵심 클래스 구현",
+            "description": "히스토리컬 데이터 기반 백테스트 실행을 위한 핵심 엔진 클래스 개발",
+            "dependencies": [],
+            "details": "BacktestEngine 클래스 구현으로 히스토리컬 데이터 로딩, 시뮬레이션 실행, 거래 실행 로직 포함. 최소 6개월 데이터 검증 로직, 시간 기반 이벤트 처리, 포지션 추적 기능 구현. pandas DataFrame 기반 데이터 처리 및 메모리 최적화.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 2,
+            "title": "PerformanceAnalyzer 성과 지표 계산 모듈",
+            "description": "샤프 비율, 최대 드로우다운, 승률 등 핵심 성과 지표 계산 시스템 구축",
+            "dependencies": [
+              "10.1"
+            ],
+            "details": "PerformanceAnalyzer 클래스로 샤프 비율, 최대 드로우다운, 승률, 평균 손익비, 연간 수익률, 변동성 계산. 벤치마크 대비 성과 비교 기능. 일별/월별/연도별 성과 분석 및 통계적 유의성 검증.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 3,
+            "title": "TradeAnalyzer 거래별 상세 분석 시스템",
+            "description": "개별 거래의 상세 분석 및 패턴 인식을 위한 분석 도구 개발",
+            "dependencies": [
+              "10.1"
+            ],
+            "details": "TradeAnalyzer 클래스로 거래별 손익 분석, 보유 기간 분석, 진입/청산 패턴 인식. 연속 손실/이익 분석, 시간대별 거래 성과, 거래 빈도 최적화 분석. 거래 품질 스코어링 시스템 구현.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 4,
+            "title": "WalkForwardOptimizer 파라미터 최적화 엔진",
+            "description": "워크 포워드 분석을 통한 전략 파라미터 동적 최적화 시스템 구현",
+            "dependencies": [
+              "10.2",
+              "10.3"
+            ],
+            "details": "WalkForwardOptimizer 클래스로 롤링 윈도우 기반 파라미터 최적화. 인샘플/아웃샘플 성과 비교, 과최적화 방지 로직. 다차원 파라미터 그리드 서치 및 유전 알고리즘 기반 최적화. 최적화 결과 안정성 검증.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 5,
+            "title": "MonteCarloSimulator 위험 분석 시뮬레이터",
+            "description": "몬테카를로 시뮬레이션을 통한 포트폴리오 위험 분석 및 확률적 성과 예측 시스템",
+            "dependencies": [
+              "10.2"
+            ],
+            "details": "MonteCarloSimulator 클래스로 확률적 수익률 시뮬레이션 실행. VaR(Value at Risk), CVaR 계산, 최대 손실 확률 분석. 부트스트랩 리샘플링 기반 성과 분포 생성. 위험 시나리오별 포트폴리오 스트레스 테스트.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 6,
+            "title": "백테스트 결과 시각화 및 내보내기 시스템",
+            "description": "백테스트 결과의 시각적 표현 및 다양한 형식으로 결과 내보내기 기능 구현",
+            "dependencies": [
+              "10.2",
+              "10.3",
+              "10.4",
+              "10.5"
+            ],
+            "details": "matplotlib 기반 수익률 곡선, 드로우다운 차트, 거래 분포 시각화. 대화형 차트를 위한 plotly 연동. CSV/JSON/Excel 형식 결과 내보내기. 성과 리포트 자동 생성 및 PDF 출력 기능. 웹 대시보드용 API 엔드포인트 제공.",
+            "status": "pending",
+            "testStrategy": ""
+          }
+        ]
+      },
+      {
+        "id": 11,
+        "title": "전략 추상화 및 확장 프레임워크",
+        "description": "다양한 매매 전략을 플러그인 형태로 추가할 수 있는 확장 가능한 프레임워크",
+        "details": "AbstractStrategy 기본 클래스로 전략 인터페이스 정의. ICTStrategy 클래스로 ICT 전략 구현. TraditionalIndicatorStrategy로 RSI, MACD 등 전통 지표 전략. StrategyRegistry로 전략 등록 및 선택. StrategySelector로 실시간 전략 교체. 전략별 파라미터 검증 및 최적화. StrategyPerformanceTracker로 전략별 성과 추적. A/B 테스팅을 위한 StrategyComparator. 전략 변경 시 다른 컴포넌트 영향 최소화.",
+        "testStrategy": "전략 교체 테스트, 플러그인 로딩 검증, 전략별 성과 비교 확인",
+        "priority": "medium",
+        "dependencies": [
+          10
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 12,
+        "title": "시스템 통합 및 배포 준비",
+        "description": "전체 시스템 통합 테스트, 배포 자동화 및 운영 환경 설정",
+        "details": "SystemIntegrator로 모든 컴포넌트 통합. Docker 컨테이너화로 일관된 배포 환경. docker-compose.yml로 서비스 오케스트레이션. Vultr VM 자동 설정 스크립트. systemd 서비스 등록으로 자동 시작/재시작. 헬스체크 엔드포인트 구현. 로그 집중화를 위한 로그 수집기. 배포 전 통합 테스트 자동화. 프로덕션 환경 모니터링 대시보드. 긴급 정지 및 복구 절차 문서화.",
+        "testStrategy": "End-to-End 통합 테스트, 배포 프로세스 검증, 시스템 복구 시나리오 테스트",
+        "priority": "high",
+        "dependencies": [
+          11
+        ],
+        "status": "pending",
+        "subtasks": []
+      }
+    ],
+    "metadata": {
+      "created": "2025-09-27T09:52:28.484Z",
+      "updated": "2025-09-27T14:28:50.911Z",
+      "description": "Tasks for master context"
+    }
+  }
+}

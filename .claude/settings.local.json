@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__task-master-ai__parse_prd",
+      "Bash(task-master analyze-complexity:*)",
+      "Bash(task-master:*)",
+      "mcp__task-master-ai__get_task",
+      "Bash(source:*)",
+      "Bash(pip install:*)",
+      "Bash(mkdir:*)",
+      "Bash(touch:*)"
+    ]
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "task-master-ai"
+  ]
+}
