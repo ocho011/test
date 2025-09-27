@@ -13,6 +13,7 @@ from typing import Any, Dict, Optional, Union
 from uuid import UUID, uuid4
 
 from pydantic import BaseModel, Field, validator
+from typing import Literal
 
 
 class EventType(Enum):
@@ -62,7 +63,7 @@ class MarketDataEvent(BaseEvent):
     throughout the trading system.
     """
 
-    event_type: EventType = Field(default=EventType.MARKET_DATA, const=True)
+    event_type: Literal[EventType.MARKET_DATA] = Field(default=EventType.MARKET_DATA)
     symbol: str = Field(..., description="Trading symbol (e.g., BTCUSDT)")
     price: Decimal = Field(..., description="Current price")
     volume: Decimal = Field(..., description="Volume in base currency")
@@ -97,7 +98,7 @@ class SignalEvent(BaseEvent):
     for strategy execution.
     """
 
-    event_type: EventType = Field(default=EventType.SIGNAL, const=True)
+    event_type: Literal[EventType.SIGNAL] = Field(default=EventType.SIGNAL)
     symbol: str = Field(..., description="Trading symbol")
     signal_type: SignalType = Field(..., description="Type of trading signal")
     confidence: float = Field(..., ge=0.0, le=1.0, description="Signal confidence (0-1)")
@@ -141,7 +142,7 @@ class OrderEvent(BaseEvent):
     with complete audit trail.
     """
 
-    event_type: EventType = Field(default=EventType.ORDER, const=True)
+    event_type: Literal[EventType.ORDER] = Field(default=EventType.ORDER)
     order_id: Optional[str] = Field(None, description="Exchange order ID")
     client_order_id: str = Field(..., description="Client-side order ID")
     symbol: str = Field(..., description="Trading symbol")
@@ -189,7 +190,7 @@ class RiskEvent(BaseEvent):
     and other risk-related system events.
     """
 
-    event_type: EventType = Field(default=EventType.RISK, const=True)
+    event_type: Literal[EventType.RISK] = Field(default=EventType.RISK)
     risk_type: RiskEventType = Field(..., description="Type of risk event")
     severity: RiskSeverity = Field(..., description="Risk severity level")
     symbol: Optional[str] = Field(None, description="Affected trading symbol")

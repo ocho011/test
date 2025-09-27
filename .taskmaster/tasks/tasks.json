@@ -138,7 +138,7 @@
         "dependencies": [
           2
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -146,7 +146,7 @@
             "description": "python-binance 라이브러리를 래핑하는 BinanceClient 클래스 구현",
             "dependencies": [],
             "details": "python-binance 라이브러리를 래핑하여 선물 거래소 API 인터페이스 제공. 비동기 메서드로 시장 데이터 요청, 주문 관리, 계정 정보 조회 기능 구현. 에러 핸들링 및 로깅 기능 포함",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -157,7 +157,7 @@
               "3.1"
             ],
             "details": "5분, 15분, 4시간, 일봉 캔들 데이터를 WebSocket으로 실시간 수신. MarketDataProvider 컴포넌트로 데이터 정규화 및 이벤트 발행. 멀티플 심볼 동시 구독 지원",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -168,7 +168,7 @@
               "3.2"
             ],
             "details": "네트워크 연결 장애 시 exponential backoff 알고리즘으로 재연결 시도. 최대 재시도 횟수 및 대기 시간 설정 가능. 연결 상태 모니터링 및 알림 기능",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -179,7 +179,7 @@
               "3.1"
             ],
             "details": "분당 1200 요청 제한 준수를 위한 레이트 리미터 구현. asyncio.Semaphore로 동시 요청 수 제한. 요청 우선순위 큐 및 대기열 관리",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -190,7 +190,7 @@
               "3.1"
             ],
             "details": "파일 시스템 기반 히스토리컬 캔들 데이터 캐싱. 데이터 무결성 검증 및 중복 제거. 압축 저장으로 디스크 사용량 최적화. 캐시 만료 정책 및 자동 정리 기능",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           }
         ]
@@ -731,7 +731,7 @@
     ],
     "metadata": {
       "created": "2025-09-27T09:52:28.484Z",
-      "updated": "2025-09-27T14:42:39.594Z",
+      "updated": "2025-09-27T15:04:36.892Z",
       "description": "Tasks for master context"
     }
   }
