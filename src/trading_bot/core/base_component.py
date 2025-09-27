@@ -14,6 +14,7 @@ from typing import Optional
 
 class ComponentState(Enum):
     """Component lifecycle states."""
+
     INITIALIZED = "initialized"
     STARTING = "starting"
     RUNNING = "running"
@@ -181,4 +182,6 @@ class BaseComponent(ABC):
 
     def __repr__(self) -> str:
         """String representation of the component."""
-        return f"{self.__class__.__name__}(name='{self.name}', state={self.state.value})"
+        return (
+            f"{self.__class__.__name__}(name='{self.name}', state={self.state.value})"
+        )

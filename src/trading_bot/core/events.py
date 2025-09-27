@@ -9,15 +9,15 @@ from abc import ABC
 from datetime import datetime
 from decimal import Decimal
 from enum import Enum
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, Literal, Optional, Union
 from uuid import UUID, uuid4
 
 from pydantic import BaseModel, Field, validator
-from typing import Literal
 
 
 class EventType(Enum):
     """Enumeration of all event types in the system."""
+
     MARKET_DATA = "market_data"
     SIGNAL = "signal"
     ORDER = "order"
@@ -26,6 +26,7 @@ class EventType(Enum):
 
 class EventPriority(Enum):
     """Event priority levels for processing order."""
+
     LOW = 1
     NORMAL = 2
     HIGH = 3
@@ -42,16 +43,22 @@ class BaseEvent(BaseModel, ABC):
 
     event_id: UUID = Field(default_factory=uuid4, description="Unique event identifier")
     event_type: EventType = Field(..., description="Type of event")
-    timestamp: datetime = Field(default_factory=datetime.utcnow, description="Event creation timestamp")
-    priority: EventPriority = Field(default=EventPriority.NORMAL, description="Event processing priority")
+    timestamp: datetime = Field(
+        default_factory=datetime.utcnow, description="Event creation timestamp"
+    )
+    priority: EventPriority = Field(
+        default=EventPriority.NORMAL, description="Event processing priority"
+    )
     source: str = Field(..., description="Component that generated this event")
-    metadata: Dict[str, Any] = Field(default_factory=dict, description="Additional event metadata")
+    metadata: Dict[str, Any] = Field(
+        default_factory=dict, description="Additional event metadata"
+    )
 
     class Config:
         json_encoders = {
             datetime: lambda dt: dt.isoformat(),
             Decimal: lambda d: str(d),
-            UUID: lambda u: str(u)
+            UUID: lambda u: str(u),
         }
 
 
@@ -69,12 +76,29 @@ class MarketDataEvent(BaseEvent):
     volume: Decimal = Field(..., description="Volume in base currency")
     bid: Optional[Decimal] = Field(None, description="Best bid price")
     ask: Optional[Decimal] = Field(None, description="Best ask price")
-    open_price: Optional[Decimal] = Field(None, description="Opening price for the period")
-    high_price: Optional[Decimal] = Field(None, description="Highest price for the period")
-    low_price: Optional[Decimal] = Field(None, description="Lowest price for the period")
-    close_price: Optional[Decimal] = Field(None, description="Closing price for the period")
+    open_price: Optional[Decimal] = Field(
+        None, description="Opening price for the period"
+    )
+    high_price: Optional[Decimal] = Field(
+        None, description="Highest price for the period"
+    )
+    low_price: Optional[Decimal] = Field(
+        None, description="Lowest price for the period"
+    )
+    close_price: Optional[Decimal] = Field(
+        None, description="Closing price for the period"
+    )
 
-    @validator('price', 'volume', 'bid', 'ask', 'open_price', 'high_price', 'low_price', 'close_price')
+    @validator(
+        "price",
+        "volume",
+        "bid",
+        "ask",
+        "open_price",
+        "high_price",
+        "low_price",
+        "close_price",
+    )
     def validate_positive_values(cls, v):
         if v is not None and v < 0:
             raise ValueError("Price and volume values must be non-negative")
@@ -83,6 +107,7 @@ class MarketDataEvent(BaseEvent):
 
 class SignalType(Enum):
     """Trading signal types."""
+
     BUY = "buy"
     SELL = "sell"
     HOLD = "hold"
@@ -101,23 +126,29 @@ class SignalEvent(BaseEvent):
     event_type: Literal[EventType.SIGNAL] = Field(default=EventType.SIGNAL)
     symbol: str = Field(..., description="Trading symbol")
     signal_type: SignalType = Field(..., description="Type of trading signal")
-    confidence: float = Field(..., ge=0.0, le=1.0, description="Signal confidence (0-1)")
+    confidence: float = Field(
+        ..., ge=0.0, le=1.0, description="Signal confidence (0-1)"
+    )
     entry_price: Optional[Decimal] = Field(None, description="Suggested entry price")
     stop_loss: Optional[Decimal] = Field(None, description="Stop loss price")
     take_profit: Optional[Decimal] = Field(None, description="Take profit price")
     quantity: Optional[Decimal] = Field(None, description="Suggested position size")
-    strategy_name: str = Field(..., description="Name of strategy that generated signal")
+    strategy_name: str = Field(
+        ..., description="Name of strategy that generated signal"
+    )
     reasoning: Optional[str] = Field(None, description="Strategy reasoning for signal")
 
 
 class OrderSide(Enum):
     """Order side enumeration."""
+
     BUY = "buy"
     SELL = "sell"
 
 
 class OrderType(Enum):
     """Order type enumeration."""
+
     MARKET = "market"
     LIMIT = "limit"
     STOP = "stop"
@@ -126,6 +157,7 @@ class OrderType(Enum):
 
 class OrderStatus(Enum):
     """Order status enumeration."""
+
     PENDING = "pending"
     SUBMITTED = "submitted"
     PARTIALLY_FILLED = "partially_filled"
@@ -150,14 +182,20 @@ class OrderEvent(BaseEvent):
     order_type: OrderType = Field(..., description="Order type")
     quantity: Decimal = Field(..., gt=0, description="Order quantity")
     price: Optional[Decimal] = Field(None, description="Order price (for limit orders)")
-    stop_price: Optional[Decimal] = Field(None, description="Stop price (for stop orders)")
-    status: OrderStatus = Field(default=OrderStatus.PENDING, description="Current order status")
-    filled_quantity: Decimal = Field(default=Decimal('0'), description="Filled quantity")
+    stop_price: Optional[Decimal] = Field(
+        None, description="Stop price (for stop orders)"
+    )
+    status: OrderStatus = Field(
+        default=OrderStatus.PENDING, description="Current order status"
+    )
+    filled_quantity: Decimal = Field(
+        default=Decimal("0"), description="Filled quantity"
+    )
     average_price: Optional[Decimal] = Field(None, description="Average fill price")
-    commission: Decimal = Field(default=Decimal('0'), description="Trading commission")
+    commission: Decimal = Field(default=Decimal("0"), description="Trading commission")
     commission_asset: Optional[str] = Field(None, description="Commission currency")
 
-    @validator('quantity', 'filled_quantity', 'commission')
+    @validator("quantity", "filled_quantity", "commission")
     def validate_non_negative(cls, v):
         if v < 0:
             raise ValueError("Quantities and commission must be non-negative")
@@ -166,6 +204,7 @@ class OrderEvent(BaseEvent):
 
 class RiskEventType(Enum):
     """Risk event types."""
+
     POSITION_LIMIT = "position_limit"
     DRAWDOWN_LIMIT = "drawdown_limit"
     EXPOSURE_LIMIT = "exposure_limit"
@@ -176,6 +215,7 @@ class RiskEventType(Enum):
 
 class RiskSeverity(Enum):
     """Risk severity levels."""
+
     INFO = "info"
     WARNING = "warning"
     CRITICAL = "critical"
@@ -194,11 +234,17 @@ class RiskEvent(BaseEvent):
     risk_type: RiskEventType = Field(..., description="Type of risk event")
     severity: RiskSeverity = Field(..., description="Risk severity level")
     symbol: Optional[str] = Field(None, description="Affected trading symbol")
-    current_value: Union[Decimal, float] = Field(..., description="Current risk metric value")
+    current_value: Union[Decimal, float] = Field(
+        ..., description="Current risk metric value"
+    )
     limit_value: Union[Decimal, float] = Field(..., description="Risk limit threshold")
     description: str = Field(..., description="Human-readable risk description")
-    action_required: bool = Field(default=False, description="Whether immediate action is required")
-    suggested_action: Optional[str] = Field(None, description="Suggested risk mitigation action")
+    action_required: bool = Field(
+        default=False, description="Whether immediate action is required"
+    )
+    suggested_action: Optional[str] = Field(
+        None, description="Suggested risk mitigation action"
+    )
 
 
 # Event type mapping for deserialization
@@ -224,7 +270,7 @@ def create_event_from_dict(event_data: Dict[str, Any]) -> BaseEvent:
         ValueError: If event_type is unknown or data is invalid
     """
     try:
-        event_type = EventType(event_data.get('event_type'))
+        event_type = EventType(event_data.get("event_type"))
         event_class = EVENT_TYPE_MAPPING[event_type]
         return event_class(**event_data)
     except (ValueError, KeyError) as e:

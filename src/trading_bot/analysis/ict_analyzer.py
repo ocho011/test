@@ -8,18 +8,20 @@ This module implements ICT trading concepts including:
 - Multi-timeframe Management (TimeFrameManager)
 """
 
-import numpy as np
-import pandas as pd
-from typing import List, Dict, Optional, Tuple, Union
+import logging
 from dataclasses import dataclass
 from enum import Enum
-import logging
+from typing import Dict, List, Optional, Tuple, Union
+
+import numpy as np
+import pandas as pd
 
 logger = logging.getLogger(__name__)
 
 
 class PatternType(Enum):
     """ICT Pattern Types"""
+
     ORDER_BLOCK = "order_block"
     FAIR_VALUE_GAP = "fair_value_gap"
     BREAK_OF_STRUCTURE = "break_of_structure"
@@ -28,6 +30,7 @@ class PatternType(Enum):
 
 class TrendDirection(Enum):
     """Market Trend Direction"""
+
     BULLISH = "bullish"
     BEARISH = "bearish"
     NEUTRAL = "neutral"
@@ -36,6 +39,7 @@ class TrendDirection(Enum):
 @dataclass
 class SwingPoint:
     """Represents a swing high or swing low point"""
+
     index: int
     price: float
     timestamp: pd.Timestamp
@@ -46,6 +50,7 @@ class SwingPoint:
 @dataclass
 class OrderBlock:
     """Represents an Order Block pattern"""
+
     start_index: int
     end_index: int
     high_price: float
@@ -60,6 +65,7 @@ class OrderBlock:
 @dataclass
 class FairValueGap:
     """Represents a Fair Value Gap pattern"""
+
     start_index: int
     end_index: int
     gap_high: float
@@ -105,8 +111,8 @@ class OrderBlockDetector:
             return []
 
         swing_points = []
-        highs = data['high'].values
-        lows = data['low'].values
+        highs = data["high"].values
+        lows = data["low"].values
         timestamps = data.index
 
         # Find swing highs
@@ -118,20 +124,24 @@ class OrderBlockDetector:
             if highs[i] == np.max(highs[window_start:window_end]):
                 # Confirm swing high with additional bars
                 confirmation_bars = 0
-                for j in range(i + 1, min(i + self.min_confirmation_bars + 1, len(data))):
+                for j in range(
+                    i + 1, min(i + self.min_confirmation_bars + 1, len(data))
+                ):
                     if highs[j] < highs[i]:
                         confirmation_bars += 1
                     else:
                         break
 
                 if confirmation_bars >= self.min_confirmation_bars:
-                    swing_points.append(SwingPoint(
-                        index=i,
-                        price=highs[i],
-                        timestamp=timestamps[i],
-                        is_high=True,
-                        confirmation_bars=confirmation_bars
-                    ))
+                    swing_points.append(
+                        SwingPoint(
+                            index=i,
+                            price=highs[i],
+                            timestamp=timestamps[i],
+                            is_high=True,
+                            confirmation_bars=confirmation_bars,
+                        )
+                    )
 
         # Find swing lows
         for i in range(self.lookback_period, len(data) - self.lookback_period):
@@ -141,24 +151,30 @@ class OrderBlockDetector:
             if lows[i] == np.min(lows[window_start:window_end]):
                 # Confirm swing low with additional bars
                 confirmation_bars = 0
-                for j in range(i + 1, min(i + self.min_confirmation_bars + 1, len(data))):
+                for j in range(
+                    i + 1, min(i + self.min_confirmation_bars + 1, len(data))
+                ):
                     if lows[j] > lows[i]:
                         confirmation_bars += 1
                     else:
                         break
 
                 if confirmation_bars >= self.min_confirmation_bars:
-                    swing_points.append(SwingPoint(
-                        index=i,
-                        price=lows[i],
-                        timestamp=timestamps[i],
-                        is_high=False,
-                        confirmation_bars=confirmation_bars
-                    ))
+                    swing_points.append(
+                        SwingPoint(
+                            index=i,
+                            price=lows[i],
+                            timestamp=timestamps[i],
+                            is_high=False,
+                            confirmation_bars=confirmation_bars,
+                        )
+                    )
 
         return sorted(swing_points, key=lambda x: x.index)
 
-    def identify_order_blocks(self, data: pd.DataFrame, swing_points: List[SwingPoint]) -> List[OrderBlock]:
+    def identify_order_blocks(
+        self, data: pd.DataFrame, swing_points: List[SwingPoint]
+    ) -> List[OrderBlock]:
         """
         Identify Order Blocks from swing points
 
@@ -177,16 +193,22 @@ class OrderBlockDetector:
 
             if displacement_candle is not None:
                 # Find the last opposite colored candle before displacement
-                order_block_candle = self._find_order_block_candle(data, swing_point, displacement_candle)
+                order_block_candle = self._find_order_block_candle(
+                    data, swing_point, displacement_candle
+                )
 
                 if order_block_candle is not None:
-                    order_block = self._create_order_block(data, swing_point, order_block_candle)
+                    order_block = self._create_order_block(
+                        data, swing_point, order_block_candle
+                    )
                     if order_block:
                         order_blocks.append(order_block)
 
         return order_blocks
 
-    def _find_displacement_candle(self, data: pd.DataFrame, swing_point: SwingPoint) -> Optional[int]:
+    def _find_displacement_candle(
+        self, data: pd.DataFrame, swing_point: SwingPoint
+    ) -> Optional[int]:
         """
         Find the candle that broke through the swing point (displacement)
 
@@ -203,17 +225,18 @@ class OrderBlockDetector:
         for i in range(start_search, max_search):
             if swing_point.is_high:
                 # For swing high, look for bullish break (close above swing high)
-                if data.iloc[i]['close'] > swing_point.price:
+                if data.iloc[i]["close"] > swing_point.price:
                     return i
             else:
                 # For swing low, look for bearish break (close below swing low)
-                if data.iloc[i]['close'] < swing_point.price:
+                if data.iloc[i]["close"] < swing_point.price:
                     return i
 
         return None
 
-    def _find_order_block_candle(self, data: pd.DataFrame, swing_point: SwingPoint,
-                                displacement_index: int) -> Optional[int]:
+    def _find_order_block_candle(
+        self, data: pd.DataFrame, swing_point: SwingPoint, displacement_index: int
+    ) -> Optional[int]:
         """
         Find the order block candle (last opposite candle before displacement)
 
@@ -226,12 +249,14 @@ class OrderBlockDetector:
             Index of order block candle or None
         """
         displacement_candle = data.iloc[displacement_index]
-        is_displacement_bullish = displacement_candle['close'] > displacement_candle['open']
+        is_displacement_bullish = (
+            displacement_candle["close"] > displacement_candle["open"]
+        )
 
         # Look backwards from displacement to find last opposite colored candle
         for i in range(displacement_index - 1, swing_point.index - 1, -1):
             candle = data.iloc[i]
-            is_candle_bullish = candle['close'] > candle['open']
+            is_candle_bullish = candle["close"] > candle["open"]
 
             # If displacement is bullish, look for last bearish candle
             # If displacement is bearish, look for last bullish candle
@@ -242,8 +267,9 @@ class OrderBlockDetector:
 
         return None
 
-    def _create_order_block(self, data: pd.DataFrame, swing_point: SwingPoint,
-                           order_block_index: int) -> Optional[OrderBlock]:
+    def _create_order_block(
+        self, data: pd.DataFrame, swing_point: SwingPoint, order_block_index: int
+    ) -> Optional[OrderBlock]:
         """
         Create OrderBlock object from identified candle
 
@@ -259,28 +285,35 @@ class OrderBlockDetector:
             ob_candle = data.iloc[order_block_index]
 
             # Determine direction based on swing point type
-            direction = TrendDirection.BULLISH if not swing_point.is_high else TrendDirection.BEARISH
+            direction = (
+                TrendDirection.BULLISH
+                if not swing_point.is_high
+                else TrendDirection.BEARISH
+            )
 
             # Calculate confidence based on various factors
-            confidence = self._calculate_order_block_confidence(data, swing_point, order_block_index)
+            confidence = self._calculate_order_block_confidence(
+                data, swing_point, order_block_index
+            )
 
             return OrderBlock(
                 start_index=order_block_index,
                 end_index=order_block_index,  # Single candle order block
-                high_price=float(ob_candle['high']),
-                low_price=float(ob_candle['low']),
+                high_price=float(ob_candle["high"]),
+                low_price=float(ob_candle["low"]),
                 timestamp=ob_candle.name,
                 direction=direction,
                 confidence=confidence,
-                is_valid=True
+                is_valid=True,
             )
 
         except Exception as e:
             self.logger.error(f"Error creating order block: {e}")
             return None
 
-    def _calculate_order_block_confidence(self, data: pd.DataFrame, swing_point: SwingPoint,
-                                        order_block_index: int) -> float:
+    def _calculate_order_block_confidence(
+        self, data: pd.DataFrame, swing_point: SwingPoint, order_block_index: int
+    ) -> float:
         """
         Calculate confidence score for order block
 
@@ -300,19 +333,21 @@ class OrderBlockDetector:
 
         # Factor 2: Order block candle size relative to recent average
         ob_candle = data.iloc[order_block_index]
-        candle_size = abs(ob_candle['high'] - ob_candle['low'])
+        candle_size = abs(ob_candle["high"] - ob_candle["low"])
 
         # Calculate average candle size for last 20 periods
-        recent_data = data.iloc[max(0, order_block_index - 20):order_block_index]
+        recent_data = data.iloc[max(0, order_block_index - 20) : order_block_index]
         if len(recent_data) > 0:
-            avg_size = (recent_data['high'] - recent_data['low']).mean()
+            avg_size = (recent_data["high"] - recent_data["low"]).mean()
             size_factor = min(candle_size / avg_size, 2.0) / 2.0  # Normalize to 0-1
             confidence_factors.append(size_factor)
 
         # Factor 3: Volume confirmation (if available)
-        if 'volume' in data.columns:
-            ob_volume = ob_candle['volume']
-            recent_avg_volume = data.iloc[max(0, order_block_index - 20):order_block_index]['volume'].mean()
+        if "volume" in data.columns:
+            ob_volume = ob_candle["volume"]
+            recent_avg_volume = data.iloc[
+                max(0, order_block_index - 20) : order_block_index
+            ]["volume"].mean()
             if recent_avg_volume > 0:
                 volume_factor = min(ob_volume / recent_avg_volume, 3.0) / 3.0
                 confidence_factors.append(volume_factor)
@@ -356,7 +391,9 @@ class FairValueGapAnalyzer:
     and the low of another candle, with a candle in between that doesn't overlap.
     """
 
-    def __init__(self, min_gap_size_pips: float = 5.0, invalidation_threshold: float = 0.5):
+    def __init__(
+        self, min_gap_size_pips: float = 5.0, invalidation_threshold: float = 0.5
+    ):
         """
         Initialize FairValueGapAnalyzer
 
@@ -396,7 +433,9 @@ class FairValueGapAnalyzer:
 
         return gaps
 
-    def _check_bullish_gap(self, data: pd.DataFrame, middle_index: int) -> Optional[FairValueGap]:
+    def _check_bullish_gap(
+        self, data: pd.DataFrame, middle_index: int
+    ) -> Optional[FairValueGap]:
         """
         Check for bullish Fair Value Gap at given index
 
@@ -413,12 +452,14 @@ class FairValueGapAnalyzer:
             right_candle = data.iloc[middle_index + 1]
 
             # For bullish FVG: left.high < right.low with middle candle not filling the gap
-            if (left_candle['high'] < right_candle['low'] and
-                middle_candle['low'] > left_candle['high'] and
-                middle_candle['high'] < right_candle['low']):
+            if (
+                left_candle["high"] < right_candle["low"]
+                and middle_candle["low"] > left_candle["high"]
+                and middle_candle["high"] < right_candle["low"]
+            ):
 
-                gap_low = left_candle['high']
-                gap_high = right_candle['low']
+                gap_low = left_candle["high"]
+                gap_high = right_candle["low"]
                 gap_size = gap_high - gap_low
 
                 # Check minimum gap size
@@ -432,7 +473,7 @@ class FairValueGapAnalyzer:
                         direction=TrendDirection.BULLISH,
                         gap_size=gap_size,
                         is_filled=False,
-                        fill_percentage=0.0
+                        fill_percentage=0.0,
                     )
 
         except Exception as e:
@@ -440,7 +481,9 @@ class FairValueGapAnalyzer:
 
         return None
 
-    def _check_bearish_gap(self, data: pd.DataFrame, middle_index: int) -> Optional[FairValueGap]:
+    def _check_bearish_gap(
+        self, data: pd.DataFrame, middle_index: int
+    ) -> Optional[FairValueGap]:
         """
         Check for bearish Fair Value Gap at given index
 
@@ -457,12 +500,14 @@ class FairValueGapAnalyzer:
             right_candle = data.iloc[middle_index + 1]
 
             # For bearish FVG: left.low > right.high with middle candle not filling the gap
-            if (left_candle['low'] > right_candle['high'] and
-                middle_candle['high'] < left_candle['low'] and
-                middle_candle['low'] > right_candle['high']):
+            if (
+                left_candle["low"] > right_candle["high"]
+                and middle_candle["high"] < left_candle["low"]
+                and middle_candle["low"] > right_candle["high"]
+            ):
 
-                gap_high = left_candle['low']
-                gap_low = right_candle['high']
+                gap_high = left_candle["low"]
+                gap_low = right_candle["high"]
                 gap_size = gap_high - gap_low
 
                 # Check minimum gap size
@@ -476,7 +521,7 @@ class FairValueGapAnalyzer:
                         direction=TrendDirection.BEARISH,
                         gap_size=gap_size,
                         is_filled=False,
-                        fill_percentage=0.0
+                        fill_percentage=0.0,
                     )
 
         except Exception as e:
@@ -495,7 +540,7 @@ class FairValueGapAnalyzer:
             Estimated pip value
         """
         # Simple estimation based on price level
-        avg_price = data['close'].mean()
+        avg_price = data["close"].mean()
         if avg_price > 100:  # Likely JPY pair or stock
             return 0.01
         elif avg_price > 1:  # Major currency pairs
@@ -503,7 +548,9 @@ class FairValueGapAnalyzer:
         else:  # Crypto or other
             return avg_price * 0.0001
 
-    def update_gap_status(self, gaps: List[FairValueGap], current_data: pd.DataFrame) -> List[FairValueGap]:
+    def update_gap_status(
+        self, gaps: List[FairValueGap], current_data: pd.DataFrame
+    ) -> List[FairValueGap]:
         """
         Update the fill status of existing gaps
 
@@ -533,7 +580,9 @@ class FairValueGapAnalyzer:
 
         return updated_gaps
 
-    def _calculate_fill_percentage(self, gap: FairValueGap, data: pd.DataFrame) -> float:
+    def _calculate_fill_percentage(
+        self, gap: FairValueGap, data: pd.DataFrame
+    ) -> float:
         """
         Calculate how much of the gap has been filled
 
@@ -558,7 +607,7 @@ class FairValueGapAnalyzer:
 
             if gap.direction == TrendDirection.BULLISH:
                 # For bullish gap, check how far price has moved back down into the gap
-                lowest_fill = post_gap_data['low'].min()
+                lowest_fill = post_gap_data["low"].min()
                 if lowest_fill >= gap.gap_high:
                     return 0.0
                 elif lowest_fill <= gap.gap_low:
@@ -569,7 +618,7 @@ class FairValueGapAnalyzer:
 
             else:  # Bearish gap
                 # For bearish gap, check how far price has moved back up into the gap
-                highest_fill = post_gap_data['high'].max()
+                highest_fill = post_gap_data["high"].max()
                 if highest_fill <= gap.gap_low:
                     return 0.0
                 elif highest_fill >= gap.gap_high:
@@ -582,7 +631,9 @@ class FairValueGapAnalyzer:
             self.logger.error(f"Error calculating fill percentage: {e}")
             return 0.0
 
-    def analyze(self, data: pd.DataFrame, existing_gaps: Optional[List[FairValueGap]] = None) -> List[FairValueGap]:
+    def analyze(
+        self, data: pd.DataFrame, existing_gaps: Optional[List[FairValueGap]] = None
+    ) -> List[FairValueGap]:
         """
         Main analysis method to detect and update Fair Value Gaps
 
@@ -618,15 +669,20 @@ class FairValueGapAnalyzer:
 @dataclass
 class MarketStructure:
     """Represents market structure information"""
+
     structure_type: str  # "BOS" or "CHoCH"
     direction: TrendDirection
     break_level: float
     break_index: int
     timestamp: pd.Timestamp
-    previous_structure: Optional['MarketStructure'] = None
+    previous_structure: Optional["MarketStructure"] = None
     strength: float = 0.0
-    pattern_type: str = "market_structure"  # Add pattern_type for validation compatibility
-    confidence_score: float = 0.8  # Add confidence_score for signal generation compatibility
+    pattern_type: str = (
+        "market_structure"  # Add pattern_type for validation compatibility
+    )
+    confidence_score: float = (
+        0.8  # Add confidence_score for signal generation compatibility
+    )
     break_price: float = None  # Add break_price alias for compatibility
 
     def __post_init__(self):
@@ -658,7 +714,9 @@ class MarketStructureAnalyzer:
         self.last_swing_high = None
         self.last_swing_low = None
 
-    def analyze_structure(self, data: pd.DataFrame, swing_points: List[SwingPoint]) -> List[MarketStructure]:
+    def analyze_structure(
+        self, data: pd.DataFrame, swing_points: List[SwingPoint]
+    ) -> List[MarketStructure]:
         """
         Analyze market structure changes from swing points
 
@@ -693,9 +751,14 @@ class MarketStructureAnalyzer:
 
         return structures
 
-    def _analyze_swing_break(self, data: pd.DataFrame, current_swing: SwingPoint,
-                           previous_swing: SwingPoint, current_trend: TrendDirection,
-                           historical_swings: List[SwingPoint]) -> Optional[MarketStructure]:
+    def _analyze_swing_break(
+        self,
+        data: pd.DataFrame,
+        current_swing: SwingPoint,
+        previous_swing: SwingPoint,
+        current_trend: TrendDirection,
+        historical_swings: List[SwingPoint],
+    ) -> Optional[MarketStructure]:
         """
         Analyze if current swing breaks structure
 
@@ -723,7 +786,10 @@ class MarketStructureAnalyzer:
                 # Check if current high breaks previous high
                 if current_swing.price > last_high.price + self.min_structure_size:
                     # Determine if BOS or CHoCH
-                    if current_trend == TrendDirection.BULLISH or current_trend == TrendDirection.NEUTRAL:
+                    if (
+                        current_trend == TrendDirection.BULLISH
+                        or current_trend == TrendDirection.NEUTRAL
+                    ):
                         structure_type = "BOS"  # Break of Structure (continuation)
                         direction = TrendDirection.BULLISH
                     else:
@@ -738,7 +804,7 @@ class MarketStructureAnalyzer:
                         timestamp=current_swing.timestamp,
                         strength=self._calculate_structure_strength(
                             current_swing, last_high, data
-                        )
+                        ),
                     )
 
             else:
@@ -753,7 +819,10 @@ class MarketStructureAnalyzer:
                 # Check if current low breaks previous low
                 if current_swing.price < last_low.price - self.min_structure_size:
                     # Determine if BOS or CHoCH
-                    if current_trend == TrendDirection.BEARISH or current_trend == TrendDirection.NEUTRAL:
+                    if (
+                        current_trend == TrendDirection.BEARISH
+                        or current_trend == TrendDirection.NEUTRAL
+                    ):
                         structure_type = "BOS"  # Break of Structure (continuation)
                         direction = TrendDirection.BEARISH
                     else:
@@ -768,7 +837,7 @@ class MarketStructureAnalyzer:
                         timestamp=current_swing.timestamp,
                         strength=self._calculate_structure_strength(
                             current_swing, last_low, data
-                        )
+                        ),
                     )
 
         except Exception as e:
@@ -776,8 +845,9 @@ class MarketStructureAnalyzer:
 
         return None
 
-    def _calculate_structure_strength(self, breaking_swing: SwingPoint,
-                                    broken_swing: SwingPoint, data: pd.DataFrame) -> float:
+    def _calculate_structure_strength(
+        self, breaking_swing: SwingPoint, broken_swing: SwingPoint, data: pd.DataFrame
+    ) -> float:
         """
         Calculate the strength of structure break
 
@@ -805,9 +875,11 @@ class MarketStructureAnalyzer:
                 strength_factors.append(size_factor)
 
             # Factor 2: Volume confirmation (if available)
-            if 'volume' in data.columns:
-                breaking_volume = data.iloc[breaking_swing.index]['volume']
-                avg_volume = data.iloc[max(0, breaking_swing.index - 20):breaking_swing.index]['volume'].mean()
+            if "volume" in data.columns:
+                breaking_volume = data.iloc[breaking_swing.index]["volume"]
+                avg_volume = data.iloc[
+                    max(0, breaking_swing.index - 20) : breaking_swing.index
+                ]["volume"].mean()
                 if avg_volume > 0:
                     volume_factor = min(breaking_volume / avg_volume, 3.0) / 3.0
                     strength_factors.append(volume_factor)
@@ -829,7 +901,9 @@ class MarketStructureAnalyzer:
             self.logger.error(f"Error calculating structure strength: {e}")
             return 0.5
 
-    def _get_recent_price_range(self, data: pd.DataFrame, index: int, lookback: int = 20) -> float:
+    def _get_recent_price_range(
+        self, data: pd.DataFrame, index: int, lookback: int = 20
+    ) -> float:
         """
         Get recent price range for normalization
 
@@ -843,20 +917,22 @@ class MarketStructureAnalyzer:
         """
         try:
             start_idx = max(0, index - lookback)
-            recent_data = data.iloc[start_idx:index + 1]
+            recent_data = data.iloc[start_idx : index + 1]
 
             if len(recent_data) == 0:
                 return 0.0
 
-            high_range = recent_data['high'].max()
-            low_range = recent_data['low'].min()
+            high_range = recent_data["high"].max()
+            low_range = recent_data["low"].min()
             return high_range - low_range
 
         except Exception as e:
             self.logger.error(f"Error getting recent price range: {e}")
             return 0.0
 
-    def detect_structural_breaks(self, data: pd.DataFrame) -> Dict[str, List[MarketStructure]]:
+    def detect_structural_breaks(
+        self, data: pd.DataFrame
+    ) -> Dict[str, List[MarketStructure]]:
         """
         Detect structural breaks using price action
 
@@ -869,8 +945,7 @@ class MarketStructureAnalyzer:
         try:
             # First, get swing points using OrderBlockDetector
             ob_detector = OrderBlockDetector(
-                lookback_period=self.lookback_period,
-                min_confirmation_bars=3
+                lookback_period=self.lookback_period, min_confirmation_bars=3
             )
             swing_points = ob_detector.find_swing_points(data)
 
@@ -884,7 +959,7 @@ class MarketStructureAnalyzer:
             return {
                 "BOS": bos_structures,
                 "CHoCH": choch_structures,
-                "all_structures": structures
+                "all_structures": structures,
             }
 
         except Exception as e:
@@ -908,7 +983,9 @@ class MarketStructureAnalyzer:
         recent_structure = max(structures, key=lambda x: x.break_index)
         return recent_structure.direction
 
-    def analyze(self, data: pd.DataFrame) -> Dict[str, Union[List[MarketStructure], TrendDirection]]:
+    def analyze(
+        self, data: pd.DataFrame
+    ) -> Dict[str, Union[List[MarketStructure], TrendDirection]]:
         """
         Main analysis method for market structure
 
@@ -934,7 +1011,7 @@ class MarketStructureAnalyzer:
                 "all_structures": structure_results["all_structures"],
                 "current_trend": current_trend,
                 "total_bos": len(structure_results["BOS"]),
-                "total_choch": len(structure_results["CHoCH"])
+                "total_choch": len(structure_results["CHoCH"]),
             }
 
             self.logger.info(
@@ -952,13 +1029,14 @@ class MarketStructureAnalyzer:
                 "all_structures": [],
                 "current_trend": TrendDirection.NEUTRAL,
                 "total_bos": 0,
-                "total_choch": 0
+                "total_choch": 0,
             }
 
 
 @dataclass
 class TimeFrameData:
     """Represents data for a specific timeframe"""
+
     timeframe: str
     data: pd.DataFrame
     last_update: pd.Timestamp
@@ -980,15 +1058,22 @@ class TimeFrameManager:
         Args:
             supported_timeframes: List of supported timeframes (e.g., ['1m', '5m', '15m', '1h', '4h', '1d'])
         """
-        self.supported_timeframes = supported_timeframes or ['1m', '5m', '15m', '1h', '4h', '1d']
+        self.supported_timeframes = supported_timeframes or [
+            "1m",
+            "5m",
+            "15m",
+            "1h",
+            "4h",
+            "1d",
+        ]
         self.timeframe_data: Dict[str, TimeFrameData] = {}
         self.logger = logging.getLogger(f"{__name__}.TimeFrameManager")
 
         # ICT analyzers for each timeframe
         self.analyzers = {
-            'order_block': OrderBlockDetector(),
-            'fair_value_gap': FairValueGapAnalyzer(),
-            'market_structure': MarketStructureAnalyzer()
+            "order_block": OrderBlockDetector(),
+            "fair_value_gap": FairValueGapAnalyzer(),
+            "market_structure": MarketStructureAnalyzer(),
         }
 
     def add_timeframe_data(self, timeframe: str, data: pd.DataFrame) -> bool:
@@ -1008,7 +1093,7 @@ class TimeFrameManager:
                 return False
 
             # Validate data format
-            required_columns = ['open', 'high', 'low', 'close']
+            required_columns = ["open", "high", "low", "close"]
             if not all(col in data.columns for col in required_columns):
                 self.logger.error(f"Data for {timeframe} missing required OHLC columns")
                 return False
@@ -1018,7 +1103,7 @@ class TimeFrameManager:
                 timeframe=timeframe,
                 data=data.copy(),
                 last_update=pd.Timestamp.now(),
-                analysis_results={}
+                analysis_results={},
             )
 
             self.logger.info(f"Added {len(data)} bars for timeframe {timeframe}")
@@ -1042,7 +1127,9 @@ class TimeFrameManager:
             return self.timeframe_data[timeframe].data
         return None
 
-    def analyze_timeframe(self, timeframe: str, analyzer_types: Optional[List[str]] = None) -> Dict:
+    def analyze_timeframe(
+        self, timeframe: str, analyzer_types: Optional[List[str]] = None
+    ) -> Dict:
         """
         Analyze specific timeframe with ICT patterns
 
@@ -1080,7 +1167,9 @@ class TimeFrameManager:
             self.logger.error(f"Error analyzing timeframe {timeframe}: {e}")
             return {}
 
-    def analyze_all_timeframes(self, analyzer_types: Optional[List[str]] = None) -> Dict[str, Dict]:
+    def analyze_all_timeframes(
+        self, analyzer_types: Optional[List[str]] = None
+    ) -> Dict[str, Dict]:
         """
         Analyze all available timeframes
 
@@ -1099,7 +1188,9 @@ class TimeFrameManager:
 
         return all_results
 
-    def get_higher_timeframe_bias(self, current_timeframe: str) -> Dict[str, TrendDirection]:
+    def get_higher_timeframe_bias(
+        self, current_timeframe: str
+    ) -> Dict[str, TrendDirection]:
         """
         Get bias from higher timeframes for confluence
 
@@ -1110,13 +1201,22 @@ class TimeFrameManager:
             Dictionary with bias from each higher timeframe
         """
         timeframe_hierarchy = {
-            '1m': 0, '5m': 1, '15m': 2, '30m': 3, '1h': 4,
-            '4h': 5, '12h': 6, '1d': 7, '1w': 8, '1M': 9
+            "1m": 0,
+            "5m": 1,
+            "15m": 2,
+            "30m": 3,
+            "1h": 4,
+            "4h": 5,
+            "12h": 6,
+            "1d": 7,
+            "1w": 8,
+            "1M": 9,
         }
 
         current_rank = timeframe_hierarchy.get(current_timeframe, 0)
         higher_timeframes = [
-            tf for tf, rank in timeframe_hierarchy.items()
+            tf
+            for tf, rank in timeframe_hierarchy.items()
             if rank > current_rank and tf in self.timeframe_data
         ]
 
@@ -1124,13 +1224,22 @@ class TimeFrameManager:
 
         for htf in higher_timeframes:
             htf_data = self.timeframe_data[htf]
-            if htf_data.analysis_results and 'market_structure' in htf_data.analysis_results:
-                structure_results = htf_data.analysis_results['market_structure']
-                bias_results[htf] = structure_results.get('current_trend', TrendDirection.NEUTRAL)
+            if (
+                htf_data.analysis_results
+                and "market_structure" in htf_data.analysis_results
+            ):
+                structure_results = htf_data.analysis_results["market_structure"]
+                bias_results[htf] = structure_results.get(
+                    "current_trend", TrendDirection.NEUTRAL
+                )
             else:
                 # Analyze if not done yet
-                structure_analysis = self.analyzers['market_structure'].analyze(htf_data.data)
-                bias_results[htf] = structure_analysis.get('current_trend', TrendDirection.NEUTRAL)
+                structure_analysis = self.analyzers["market_structure"].analyze(
+                    htf_data.data
+                )
+                bias_results[htf] = structure_analysis.get(
+                    "current_trend", TrendDirection.NEUTRAL
+                )
 
         return bias_results
 
@@ -1146,26 +1255,29 @@ class TimeFrameManager:
             Dictionary with confluence analysis
         """
         confluence_results = {
-            'primary_timeframe': timeframe,
-            'pattern_type': pattern_type,
-            'confluence_score': 0.0,
-            'supporting_timeframes': [],
-            'conflicting_timeframes': [],
-            'higher_timeframe_bias': {}
+            "primary_timeframe": timeframe,
+            "pattern_type": pattern_type,
+            "confluence_score": 0.0,
+            "supporting_timeframes": [],
+            "conflicting_timeframes": [],
+            "higher_timeframe_bias": {},
         }
 
         try:
             # Get higher timeframe bias
             htf_bias = self.get_higher_timeframe_bias(timeframe)
-            confluence_results['higher_timeframe_bias'] = htf_bias
+            confluence_results["higher_timeframe_bias"] = htf_bias
 
             # Get primary timeframe trend
             primary_data = self.timeframe_data.get(timeframe)
-            if not primary_data or 'market_structure' not in primary_data.analysis_results:
+            if (
+                not primary_data
+                or "market_structure" not in primary_data.analysis_results
+            ):
                 return confluence_results
 
-            primary_trend = primary_data.analysis_results['market_structure'].get(
-                'current_trend', TrendDirection.NEUTRAL
+            primary_trend = primary_data.analysis_results["market_structure"].get(
+                "current_trend", TrendDirection.NEUTRAL
             )
 
             # Check confluence
@@ -1174,16 +1286,18 @@ class TimeFrameManager:
 
             for htf, bias in htf_bias.items():
                 if bias == primary_trend:
-                    confluence_results['supporting_timeframes'].append(htf)
+                    confluence_results["supporting_timeframes"].append(htf)
                     supporting_count += 1
                 elif bias != TrendDirection.NEUTRAL:
-                    confluence_results['conflicting_timeframes'].append(htf)
+                    confluence_results["conflicting_timeframes"].append(htf)
                     conflicting_count += 1
 
             # Calculate confluence score
             total_timeframes = len(htf_bias)
             if total_timeframes > 0:
-                confluence_results['confluence_score'] = supporting_count / total_timeframes
+                confluence_results["confluence_score"] = (
+                    supporting_count / total_timeframes
+                )
 
             self.logger.info(
                 f"Confluence for {timeframe} {pattern_type}: "
@@ -1216,33 +1330,43 @@ class TimeFrameManager:
                     continue
 
                 # Check market structure signals
-                if 'market_structure' in tf_data.analysis_results:
-                    structure_results = tf_data.analysis_results['market_structure']
+                if "market_structure" in tf_data.analysis_results:
+                    structure_results = tf_data.analysis_results["market_structure"]
 
                     # Check for recent BOS or CHoCH
-                    for structure_type in ['BOS', 'CHoCH']:
+                    for structure_type in ["BOS", "CHoCH"]:
                         structures = structure_results.get(structure_type, [])
 
                         if structures:
                             # Get most recent structure
-                            recent_structure = max(structures, key=lambda x: x.break_index)
+                            recent_structure = max(
+                                structures, key=lambda x: x.break_index
+                            )
 
                             # Check confluence
-                            confluence = self.check_confluence(timeframe, structure_type)
+                            confluence = self.check_confluence(
+                                timeframe, structure_type
+                            )
 
-                            if confluence['confluence_score'] >= min_confluence_score:
-                                signals.append({
-                                    'timeframe': timeframe,
-                                    'signal_type': structure_type,
-                                    'direction': recent_structure.direction.value,
-                                    'confluence_score': confluence['confluence_score'],
-                                    'strength': recent_structure.strength,
-                                    'supporting_timeframes': confluence['supporting_timeframes'],
-                                    'timestamp': recent_structure.timestamp
-                                })
+                            if confluence["confluence_score"] >= min_confluence_score:
+                                signals.append(
+                                    {
+                                        "timeframe": timeframe,
+                                        "signal_type": structure_type,
+                                        "direction": recent_structure.direction.value,
+                                        "confluence_score": confluence[
+                                            "confluence_score"
+                                        ],
+                                        "strength": recent_structure.strength,
+                                        "supporting_timeframes": confluence[
+                                            "supporting_timeframes"
+                                        ],
+                                        "timestamp": recent_structure.timestamp,
+                                    }
+                                )
 
             # Sort by confluence score
-            signals.sort(key=lambda x: x['confluence_score'], reverse=True)
+            signals.sort(key=lambda x: x["confluence_score"], reverse=True)
 
         except Exception as e:
             self.logger.error(f"Error getting synchronized signals: {e}")
@@ -1269,10 +1393,9 @@ class TimeFrameManager:
             new_row = pd.DataFrame([new_candle])
 
             # Append to existing data
-            self.timeframe_data[timeframe].data = pd.concat([
-                self.timeframe_data[timeframe].data,
-                new_row
-            ], ignore_index=False)
+            self.timeframe_data[timeframe].data = pd.concat(
+                [self.timeframe_data[timeframe].data, new_row], ignore_index=False
+            )
 
             # Update timestamp
             self.timeframe_data[timeframe].last_update = pd.Timestamp.now()
@@ -1306,7 +1429,9 @@ class TimeFrameManager:
             if len(tf_data.data) > max_bars_per_timeframe:
                 # Keep only the most recent bars
                 tf_data.data = tf_data.data.tail(max_bars_per_timeframe).copy()
-                self.logger.info(f"Cleaned up {timeframe} data to {max_bars_per_timeframe} bars")
+                self.logger.info(
+                    f"Cleaned up {timeframe} data to {max_bars_per_timeframe} bars"
+                )
 
     def analyze(self, analyzer_types: Optional[List[str]] = None) -> Dict[str, Dict]:
         """
@@ -1319,7 +1444,9 @@ class TimeFrameManager:
             Complete multi-timeframe analysis results
         """
         try:
-            self.logger.info(f"Starting multi-timeframe analysis for {len(self.timeframe_data)} timeframes")
+            self.logger.info(
+                f"Starting multi-timeframe analysis for {len(self.timeframe_data)} timeframes"
+            )
 
             # Analyze all timeframes
             timeframe_results = self.analyze_all_timeframes(analyzer_types)
@@ -1329,11 +1456,11 @@ class TimeFrameManager:
 
             # Compile final results
             results = {
-                'timeframe_results': timeframe_results,
-                'synchronized_signals': synchronized_signals,
-                'memory_usage': self.get_memory_usage(),
-                'analysis_timestamp': pd.Timestamp.now(),
-                'active_timeframes': list(self.timeframe_data.keys())
+                "timeframe_results": timeframe_results,
+                "synchronized_signals": synchronized_signals,
+                "memory_usage": self.get_memory_usage(),
+                "analysis_timestamp": pd.Timestamp.now(),
+                "active_timeframes": list(self.timeframe_data.keys()),
             }
 
             self.logger.info(
@@ -1346,17 +1473,18 @@ class TimeFrameManager:
         except Exception as e:
             self.logger.error(f"Error in multi-timeframe analysis: {e}")
             return {
-                'timeframe_results': {},
-                'synchronized_signals': [],
-                'memory_usage': self.get_memory_usage(),
-                'analysis_timestamp': pd.Timestamp.now(),
-                'active_timeframes': list(self.timeframe_data.keys())
+                "timeframe_results": {},
+                "synchronized_signals": [],
+                "memory_usage": self.get_memory_usage(),
+                "analysis_timestamp": pd.Timestamp.now(),
+                "active_timeframes": list(self.timeframe_data.keys()),
             }
 
 
 @dataclass
 class PatternValidationResult:
     """Result of pattern validation analysis"""
+
     pattern_id: str
     pattern_type: PatternType
     confidence_score: float  # 0.0 to 1.0
@@ -1372,6 +1500,7 @@ class PatternValidationResult:
 @dataclass
 class BacktestResult:
     """Individual backtest result for a pattern"""
+
     entry_time: pd.Timestamp
     exit_time: pd.Timestamp
     entry_price: float
@@ -1396,10 +1525,12 @@ class PatternValidationEngine:
     - Pattern quality grading system
     """
 
-    def __init__(self,
-                 lookback_bars: int = 500,
-                 min_sample_size: int = 10,
-                 confidence_threshold: float = 0.6):
+    def __init__(
+        self,
+        lookback_bars: int = 500,
+        min_sample_size: int = 10,
+        confidence_threshold: float = 0.6,
+    ):
         """
         Initialize Pattern Validation Engine
 
@@ -1417,10 +1548,12 @@ class PatternValidationEngine:
         self.pattern_performance_history: Dict[str, List[BacktestResult]] = {}
         self.reliability_cache: Dict[str, float] = {}
 
-    def validate_pattern(self,
-                        pattern: Union[OrderBlock, FairValueGap, MarketStructure],
-                        data: pd.DataFrame,
-                        pattern_type: PatternType) -> PatternValidationResult:
+    def validate_pattern(
+        self,
+        pattern: Union[OrderBlock, FairValueGap, MarketStructure],
+        data: pd.DataFrame,
+        pattern_type: PatternType,
+    ) -> PatternValidationResult:
         """
         Validate a single pattern using comprehensive analysis
 
@@ -1436,7 +1569,9 @@ class PatternValidationEngine:
             pattern_id = self._generate_pattern_id(pattern, pattern_type)
 
             # Calculate confidence score
-            confidence_score = self._calculate_confidence_score(pattern, data, pattern_type)
+            confidence_score = self._calculate_confidence_score(
+                pattern, data, pattern_type
+            )
 
             # Perform historical backtest
             backtest_results = self._backtest_pattern(pattern, data, pattern_type)
@@ -1461,9 +1596,11 @@ class PatternValidationEngine:
             )
 
             # Determine overall validity
-            is_valid = (confidence_score >= self.confidence_threshold and
-                       len(backtest_results) >= self.min_sample_size and
-                       success_probability >= 0.4)
+            is_valid = (
+                confidence_score >= self.confidence_threshold
+                and len(backtest_results) >= self.min_sample_size
+                and success_probability >= 0.4
+            )
 
             return PatternValidationResult(
                 pattern_id=pattern_id,
@@ -1475,16 +1612,16 @@ class PatternValidationEngine:
                 backtest_performance=backtest_performance,
                 validation_timestamp=pd.Timestamp.now(),
                 is_valid=is_valid,
-                warnings=warnings
+                warnings=warnings,
             )
 
         except Exception as e:
             self.logger.error(f"Error validating pattern: {e}")
             return self._create_error_result(pattern_type)
 
-    def validate_pattern_batch(self,
-                              patterns: List[Tuple],
-                              data: pd.DataFrame) -> List[PatternValidationResult]:
+    def validate_pattern_batch(
+        self, patterns: List[Tuple], data: pd.DataFrame
+    ) -> List[PatternValidationResult]:
         """
         Validate multiple patterns in batch for efficiency
 
@@ -1518,10 +1655,12 @@ class PatternValidationEngine:
 
         return results
 
-    def _calculate_confidence_score(self,
-                                   pattern: Union[OrderBlock, FairValueGap, MarketStructure],
-                                   data: pd.DataFrame,
-                                   pattern_type: PatternType) -> float:
+    def _calculate_confidence_score(
+        self,
+        pattern: Union[OrderBlock, FairValueGap, MarketStructure],
+        data: pd.DataFrame,
+        pattern_type: PatternType,
+    ) -> float:
         """Calculate pattern confidence score based on multiple factors"""
         try:
             confidence_factors = []
@@ -1532,19 +1671,19 @@ class PatternValidationEngine:
 
                 # Volume confirmation
                 volume_score = self._assess_volume_confirmation(ob, data)
-                confidence_factors.append(('volume', volume_score, 0.25))
+                confidence_factors.append(("volume", volume_score, 0.25))
 
                 # Price action quality
                 price_action_score = self._assess_price_action_quality(ob, data)
-                confidence_factors.append(('price_action', price_action_score, 0.3))
+                confidence_factors.append(("price_action", price_action_score, 0.3))
 
                 # Time proximity
                 time_score = self._assess_time_proximity(ob, data)
-                confidence_factors.append(('time', time_score, 0.2))
+                confidence_factors.append(("time", time_score, 0.2))
 
                 # Pattern size relative to ATR
                 size_score = self._assess_pattern_size(ob, data)
-                confidence_factors.append(('size', size_score, 0.25))
+                confidence_factors.append(("size", size_score, 0.25))
 
             elif pattern_type == PatternType.FAIR_VALUE_GAP:
                 # Fair Value Gap specific confidence factors
@@ -1552,35 +1691,38 @@ class PatternValidationEngine:
 
                 # Gap size significance
                 gap_size_score = self._assess_gap_size_significance(fvg, data)
-                confidence_factors.append(('gap_size', gap_size_score, 0.3))
+                confidence_factors.append(("gap_size", gap_size_score, 0.3))
 
                 # Market context
                 context_score = self._assess_market_context(fvg, data)
-                confidence_factors.append(('context', context_score, 0.25))
+                confidence_factors.append(("context", context_score, 0.25))
 
                 # Imbalance quality
                 imbalance_score = self._assess_imbalance_quality(fvg, data)
-                confidence_factors.append(('imbalance', imbalance_score, 0.25))
+                confidence_factors.append(("imbalance", imbalance_score, 0.25))
 
                 # Unfilled duration
                 duration_score = self._assess_unfilled_duration(fvg, data)
-                confidence_factors.append(('duration', duration_score, 0.2))
+                confidence_factors.append(("duration", duration_score, 0.2))
 
-            elif pattern_type in [PatternType.BREAK_OF_STRUCTURE, PatternType.CHANGE_OF_CHARACTER]:
+            elif pattern_type in [
+                PatternType.BREAK_OF_STRUCTURE,
+                PatternType.CHANGE_OF_CHARACTER,
+            ]:
                 # Market Structure specific confidence factors
                 ms = pattern
 
                 # Structure significance
                 structure_score = self._assess_structure_significance(ms, data)
-                confidence_factors.append(('structure', structure_score, 0.35))
+                confidence_factors.append(("structure", structure_score, 0.35))
 
                 # Momentum confirmation
                 momentum_score = self._assess_momentum_confirmation(ms, data)
-                confidence_factors.append(('momentum', momentum_score, 0.3))
+                confidence_factors.append(("momentum", momentum_score, 0.3))
 
                 # Multi-timeframe alignment
                 mtf_score = self._assess_mtf_alignment(ms, data)
-                confidence_factors.append(('mtf_alignment', mtf_score, 0.35))
+                confidence_factors.append(("mtf_alignment", mtf_score, 0.35))
 
             # Calculate weighted confidence score
             total_score = 0.0
@@ -1601,20 +1743,26 @@ class PatternValidationEngine:
             self.logger.error(f"Error calculating confidence score: {e}")
             return 0.0
 
-    def _backtest_pattern(self,
-                         pattern: Union[OrderBlock, FairValueGap, MarketStructure],
-                         data: pd.DataFrame,
-                         pattern_type: PatternType) -> List[BacktestResult]:
+    def _backtest_pattern(
+        self,
+        pattern: Union[OrderBlock, FairValueGap, MarketStructure],
+        data: pd.DataFrame,
+        pattern_type: PatternType,
+    ) -> List[BacktestResult]:
         """Perform historical backtest on similar patterns"""
         try:
             backtest_results = []
 
             # Find historical occurrences of similar patterns
-            similar_patterns = self._find_similar_historical_patterns(pattern, data, pattern_type)
+            similar_patterns = self._find_similar_historical_patterns(
+                pattern, data, pattern_type
+            )
 
             for hist_pattern in similar_patterns:
                 # Simulate trade execution
-                entry_result = self._simulate_pattern_entry(hist_pattern, data, pattern_type)
+                entry_result = self._simulate_pattern_entry(
+                    hist_pattern, data, pattern_type
+                )
                 if entry_result:
                     backtest_results.append(entry_result)
 
@@ -1624,15 +1772,21 @@ class PatternValidationEngine:
             self.logger.error(f"Error in pattern backtest: {e}")
             return []
 
-    def _calculate_success_probability(self, backtest_results: List[BacktestResult]) -> float:
+    def _calculate_success_probability(
+        self, backtest_results: List[BacktestResult]
+    ) -> float:
         """Calculate success probability from backtest results"""
         if not backtest_results:
             return 0.0
 
-        successful_trades = sum(1 for result in backtest_results if result.was_successful)
+        successful_trades = sum(
+            1 for result in backtest_results if result.was_successful
+        )
         return successful_trades / len(backtest_results)
 
-    def _calculate_risk_reward_ratio(self, backtest_results: List[BacktestResult]) -> float:
+    def _calculate_risk_reward_ratio(
+        self, backtest_results: List[BacktestResult]
+    ) -> float:
         """Calculate average risk-reward ratio from backtest results"""
         if not backtest_results:
             return 0.0
@@ -1648,52 +1802,62 @@ class PatternValidationEngine:
 
         return avg_win / avg_loss if avg_loss > 0 else 0.0
 
-    def _generate_reliability_grade(self,
-                                   confidence_score: float,
-                                   success_probability: float,
-                                   risk_reward_ratio: float) -> str:
+    def _generate_reliability_grade(
+        self,
+        confidence_score: float,
+        success_probability: float,
+        risk_reward_ratio: float,
+    ) -> str:
         """Generate reliability grade (A-F) based on metrics"""
         # Weighted scoring
         composite_score = (
-            confidence_score * 0.4 +
-            success_probability * 0.4 +
-            min(risk_reward_ratio / 2.0, 1.0) * 0.2  # Cap R:R contribution
+            confidence_score * 0.4
+            + success_probability * 0.4
+            + min(risk_reward_ratio / 2.0, 1.0) * 0.2  # Cap R:R contribution
         )
 
         if composite_score >= 0.85:
-            return 'A'
+            return "A"
         elif composite_score >= 0.75:
-            return 'B'
+            return "B"
         elif composite_score >= 0.60:
-            return 'C'
+            return "C"
         elif composite_score >= 0.45:
-            return 'D'
+            return "D"
         else:
-            return 'F'
+            return "F"
 
-    def _compile_backtest_metrics(self, backtest_results: List[BacktestResult]) -> Dict[str, float]:
+    def _compile_backtest_metrics(
+        self, backtest_results: List[BacktestResult]
+    ) -> Dict[str, float]:
         """Compile comprehensive backtest performance metrics"""
         if not backtest_results:
             return {}
 
         profits = [r.profit_loss for r in backtest_results]
-        win_rate = sum(1 for r in backtest_results if r.was_successful) / len(backtest_results)
+        win_rate = sum(1 for r in backtest_results if r.was_successful) / len(
+            backtest_results
+        )
 
         return {
-            'total_trades': len(backtest_results),
-            'win_rate': win_rate,
-            'total_profit': sum(profits),
-            'average_profit': np.mean(profits),
-            'profit_factor': self._calculate_profit_factor(backtest_results),
-            'max_drawdown': self._calculate_max_drawdown(backtest_results),
-            'sharpe_ratio': self._calculate_sharpe_ratio(profits),
-            'average_duration_bars': np.mean([r.duration_bars for r in backtest_results])
+            "total_trades": len(backtest_results),
+            "win_rate": win_rate,
+            "total_profit": sum(profits),
+            "average_profit": np.mean(profits),
+            "profit_factor": self._calculate_profit_factor(backtest_results),
+            "max_drawdown": self._calculate_max_drawdown(backtest_results),
+            "sharpe_ratio": self._calculate_sharpe_ratio(profits),
+            "average_duration_bars": np.mean(
+                [r.duration_bars for r in backtest_results]
+            ),
         }
 
-    def _generate_validation_warnings(self,
-                                     pattern: Union[OrderBlock, FairValueGap, MarketStructure],
-                                     backtest_results: List[BacktestResult],
-                                     confidence_score: float) -> List[str]:
+    def _generate_validation_warnings(
+        self,
+        pattern: Union[OrderBlock, FairValueGap, MarketStructure],
+        backtest_results: List[BacktestResult],
+        confidence_score: float,
+    ) -> List[str]:
         """Generate validation warnings for pattern quality issues"""
         warnings = []
 
@@ -1701,25 +1865,31 @@ class PatternValidationEngine:
             warnings.append(f"Low confidence score: {confidence_score:.3f}")
 
         if len(backtest_results) < self.min_sample_size:
-            warnings.append(f"Insufficient historical data: {len(backtest_results)} samples")
+            warnings.append(
+                f"Insufficient historical data: {len(backtest_results)} samples"
+            )
 
         if backtest_results:
-            win_rate = sum(1 for r in backtest_results if r.was_successful) / len(backtest_results)
+            win_rate = sum(1 for r in backtest_results if r.was_successful) / len(
+                backtest_results
+            )
             if win_rate < 0.4:
                 warnings.append(f"Low historical win rate: {win_rate:.1%}")
 
         return warnings
 
     # Helper methods for confidence scoring
-    def _assess_volume_confirmation(self, pattern: OrderBlock, data: pd.DataFrame) -> float:
+    def _assess_volume_confirmation(
+        self, pattern: OrderBlock, data: pd.DataFrame
+    ) -> float:
         """Assess volume confirmation for order blocks"""
         try:
-            pattern_data = data.iloc[pattern.start_index:pattern.end_index+1]
-            if 'volume' not in pattern_data.columns:
+            pattern_data = data.iloc[pattern.start_index : pattern.end_index + 1]
+            if "volume" not in pattern_data.columns:
                 return 0.5  # Neutral score if no volume data
 
-            avg_volume = data['volume'].rolling(20).mean().iloc[pattern.end_index]
-            pattern_volume = pattern_data['volume'].mean()
+            avg_volume = data["volume"].rolling(20).mean().iloc[pattern.end_index]
+            pattern_volume = pattern_data["volume"].mean()
 
             volume_ratio = pattern_volume / avg_volume if avg_volume > 0 else 1.0
             return min(volume_ratio / 2.0, 1.0)  # Cap at 1.0
@@ -1727,14 +1897,21 @@ class PatternValidationEngine:
         except Exception:
             return 0.5
 
-    def _assess_price_action_quality(self, pattern: OrderBlock, data: pd.DataFrame) -> float:
+    def _assess_price_action_quality(
+        self, pattern: OrderBlock, data: pd.DataFrame
+    ) -> float:
         """Assess price action quality for order blocks"""
         try:
-            pattern_data = data.iloc[pattern.start_index:pattern.end_index+1]
+            pattern_data = data.iloc[pattern.start_index : pattern.end_index + 1]
 
             # Check for clean rejection or strong move from the zone
-            price_range = pattern_data['high'].max() - pattern_data['low'].min()
-            atr = data['close'].rolling(14).apply(lambda x: np.mean(np.abs(x.diff()))).iloc[pattern.end_index]
+            price_range = pattern_data["high"].max() - pattern_data["low"].min()
+            atr = (
+                data["close"]
+                .rolling(14)
+                .apply(lambda x: np.mean(np.abs(x.diff())))
+                .iloc[pattern.end_index]
+            )
 
             if atr == 0:
                 return 0.5
@@ -1768,7 +1945,12 @@ class PatternValidationEngine:
         """Assess pattern size relative to ATR"""
         try:
             pattern_size = abs(pattern.high_price - pattern.low_price)
-            atr = data['close'].rolling(14).apply(lambda x: np.mean(np.abs(x.diff()))).iloc[pattern.end_index]
+            atr = (
+                data["close"]
+                .rolling(14)
+                .apply(lambda x: np.mean(np.abs(x.diff())))
+                .iloc[pattern.end_index]
+            )
 
             if atr == 0:
                 return 0.5
@@ -1786,10 +1968,17 @@ class PatternValidationEngine:
         except Exception:
             return 0.5
 
-    def _assess_gap_size_significance(self, pattern: FairValueGap, data: pd.DataFrame) -> float:
+    def _assess_gap_size_significance(
+        self, pattern: FairValueGap, data: pd.DataFrame
+    ) -> float:
         """Assess Fair Value Gap size significance"""
         try:
-            atr = data['close'].rolling(14).apply(lambda x: np.mean(np.abs(x.diff()))).iloc[pattern.end_index]
+            atr = (
+                data["close"]
+                .rolling(14)
+                .apply(lambda x: np.mean(np.abs(x.diff())))
+                .iloc[pattern.end_index]
+            )
 
             if atr == 0:
                 return 0.5
@@ -1807,18 +1996,22 @@ class PatternValidationEngine:
         except Exception:
             return 0.5
 
-    def _assess_market_context(self, pattern: FairValueGap, data: pd.DataFrame) -> float:
+    def _assess_market_context(
+        self, pattern: FairValueGap, data: pd.DataFrame
+    ) -> float:
         """Assess market context for Fair Value Gap"""
         try:
             # Check if gap aligns with trend
             trend_lookback = 20
             start_idx = max(0, pattern.start_index - trend_lookback)
-            trend_data = data.iloc[start_idx:pattern.start_index]
+            trend_data = data.iloc[start_idx : pattern.start_index]
 
             if len(trend_data) < 5:
                 return 0.5
 
-            trend_slope = (trend_data['close'].iloc[-1] - trend_data['close'].iloc[0]) / len(trend_data)
+            trend_slope = (
+                trend_data["close"].iloc[-1] - trend_data["close"].iloc[0]
+            ) / len(trend_data)
 
             gap_bullish = pattern.direction == TrendDirection.BULLISH
             trend_bullish = trend_slope > 0
@@ -1829,26 +2022,32 @@ class PatternValidationEngine:
         except Exception:
             return 0.5
 
-    def _assess_imbalance_quality(self, pattern: FairValueGap, data: pd.DataFrame) -> float:
+    def _assess_imbalance_quality(
+        self, pattern: FairValueGap, data: pd.DataFrame
+    ) -> float:
         """Assess imbalance quality for Fair Value Gap"""
         try:
-            gap_data = data.iloc[pattern.start_index:pattern.end_index+1]
+            gap_data = data.iloc[pattern.start_index : pattern.end_index + 1]
 
             # Check for clean gap with no overlap
             if pattern.direction == TrendDirection.BULLISH:
-                max_low = gap_data['low'].max()
+                max_low = gap_data["low"].max()
                 gap_overlap = max(0, max_low - pattern.gap_low)
             else:
-                min_high = gap_data['high'].min()
+                min_high = gap_data["high"].min()
                 gap_overlap = max(0, pattern.gap_high - min_high)
 
-            overlap_ratio = gap_overlap / pattern.gap_size if pattern.gap_size > 0 else 0
+            overlap_ratio = (
+                gap_overlap / pattern.gap_size if pattern.gap_size > 0 else 0
+            )
             return max(0, 1.0 - overlap_ratio)
 
         except Exception:
             return 0.5
 
-    def _assess_unfilled_duration(self, pattern: FairValueGap, data: pd.DataFrame) -> float:
+    def _assess_unfilled_duration(
+        self, pattern: FairValueGap, data: pd.DataFrame
+    ) -> float:
         """Assess unfilled duration for Fair Value Gap"""
         try:
             current_index = len(data) - 1
@@ -1867,12 +2066,21 @@ class PatternValidationEngine:
         except Exception:
             return 0.5
 
-    def _assess_structure_significance(self, pattern: MarketStructure, data: pd.DataFrame) -> float:
+    def _assess_structure_significance(
+        self, pattern: MarketStructure, data: pd.DataFrame
+    ) -> float:
         """Assess structure significance for market structure patterns"""
         try:
             # Assess the significance of the structural break
-            structure_range = abs(pattern.break_price - pattern.previous_structure_price)
-            atr = data['close'].rolling(14).apply(lambda x: np.mean(np.abs(x.diff()))).iloc[pattern.end_index]
+            structure_range = abs(
+                pattern.break_price - pattern.previous_structure_price
+            )
+            atr = (
+                data["close"]
+                .rolling(14)
+                .apply(lambda x: np.mean(np.abs(x.diff())))
+                .iloc[pattern.end_index]
+            )
 
             if atr == 0:
                 return 0.5
@@ -1883,17 +2091,28 @@ class PatternValidationEngine:
         except Exception:
             return 0.5
 
-    def _assess_momentum_confirmation(self, pattern: MarketStructure, data: pd.DataFrame) -> float:
+    def _assess_momentum_confirmation(
+        self, pattern: MarketStructure, data: pd.DataFrame
+    ) -> float:
         """Assess momentum confirmation for market structure patterns"""
         try:
             # Calculate momentum around the break
-            break_data = data.iloc[max(0, pattern.start_index-5):pattern.end_index+5]
+            break_data = data.iloc[
+                max(0, pattern.start_index - 5) : pattern.end_index + 5
+            ]
 
             if len(break_data) < 5:
                 return 0.5
 
-            momentum = (break_data['close'].iloc[-1] - break_data['close'].iloc[0]) / len(break_data)
-            atr = data['close'].rolling(14).apply(lambda x: np.mean(np.abs(x.diff()))).iloc[pattern.end_index]
+            momentum = (
+                break_data["close"].iloc[-1] - break_data["close"].iloc[0]
+            ) / len(break_data)
+            atr = (
+                data["close"]
+                .rolling(14)
+                .apply(lambda x: np.mean(np.abs(x.diff())))
+                .iloc[pattern.end_index]
+            )
 
             if atr == 0:
                 return 0.5
@@ -1904,52 +2123,61 @@ class PatternValidationEngine:
         except Exception:
             return 0.5
 
-    def _assess_mtf_alignment(self, pattern: MarketStructure, data: pd.DataFrame) -> float:
+    def _assess_mtf_alignment(
+        self, pattern: MarketStructure, data: pd.DataFrame
+    ) -> float:
         """Assess multi-timeframe alignment for market structure patterns"""
         # Simplified assessment - would need multiple timeframe data for full implementation
         return 0.6  # Neutral score
 
     # Helper methods for backtesting
-    def _find_similar_historical_patterns(self,
-                                         pattern: Union[OrderBlock, FairValueGap, MarketStructure],
-                                         data: pd.DataFrame,
-                                         pattern_type: PatternType) -> List:
+    def _find_similar_historical_patterns(
+        self,
+        pattern: Union[OrderBlock, FairValueGap, MarketStructure],
+        data: pd.DataFrame,
+        pattern_type: PatternType,
+    ) -> List:
         """Find similar historical patterns for backtesting"""
         # Simplified implementation - would need full pattern matching logic
         similar_patterns = []
 
         try:
-            lookback_data = data.iloc[-self.lookback_bars:] if len(data) > self.lookback_bars else data
+            lookback_data = (
+                data.iloc[-self.lookback_bars :]
+                if len(data) > self.lookback_bars
+                else data
+            )
 
             # For demonstration, return a few synthetic patterns
             for i in range(min(15, len(lookback_data) // 20)):
                 idx = i * 20
                 if idx < len(lookback_data) - 10:
-                    similar_patterns.append({
-                        'start_index': idx,
-                        'end_index': idx + 5,
-                        'pattern_data': lookback_data.iloc[idx:idx+10]
-                    })
+                    similar_patterns.append(
+                        {
+                            "start_index": idx,
+                            "end_index": idx + 5,
+                            "pattern_data": lookback_data.iloc[idx : idx + 10],
+                        }
+                    )
 
         except Exception as e:
             self.logger.error(f"Error finding similar patterns: {e}")
 
         return similar_patterns[:10]  # Limit to 10 for performance
 
-    def _simulate_pattern_entry(self,
-                               historical_pattern: Dict,
-                               data: pd.DataFrame,
-                               pattern_type: PatternType) -> Optional[BacktestResult]:
+    def _simulate_pattern_entry(
+        self, historical_pattern: Dict, data: pd.DataFrame, pattern_type: PatternType
+    ) -> Optional[BacktestResult]:
         """Simulate trade entry and exit for historical pattern"""
         try:
-            start_idx = historical_pattern['start_index']
-            pattern_data = historical_pattern['pattern_data']
+            start_idx = historical_pattern["start_index"]
+            pattern_data = historical_pattern["pattern_data"]
 
             if len(pattern_data) < 5:
                 return None
 
             # Simple simulation logic
-            entry_price = pattern_data['close'].iloc[-1]
+            entry_price = pattern_data["close"].iloc[-1]
             entry_time = pattern_data.index[-1]
 
             # Look for exit in next 20 bars
@@ -1957,12 +2185,17 @@ class PatternValidationEngine:
             if exit_idx >= len(data):
                 return None
 
-            exit_data = data.iloc[start_idx + len(pattern_data):exit_idx]
+            exit_data = data.iloc[start_idx + len(pattern_data) : exit_idx]
             if len(exit_data) == 0:
                 return None
 
             # Simple exit strategy: take profit at 2:1 or stop loss at 1:1
-            atr = data['close'].rolling(14).apply(lambda x: np.mean(np.abs(x.diff()))).iloc[start_idx]
+            atr = (
+                data["close"]
+                .rolling(14)
+                .apply(lambda x: np.mean(np.abs(x.diff())))
+                .iloc[start_idx]
+            )
             if atr == 0:
                 return None
 
@@ -1975,12 +2208,12 @@ class PatternValidationEngine:
             was_successful = False
 
             for i, (timestamp, row) in enumerate(exit_data.iterrows()):
-                if row['high'] >= take_profit:
+                if row["high"] >= take_profit:
                     exit_price = take_profit
                     exit_time = timestamp
                     was_successful = True
                     break
-                elif row['low'] <= stop_loss:
+                elif row["low"] <= stop_loss:
                     exit_price = stop_loss
                     exit_time = timestamp
                     was_successful = False
@@ -1988,7 +2221,7 @@ class PatternValidationEngine:
 
             if exit_price is None:
                 # Exit at last available price
-                exit_price = exit_data['close'].iloc[-1]
+                exit_price = exit_data["close"].iloc[-1]
                 exit_time = exit_data.index[-1]
                 was_successful = exit_price > entry_price
 
@@ -1997,8 +2230,8 @@ class PatternValidationEngine:
             duration_bars = len(exit_data)
 
             # Calculate excursions
-            mfe = exit_data['high'].max() - entry_price
-            mae = entry_price - exit_data['low'].min()
+            mfe = exit_data["high"].max() - entry_price
+            mae = entry_price - exit_data["low"].min()
 
             return BacktestResult(
                 entry_time=entry_time,
@@ -2010,7 +2243,7 @@ class PatternValidationEngine:
                 duration_bars=duration_bars,
                 was_successful=was_successful,
                 max_favorable_excursion=mfe,
-                max_adverse_excursion=mae
+                max_adverse_excursion=mae,
             )
 
         except Exception as e:
@@ -2023,7 +2256,7 @@ class PatternValidationEngine:
         losing_trades = [r for r in backtest_results if not r.was_successful]
 
         if not losing_trades:
-            return float('inf') if winning_trades else 0.0
+            return float("inf") if winning_trades else 0.0
 
         total_wins = sum(r.profit_loss for r in winning_trades)
         total_losses = sum(abs(r.profit_loss) for r in losing_trades)
@@ -2064,27 +2297,33 @@ class PatternValidationEngine:
 
         return mean_return / std_return if std_return > 0 else 0.0
 
-    def _generate_pattern_id(self,
-                            pattern: Union[OrderBlock, FairValueGap, MarketStructure],
-                            pattern_type: PatternType) -> str:
+    def _generate_pattern_id(
+        self,
+        pattern: Union[OrderBlock, FairValueGap, MarketStructure],
+        pattern_type: PatternType,
+    ) -> str:
         """Generate unique pattern ID"""
         try:
-            timestamp = getattr(pattern, 'timestamp', pd.Timestamp.now())
+            timestamp = getattr(pattern, "timestamp", pd.Timestamp.now())
             return f"{pattern_type.value}_{timestamp.strftime('%Y%m%d_%H%M%S')}"
         except Exception:
-            return f"{pattern_type.value}_{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}"
+            return (
+                f"{pattern_type.value}_{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}"
+            )
 
-    def _create_error_result(self, pattern_type: PatternType) -> PatternValidationResult:
+    def _create_error_result(
+        self, pattern_type: PatternType
+    ) -> PatternValidationResult:
         """Create error result for failed validation"""
         return PatternValidationResult(
             pattern_id=f"error_{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}",
             pattern_type=pattern_type,
             confidence_score=0.0,
-            reliability_grade='F',
+            reliability_grade="F",
             success_probability=0.0,
             risk_reward_ratio=0.0,
             backtest_performance={},
             validation_timestamp=pd.Timestamp.now(),
             is_valid=False,
-            warnings=['Validation failed due to error']
+            warnings=["Validation failed due to error"],
         )

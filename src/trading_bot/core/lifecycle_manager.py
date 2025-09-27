@@ -6,25 +6,24 @@ of all system components with proper dependency ordering and health monitoring.
 """
 
 import asyncio
-import logging
 from collections import defaultdict, deque
-from datetime import datetime
 from enum import Enum
-from typing import Dict, List, Optional, Set, Tuple
+from typing import Dict, List, Optional, Set
 
 from .base_component import BaseComponent, ComponentState
 from .di_container import DIContainer
-from .events import BaseEvent, EventType, RiskEvent, RiskEventType, RiskSeverity
+from .events import RiskEvent, RiskEventType, RiskSeverity
 from .message_hub import MessageHub
 
 
 class StartupOrder(Enum):
     """Component startup order priorities."""
-    INFRASTRUCTURE = 1    # Core infrastructure (DI, EventBus, etc.)
-    DATA = 2              # Data providers and connections
-    ANALYSIS = 3          # Analysis and strategy components
-    EXECUTION = 4         # Order execution and risk management
-    NOTIFICATION = 5      # Monitoring and notification systems
+
+    INFRASTRUCTURE = 1  # Core infrastructure (DI, EventBus, etc.)
+    DATA = 2  # Data providers and connections
+    ANALYSIS = 3  # Analysis and strategy components
+    EXECUTION = 4  # Order execution and risk management
+    NOTIFICATION = 5  # Monitoring and notification systems
 
 
 class ComponentDependency:
@@ -75,11 +74,11 @@ class ComponentLifecycleManager(BaseComponent):
 
         # Statistics
         self.stats = {
-            'components_started': 0,
-            'components_stopped': 0,
-            'startup_failures': 0,
-            'restart_attempts': 0,
-            'health_check_failures': 0
+            "components_started": 0,
+            "components_stopped": 0,
+            "startup_failures": 0,
+            "restart_attempts": 0,
+            "health_check_failures": 0,
         }
 
     async def _start(self) -> None:
@@ -111,7 +110,7 @@ class ComponentLifecycleManager(BaseComponent):
         component: BaseComponent,
         dependencies: Optional[List[str]] = None,
         startup_order: StartupOrder = StartupOrder.ANALYSIS,
-        health_check_interval: float = 30.0
+        health_check_interval: float = 30.0,
     ) -> None:
         """
         Register a component for lifecycle management.
@@ -182,14 +181,16 @@ class ComponentLifecycleManager(BaseComponent):
             success = await self._start_component(component_name)
             if success:
                 started_count += 1
-                self.stats['components_started'] += 1
+                self.stats["components_started"] += 1
             else:
-                self.stats['startup_failures'] += 1
+                self.stats["startup_failures"] += 1
                 self.logger.error(f"Failed to start component {component_name}")
 
                 # Decide whether to continue or abort
                 if self._is_critical_component(component_name):
-                    self.logger.error("Critical component failed to start, aborting startup")
+                    self.logger.error(
+                        "Critical component failed to start, aborting startup"
+                    )
                     await self._stop_started_components()
                     return False
 
@@ -225,7 +226,7 @@ class ComponentLifecycleManager(BaseComponent):
                 success = await self._stop_component(component_name)
                 if success:
                     stopped_count += 1
-                    self.stats['components_stopped'] += 1
+                    self.stats["components_stopped"] += 1
 
         success_rate = stopped_count / total_components if total_components > 0 else 1
         self.logger.info(
@@ -251,9 +252,11 @@ class ComponentLifecycleManager(BaseComponent):
 
         dependency = self.components[component_name]
         dependency.restart_attempts += 1
-        self.stats['restart_attempts'] += 1
+        self.stats["restart_attempts"] += 1
 
-        self.logger.info(f"Restarting component {component_name} (attempt {dependency.restart_attempts})")
+        self.logger.info(
+            f"Restarting component {component_name} (attempt {dependency.restart_attempts})"
+        )
 
         # Stop component
         await self._stop_component(component_name)
@@ -283,7 +286,9 @@ class ComponentLifecycleManager(BaseComponent):
         # Check if dependencies are running
         for dep_name in dependency.dependencies:
             if dep_name not in self.running_components:
-                self.logger.error(f"Dependency {dep_name} not running for {component_name}")
+                self.logger.error(
+                    f"Dependency {dep_name} not running for {component_name}"
+                )
                 return False
 
         try:
@@ -297,12 +302,14 @@ class ComponentLifecycleManager(BaseComponent):
                 self.logger.info(f"Component {component_name} started successfully")
 
                 # Register with message hub if not already registered
-                if hasattr(component, 'handle_event'):
+                if hasattr(component, "handle_event"):
                     await self.message_hub.subscribe_component(component)
 
                 return True
             else:
-                self.logger.error(f"Component {component_name} failed to start properly")
+                self.logger.error(
+                    f"Component {component_name} failed to start properly"
+                )
                 return False
 
         except Exception as e:
@@ -332,7 +339,9 @@ class ComponentLifecycleManager(BaseComponent):
 
                 return True
             else:
-                self.logger.error(f"Component {component_name} failed to stop gracefully")
+                self.logger.error(
+                    f"Component {component_name} failed to stop gracefully"
+                )
                 return False
 
         except Exception as e:
@@ -425,11 +434,13 @@ class ComponentLifecycleManager(BaseComponent):
 
             if not component.is_healthy():
                 unhealthy_components.append(component_name)
-                self.stats['health_check_failures'] += 1
+                self.stats["health_check_failures"] += 1
 
                 # Attempt restart if under limit
                 if dependency.restart_attempts < dependency.max_restart_attempts:
-                    self.logger.warning(f"Component {component_name} unhealthy, attempting restart")
+                    self.logger.warning(
+                        f"Component {component_name} unhealthy, attempting restart"
+                    )
                     await self.restart_component(component_name)
                 else:
                     self.logger.error(
@@ -446,7 +457,7 @@ class ComponentLifecycleManager(BaseComponent):
                         limit_value=ComponentState.RUNNING.value,
                         description=f"Component {component_name} failed health checks repeatedly",
                         action_required=True,
-                        suggested_action=f"Manual intervention required for component {component_name}"
+                        suggested_action=f"Manual intervention required for component {component_name}",
                     )
 
                     await self.message_hub.publish_event(risk_event)
@@ -458,13 +469,13 @@ class ComponentLifecycleManager(BaseComponent):
         for name, dependency in self.components.items():
             component = dependency.component
             status[name] = {
-                'state': component.state.value,
-                'is_running': component.is_running(),
-                'is_healthy': component.is_healthy(),
-                'startup_order': dependency.startup_order.name,
-                'dependencies': dependency.dependencies,
-                'restart_attempts': dependency.restart_attempts,
-                'error': str(component.get_error()) if component.get_error() else None
+                "state": component.state.value,
+                "is_running": component.is_running(),
+                "is_healthy": component.is_healthy(),
+                "startup_order": dependency.startup_order.name,
+                "dependencies": dependency.dependencies,
+                "restart_attempts": dependency.restart_attempts,
+                "error": str(component.get_error()) if component.get_error() else None,
             }
 
         return status
@@ -472,11 +483,14 @@ class ComponentLifecycleManager(BaseComponent):
     def get_system_stats(self) -> Dict[str, any]:
         """Get system-wide statistics."""
         return {
-            'total_components': len(self.components),
-            'running_components': len(self.running_components),
-            'failed_components': len([
-                name for name, dep in self.components.items()
-                if not dep.component.is_healthy()
-            ]),
-            'stats': self.stats.copy()
+            "total_components": len(self.components),
+            "running_components": len(self.running_components),
+            "failed_components": len(
+                [
+                    name
+                    for name, dep in self.components.items()
+                    if not dep.component.is_healthy()
+                ]
+            ),
+            "stats": self.stats.copy(),
         }

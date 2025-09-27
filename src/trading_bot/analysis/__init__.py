@@ -38,67 +38,58 @@ Usage:
     pattern_validations = result.pattern_validations
 """
 
-# Main analyzer
-from .main_analyzer import TechnicalAnalyzer, AnalysisResult, PerformanceMetrics
-
 # ICT Pattern Analysis
-from .ict_analyzer import (
-    # Core analyzers
-    OrderBlockDetector,
-    FairValueGapAnalyzer,
-    MarketStructureAnalyzer,
-    TimeFrameManager,
-    PatternValidationEngine,
-
-    # Data classes
-    OrderBlock,
-    FairValueGap,
-    MarketStructure,
-    SwingPoint,
-    PatternValidationResult,
+from .ict_analyzer import (  # Core analyzers; Data classes; Enums
     BacktestResult,
-
-    # Enums
+    FairValueGap,
+    FairValueGapAnalyzer,
+    MarketStructure,
+    MarketStructureAnalyzer,
+    OrderBlock,
+    OrderBlockDetector,
     PatternType,
-    TrendDirection
+    PatternValidationEngine,
+    PatternValidationResult,
+    SwingPoint,
+    TimeFrameManager,
+    TrendDirection,
 )
+
+# Main analyzer
+from .main_analyzer import AnalysisResult, PerformanceMetrics, TechnicalAnalyzer
 
 # Technical Indicators
 from .technical_indicators import (
-    TechnicalIndicators,
     ICTIndicatorIntegration,
-    ICTPatternIndicatorFusion
+    ICTPatternIndicatorFusion,
+    TechnicalIndicators,
 )
 
 __all__ = [
     # Main analyzer
-    'TechnicalAnalyzer',
-    'AnalysisResult',
-    'PerformanceMetrics',
-
+    "TechnicalAnalyzer",
+    "AnalysisResult",
+    "PerformanceMetrics",
     # ICT analyzers
-    'OrderBlockDetector',
-    'FairValueGapAnalyzer',
-    'MarketStructureAnalyzer',
-    'TimeFrameManager',
-    'PatternValidationEngine',
-
+    "OrderBlockDetector",
+    "FairValueGapAnalyzer",
+    "MarketStructureAnalyzer",
+    "TimeFrameManager",
+    "PatternValidationEngine",
     # Data classes
-    'OrderBlock',
-    'FairValueGap',
-    'MarketStructure',
-    'SwingPoint',
-    'PatternValidationResult',
-    'BacktestResult',
-
+    "OrderBlock",
+    "FairValueGap",
+    "MarketStructure",
+    "SwingPoint",
+    "PatternValidationResult",
+    "BacktestResult",
     # Enums
-    'PatternType',
-    'TrendDirection',
-
+    "PatternType",
+    "TrendDirection",
     # Technical indicators
-    'TechnicalIndicators',
-    'ICTIndicatorIntegration',
-    'ICTPatternIndicatorFusion'
+    "TechnicalIndicators",
+    "ICTIndicatorIntegration",
+    "ICTPatternIndicatorFusion",
 ]
 
 __version__ = "1.0.0"

@@ -6,16 +6,17 @@ with exchange API limits using asyncio semaphores and token bucket algorithm.
 """
 
 import asyncio
-import time
 import logging
-from typing import Dict, Optional, Any
+import time
+from collections import deque
 from dataclasses import dataclass
-from collections import defaultdict, deque
+from typing import Any, Dict, Optional
 
 
 @dataclass
 class RateLimit:
     """Rate limit configuration."""
+
     requests_per_minute: int
     max_burst: int = None
 
@@ -100,7 +101,9 @@ class RequestQueue:
         self._lock = asyncio.Lock()
         self._not_empty = asyncio.Condition()
 
-    async def put(self, request_future: asyncio.Future, priority: str = 'normal') -> bool:
+    async def put(
+        self, request_future: asyncio.Future, priority: str = "normal"
+    ) -> bool:
         """
         Add request to queue.
 
@@ -112,14 +115,18 @@ class RequestQueue:
             True if request was queued, False if queue is full
         """
         async with self._lock:
-            total_size = len(self._high_priority) + len(self._normal_priority) + len(self._low_priority)
+            total_size = (
+                len(self._high_priority)
+                + len(self._normal_priority)
+                + len(self._low_priority)
+            )
 
             if total_size >= self.max_size:
                 return False
 
-            if priority == 'high':
+            if priority == "high":
                 self._high_priority.append(request_future)
-            elif priority == 'low':
+            elif priority == "low":
                 self._low_priority.append(request_future)
             else:
                 self._normal_priority.append(request_future)
@@ -155,10 +162,12 @@ class RequestQueue:
     def qsize(self) -> Dict[str, int]:
         """Get queue sizes by priority."""
         return {
-            'high': len(self._high_priority),
-            'normal': len(self._normal_priority),
-            'low': len(self._low_priority),
-            'total': len(self._high_priority) + len(self._normal_priority) + len(self._low_priority)
+            "high": len(self._high_priority),
+            "normal": len(self._normal_priority),
+            "low": len(self._low_priority),
+            "total": len(self._high_priority)
+            + len(self._normal_priority)
+            + len(self._low_priority),
         }
 
 
@@ -192,15 +201,15 @@ class RateLimiter:
 
         # Statistics
         self._stats = {
-            'requests_made': 0,
-            'requests_queued': 0,
-            'requests_rejected': 0,
-            'rate_limit_hits': 0,
-            'average_wait_time': 0.0
+            "requests_made": 0,
+            "requests_queued": 0,
+            "requests_rejected": 0,
+            "rate_limit_hits": 0,
+            "average_wait_time": 0.0,
         }
 
         # Create default bucket
-        self._buckets['default'] = TokenBucket(default_rate_limit)
+        self._buckets["default"] = TokenBucket(default_rate_limit)
 
     async def start(self) -> None:
         """Start the rate limiter processor."""
@@ -238,13 +247,15 @@ class RateLimiter:
         """
         self._endpoint_limits[endpoint] = rate_limit
         self._buckets[endpoint] = TokenBucket(rate_limit)
-        self.logger.info(f"Configured rate limit for {endpoint}: {rate_limit.requests_per_minute}/min")
+        self.logger.info(
+            f"Configured rate limit for {endpoint}: {rate_limit.requests_per_minute}/min"
+        )
 
     async def acquire(
         self,
-        endpoint: str = 'default',
-        priority: str = 'normal',
-        timeout: Optional[float] = None
+        endpoint: str = "default",
+        priority: str = "normal",
+        timeout: Optional[float] = None,
     ) -> bool:
         """
         Acquire permission to make a request.
@@ -262,11 +273,11 @@ class RateLimiter:
             return False
 
         # Get appropriate bucket
-        bucket = self._buckets.get(endpoint, self._buckets['default'])
+        bucket = self._buckets.get(endpoint, self._buckets["default"])
 
         # Try immediate acquisition
         if await bucket.consume():
-            self._stats['requests_made'] += 1
+            self._stats["requests_made"] += 1
             return True
 
         # Queue the request if immediate acquisition failed
@@ -277,10 +288,10 @@ class RateLimiter:
 
         if not await self._request_queue.put(request_future, priority):
             self.logger.warning("Request queue is full, rejecting request")
-            self._stats['requests_rejected'] += 1
+            self._stats["requests_rejected"] += 1
             return False
 
-        self._stats['requests_queued'] += 1
+        self._stats["requests_queued"] += 1
 
         try:
             if timeout:
@@ -325,10 +336,10 @@ class RateLimiter:
             request_future: Request future to process
         """
         try:
-            endpoint = getattr(request_future, 'endpoint', 'default')
-            timestamp = getattr(request_future, 'timestamp', time.time())
+            endpoint = getattr(request_future, "endpoint", "default")
+            timestamp = getattr(request_future, "timestamp", time.time())
 
-            bucket = self._buckets.get(endpoint, self._buckets['default'])
+            bucket = self._buckets.get(endpoint, self._buckets["default"])
 
             # Wait for tokens to be available
             while self._running:
@@ -340,7 +351,7 @@ class RateLimiter:
                     # Grant permission
                     if not request_future.done():
                         request_future.set_result(True)
-                    self._stats['requests_made'] += 1
+                    self._stats["requests_made"] += 1
                     break
 
                 # Wait before retrying
@@ -354,15 +365,17 @@ class RateLimiter:
 
     def _update_wait_time_stats(self, wait_time: float) -> None:
         """Update average wait time statistics."""
-        current_avg = self._stats['average_wait_time']
-        requests_made = self._stats['requests_made']
+        current_avg = self._stats["average_wait_time"]
+        requests_made = self._stats["requests_made"]
 
         if requests_made == 0:
-            self._stats['average_wait_time'] = wait_time
+            self._stats["average_wait_time"] = wait_time
         else:
             # Exponential moving average
             alpha = 0.1
-            self._stats['average_wait_time'] = alpha * wait_time + (1 - alpha) * current_avg
+            self._stats["average_wait_time"] = (
+                alpha * wait_time + (1 - alpha) * current_avg
+            )
 
     def get_stats(self) -> Dict[str, Any]:
         """
@@ -372,14 +385,14 @@ class RateLimiter:
             Statistics dictionary
         """
         stats = self._stats.copy()
-        stats['queue_sizes'] = self._request_queue.qsize()
-        stats['buckets_status'] = {}
+        stats["queue_sizes"] = self._request_queue.qsize()
+        stats["buckets_status"] = {}
 
         for endpoint, bucket in self._buckets.items():
-            stats['buckets_status'][endpoint] = {
-                'tokens': bucket.tokens,
-                'max_tokens': bucket.max_tokens,
-                'refill_rate': bucket.refill_rate
+            stats["buckets_status"][endpoint] = {
+                "tokens": bucket.tokens,
+                "max_tokens": bucket.max_tokens,
+                "refill_rate": bucket.refill_rate,
             }
 
         return stats
@@ -391,15 +404,17 @@ class RateLimiter:
         Returns:
             Dictionary of endpoint limits
         """
-        limits = {'default': {
-            'requests_per_minute': self.default_rate_limit.requests_per_minute,
-            'max_burst': self.default_rate_limit.max_burst
-        }}
+        limits = {
+            "default": {
+                "requests_per_minute": self.default_rate_limit.requests_per_minute,
+                "max_burst": self.default_rate_limit.max_burst,
+            }
+        }
 
         for endpoint, rate_limit in self._endpoint_limits.items():
             limits[endpoint] = {
-                'requests_per_minute': rate_limit.requests_per_minute,
-                'max_burst': rate_limit.max_burst
+                "requests_per_minute": rate_limit.requests_per_minute,
+                "max_burst": rate_limit.max_burst,
             }
 
         return limits

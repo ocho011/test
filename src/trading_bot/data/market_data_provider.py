@@ -6,24 +6,22 @@ automatic reconnection, data normalization, and event publishing.
 """
 
 import asyncio
-import json
-import logging
 import time
-from decimal import Decimal
-from typing import Dict, List, Optional, Set, Any, Callable
 from dataclasses import dataclass
+from decimal import Decimal
 from enum import Enum
+from typing import Any, Callable, Dict, List, Optional
 
 from binance import BinanceSocketManager
-from binance.exceptions import BinanceWebsocketUnableToConnect
 
 from ..core.base_component import BaseComponent
-from ..core.events import MarketDataEvent, EventPriority
+from ..core.events import EventPriority, MarketDataEvent
 from .binance_client import BinanceClient
 
 
 class StreamType(Enum):
     """WebSocket stream types."""
+
     KLINE = "kline"
     TICKER = "ticker"
     DEPTH = "depth"
@@ -33,6 +31,7 @@ class StreamType(Enum):
 @dataclass
 class StreamSubscription:
     """WebSocket stream subscription configuration."""
+
     symbol: str
     stream_type: StreamType
     interval: Optional[str] = None  # For kline streams
@@ -42,6 +41,7 @@ class StreamSubscription:
 
 class ConnectionState(Enum):
     """WebSocket connection states."""
+
     DISCONNECTED = "disconnected"
     CONNECTING = "connecting"
     CONNECTED = "connected"
@@ -61,7 +61,7 @@ class MarketDataProvider(BaseComponent):
         self,
         binance_client: BinanceClient,
         event_bus=None,
-        max_reconnect_attempts: int = 10
+        max_reconnect_attempts: int = 10,
     ):
         """
         Initialize market data provider.
@@ -101,12 +101,14 @@ class MarketDataProvider(BaseComponent):
         self._heartbeat_task: Optional[asyncio.Task] = None
 
         # Supported timeframes
-        self.supported_intervals = ['5m', '15m', '4h', '1d']
+        self.supported_intervals = ["5m", "15m", "4h", "1d"]
 
     async def _start(self) -> None:
         """Start the market data provider."""
         if not self.binance_client.is_connected():
-            raise RuntimeError("Binance client must be connected before starting MarketDataProvider")
+            raise RuntimeError(
+                "Binance client must be connected before starting MarketDataProvider"
+            )
 
         self._socket_manager = BinanceSocketManager(self.binance_client._client)
         self._connection_state = ConnectionState.CONNECTING
@@ -142,10 +144,7 @@ class MarketDataProvider(BaseComponent):
         self.logger.info("MarketDataProvider stopped")
 
     async def subscribe_klines(
-        self,
-        symbol: str,
-        intervals: List[str],
-        callback: Optional[Callable] = None
+        self, symbol: str, intervals: List[str], callback: Optional[Callable] = None
     ) -> bool:
         """
         Subscribe to kline/candlestick data streams.
@@ -171,7 +170,7 @@ class MarketDataProvider(BaseComponent):
                 symbol=symbol,
                 stream_type=StreamType.KLINE,
                 interval=interval,
-                callback=callback
+                callback=callback,
             )
 
             self._subscriptions[subscription_key] = subscription
@@ -181,13 +180,17 @@ class MarketDataProvider(BaseComponent):
                 self.logger.info(f"Subscribed to {symbol} {interval} klines")
 
             except Exception as e:
-                self.logger.error(f"Failed to subscribe to {symbol} {interval} klines: {e}")
+                self.logger.error(
+                    f"Failed to subscribe to {symbol} {interval} klines: {e}"
+                )
                 del self._subscriptions[subscription_key]
                 return False
 
         return True
 
-    async def subscribe_ticker(self, symbol: str, callback: Optional[Callable] = None) -> bool:
+    async def subscribe_ticker(
+        self, symbol: str, callback: Optional[Callable] = None
+    ) -> bool:
         """
         Subscribe to ticker price stream.
 
@@ -202,9 +205,7 @@ class MarketDataProvider(BaseComponent):
         subscription_key = f"{symbol}_ticker"
 
         subscription = StreamSubscription(
-            symbol=symbol,
-            stream_type=StreamType.TICKER,
-            callback=callback
+            symbol=symbol, stream_type=StreamType.TICKER, callback=callback
         )
 
         self._subscriptions[subscription_key] = subscription
@@ -250,22 +251,18 @@ class MarketDataProvider(BaseComponent):
             self.logger.error(f"Error unsubscribing from {subscription_key}: {e}")
             return False
 
-    async def _create_kline_stream(self, symbol: str, interval: str, subscription_key: str) -> None:
+    async def _create_kline_stream(
+        self, symbol: str, interval: str, subscription_key: str
+    ) -> None:
         """Create kline WebSocket stream."""
         if not self._socket_manager:
             raise RuntimeError("Socket manager not initialized")
 
         # Map intervals to Binance constants
-        interval_map = {
-            '5m': '5m',
-            '15m': '15m',
-            '4h': '4h',
-            '1d': '1d'
-        }
+        interval_map = {"5m": "5m", "15m": "15m", "4h": "4h", "1d": "1d"}
 
         stream = self._socket_manager.kline_futures_socket(
-            symbol=symbol.lower(),
-            interval=interval_map[interval]
+            symbol=symbol.lower(), interval=interval_map[interval]
         )
 
         self._active_streams[subscription_key] = stream
@@ -278,7 +275,9 @@ class MarketDataProvider(BaseComponent):
         if not self._socket_manager:
             raise RuntimeError("Socket manager not initialized")
 
-        stream = self._socket_manager.symbol_ticker_futures_socket(symbol=symbol.lower())
+        stream = self._socket_manager.symbol_ticker_futures_socket(
+            symbol=symbol.lower()
+        )
         self._active_streams[subscription_key] = stream
 
         # Start processing the stream
@@ -292,7 +291,9 @@ class MarketDataProvider(BaseComponent):
                 self._reconnect_attempts = 0
 
                 async for msg in stream_context:
-                    if not self._subscriptions.get(subscription_key, {}).get('active', False):
+                    if not self._subscriptions.get(subscription_key, {}).get(
+                        "active", False
+                    ):
                         break
 
                     await self._handle_kline_message(msg, subscription_key)
@@ -312,7 +313,9 @@ class MarketDataProvider(BaseComponent):
                 self._reconnect_attempts = 0
 
                 async for msg in stream_context:
-                    if not self._subscriptions.get(subscription_key, {}).get('active', False):
+                    if not self._subscriptions.get(subscription_key, {}).get(
+                        "active", False
+                    ):
                         break
 
                     await self._handle_ticker_message(msg, subscription_key)
@@ -327,10 +330,10 @@ class MarketDataProvider(BaseComponent):
     async def _handle_kline_message(self, msg: Dict, subscription_key: str) -> None:
         """Handle kline message and publish market data event."""
         try:
-            if msg.get('e') != 'kline':
+            if msg.get("e") != "kline":
                 return
 
-            kline_data = msg.get('k', {})
+            kline_data = msg.get("k", {})
             subscription = self._subscriptions.get(subscription_key)
 
             if not subscription:
@@ -339,22 +342,22 @@ class MarketDataProvider(BaseComponent):
             # Create market data event
             event = MarketDataEvent(
                 source=self.name,
-                symbol=kline_data.get('s'),
-                price=Decimal(kline_data.get('c')),  # Close price
-                volume=Decimal(kline_data.get('v')),  # Volume
-                open_price=Decimal(kline_data.get('o')),
-                high_price=Decimal(kline_data.get('h')),
-                low_price=Decimal(kline_data.get('l')),
-                close_price=Decimal(kline_data.get('c')),
+                symbol=kline_data.get("s"),
+                price=Decimal(kline_data.get("c")),  # Close price
+                volume=Decimal(kline_data.get("v")),  # Volume
+                open_price=Decimal(kline_data.get("o")),
+                high_price=Decimal(kline_data.get("h")),
+                low_price=Decimal(kline_data.get("l")),
+                close_price=Decimal(kline_data.get("c")),
                 priority=EventPriority.HIGH,
                 metadata={
-                    'interval': subscription.interval,
-                    'is_closed': kline_data.get('x', False),  # Is kline closed
-                    'open_time': kline_data.get('t'),
-                    'close_time': kline_data.get('T'),
-                    'trades': kline_data.get('n'),  # Number of trades
-                    'stream_type': 'kline'
-                }
+                    "interval": subscription.interval,
+                    "is_closed": kline_data.get("x", False),  # Is kline closed
+                    "open_time": kline_data.get("t"),
+                    "close_time": kline_data.get("T"),
+                    "trades": kline_data.get("n"),  # Number of trades
+                    "stream_type": "kline",
+                },
             )
 
             # Publish event
@@ -374,7 +377,7 @@ class MarketDataProvider(BaseComponent):
     async def _handle_ticker_message(self, msg: Dict, subscription_key: str) -> None:
         """Handle ticker message and publish market data event."""
         try:
-            if msg.get('e') != '24hrTicker':
+            if msg.get("e") != "24hrTicker":
                 return
 
             subscription = self._subscriptions.get(subscription_key)
@@ -384,25 +387,25 @@ class MarketDataProvider(BaseComponent):
             # Create market data event
             event = MarketDataEvent(
                 source=self.name,
-                symbol=msg.get('s'),
-                price=Decimal(msg.get('c')),  # Current price
-                volume=Decimal(msg.get('v')),  # 24h volume
-                bid=Decimal(msg.get('b')) if msg.get('b') else None,
-                ask=Decimal(msg.get('a')) if msg.get('a') else None,
-                open_price=Decimal(msg.get('o')),
-                high_price=Decimal(msg.get('h')),
-                low_price=Decimal(msg.get('l')),
-                close_price=Decimal(msg.get('c')),
+                symbol=msg.get("s"),
+                price=Decimal(msg.get("c")),  # Current price
+                volume=Decimal(msg.get("v")),  # 24h volume
+                bid=Decimal(msg.get("b")) if msg.get("b") else None,
+                ask=Decimal(msg.get("a")) if msg.get("a") else None,
+                open_price=Decimal(msg.get("o")),
+                high_price=Decimal(msg.get("h")),
+                low_price=Decimal(msg.get("l")),
+                close_price=Decimal(msg.get("c")),
                 priority=EventPriority.NORMAL,
                 metadata={
-                    'price_change': msg.get('p'),
-                    'price_change_percent': msg.get('P'),
-                    'weighted_avg_price': msg.get('w'),
-                    'prev_close_price': msg.get('x'),
-                    'last_qty': msg.get('q'),
-                    'count': msg.get('n'),  # Trade count
-                    'stream_type': 'ticker'
-                }
+                    "price_change": msg.get("p"),
+                    "price_change_percent": msg.get("P"),
+                    "weighted_avg_price": msg.get("w"),
+                    "prev_close_price": msg.get("x"),
+                    "last_qty": msg.get("q"),
+                    "count": msg.get("n"),  # Trade count
+                    "stream_type": "ticker",
+                },
             )
 
             # Publish event
@@ -419,7 +422,9 @@ class MarketDataProvider(BaseComponent):
         except Exception as e:
             self.logger.error(f"Error handling ticker message: {e}")
 
-    async def _handle_stream_error(self, subscription_key: str, error: Exception) -> None:
+    async def _handle_stream_error(
+        self, subscription_key: str, error: Exception
+    ) -> None:
         """Handle stream errors and trigger reconnection."""
         self.logger.error(f"Stream error for {subscription_key}: {error}")
 
@@ -439,10 +444,12 @@ class MarketDataProvider(BaseComponent):
         # Calculate delay with exponential backoff
         delay = min(
             self._base_delay * (self._backoff_factor ** (self._reconnect_attempts - 1)),
-            self._max_delay
+            self._max_delay,
         )
 
-        self.logger.info(f"Scheduling reconnect for {subscription_key} in {delay:.1f}s (attempt {self._reconnect_attempts})")
+        self.logger.info(
+            f"Scheduling reconnect for {subscription_key} in {delay:.1f}s (attempt {self._reconnect_attempts})"
+        )
 
         await asyncio.sleep(delay)
 
@@ -462,22 +469,17 @@ class MarketDataProvider(BaseComponent):
             if subscription_key in self._active_streams:
                 try:
                     await self._active_streams[subscription_key].close()
-                except:
-                    pass
+                except Exception as e:
+                    self.logger.debug(f"Error closing stream {subscription_key}: {e}")
                 del self._active_streams[subscription_key]
 
             # Recreate stream based on type
             if subscription.stream_type == StreamType.KLINE:
                 await self._create_kline_stream(
-                    subscription.symbol,
-                    subscription.interval,
-                    subscription_key
+                    subscription.symbol, subscription.interval, subscription_key
                 )
             elif subscription.stream_type == StreamType.TICKER:
-                await self._create_ticker_stream(
-                    subscription.symbol,
-                    subscription_key
-                )
+                await self._create_ticker_stream(subscription.symbol, subscription_key)
 
             self.logger.info(f"Successfully reconnected {subscription_key}")
 
@@ -498,11 +500,15 @@ class MarketDataProvider(BaseComponent):
 
                     # If no messages for too long, consider connection stale
                     if time_since_last_message > 60:
-                        self.logger.warning("No messages received recently, checking connection")
+                        self.logger.warning(
+                            "No messages received recently, checking connection"
+                        )
                         # Trigger reconnection for all streams
                         for subscription_key in list(self._subscriptions.keys()):
                             if self._subscriptions[subscription_key].active:
-                                await self._handle_stream_error(subscription_key, Exception("Connection timeout"))
+                                await self._handle_stream_error(
+                                    subscription_key, Exception("Connection timeout")
+                                )
 
             except asyncio.CancelledError:
                 break
@@ -537,26 +543,32 @@ class MarketDataProvider(BaseComponent):
     def get_stats(self) -> Dict[str, Any]:
         """Get market data provider statistics."""
         return {
-            'connection_state': self._connection_state.value,
-            'active_subscriptions': len([s for s in self._subscriptions.values() if s.active]),
-            'total_subscriptions': len(self._subscriptions),
-            'active_streams': len(self._active_streams),
-            'reconnect_attempts': self._reconnect_attempts,
-            'max_reconnect_attempts': self.max_reconnect_attempts,
-            'message_count': self._message_count,
-            'error_count': self._error_count,
-            'last_message_time': self._last_message_time,
-            'time_since_last_message': time.time() - self._last_message_time if self._last_message_time > 0 else 0
+            "connection_state": self._connection_state.value,
+            "active_subscriptions": len(
+                [s for s in self._subscriptions.values() if s.active]
+            ),
+            "total_subscriptions": len(self._subscriptions),
+            "active_streams": len(self._active_streams),
+            "reconnect_attempts": self._reconnect_attempts,
+            "max_reconnect_attempts": self.max_reconnect_attempts,
+            "message_count": self._message_count,
+            "error_count": self._error_count,
+            "last_message_time": self._last_message_time,
+            "time_since_last_message": (
+                time.time() - self._last_message_time
+                if self._last_message_time > 0
+                else 0
+            ),
         }
 
     def get_subscriptions(self) -> Dict[str, Dict[str, Any]]:
         """Get current subscriptions status."""
         return {
             key: {
-                'symbol': sub.symbol,
-                'stream_type': sub.stream_type.value,
-                'interval': sub.interval,
-                'active': sub.active
+                "symbol": sub.symbol,
+                "stream_type": sub.stream_type.value,
+                "interval": sub.interval,
+                "active": sub.active,
             }
             for key, sub in self._subscriptions.items()
         }

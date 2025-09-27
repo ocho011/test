@@ -7,11 +7,10 @@ using asyncio queues and publish-subscribe pattern for loose coupling.
 
 import asyncio
 import logging
-from collections import defaultdict
-from typing import Any, Callable, Dict, List, Optional, Set, Type, Union
+from typing import Any, Callable, Dict, List, Optional, Set, Union
 from weakref import WeakSet
 
-from .events import BaseEvent, EventType, EventPriority
+from .events import BaseEvent, EventPriority, EventType
 
 
 class EventSubscription:
@@ -22,7 +21,7 @@ class EventSubscription:
         handler: Callable[[BaseEvent], Any],
         event_types: Optional[Set[EventType]] = None,
         priority_filter: Optional[EventPriority] = None,
-        source_filter: Optional[str] = None
+        source_filter: Optional[str] = None,
     ):
         """
         Initialize event subscription.
@@ -57,7 +56,10 @@ class EventSubscription:
             return False
 
         # Priority filter
-        if self.priority_filter is not None and event.priority.value < self.priority_filter.value:
+        if (
+            self.priority_filter is not None
+            and event.priority.value < self.priority_filter.value
+        ):
             return False
 
         # Source filter
@@ -102,10 +104,10 @@ class EventBus:
 
         # Statistics
         self._stats = {
-            'events_published': 0,
-            'events_processed': 0,
-            'events_dropped': 0,
-            'handler_errors': 0
+            "events_published": 0,
+            "events_processed": 0,
+            "events_dropped": 0,
+            "handler_errors": 0,
         }
 
     async def start(self) -> None:
@@ -154,7 +156,9 @@ class EventBus:
             True if event was queued successfully, False if queue is full
         """
         if not self._running:
-            self.logger.warning("Attempting to publish event while EventBus is not running")
+            self.logger.warning(
+                "Attempting to publish event while EventBus is not running"
+            )
             return False
 
         try:
@@ -164,13 +168,17 @@ class EventBus:
             # Try to put event in queue (non-blocking)
             queue.put_nowait(event)
 
-            self._stats['events_published'] += 1
-            self.logger.debug(f"Published event: {event.event_type.value} from {event.source}")
+            self._stats["events_published"] += 1
+            self.logger.debug(
+                f"Published event: {event.event_type.value} from {event.source}"
+            )
             return True
 
         except asyncio.QueueFull:
-            self._stats['events_dropped'] += 1
-            self.logger.error(f"Event queue full, dropping event: {event.event_type.value}")
+            self._stats["events_dropped"] += 1
+            self.logger.error(
+                f"Event queue full, dropping event: {event.event_type.value}"
+            )
             return False
 
     async def subscribe(
@@ -178,7 +186,7 @@ class EventBus:
         handler: Callable[[BaseEvent], Any],
         event_types: Optional[Union[EventType, List[EventType]]] = None,
         priority_filter: Optional[EventPriority] = None,
-        source_filter: Optional[str] = None
+        source_filter: Optional[str] = None,
     ) -> EventSubscription:
         """
         Subscribe to events with optional filtering.
@@ -204,7 +212,7 @@ class EventBus:
             handler=handler,
             event_types=event_type_set,
             priority_filter=priority_filter,
-            source_filter=source_filter
+            source_filter=source_filter,
         )
 
         async with self._subscription_lock:
@@ -315,10 +323,10 @@ class EventBus:
                     dispatched_count += 1
 
                 except Exception as e:
-                    self._stats['handler_errors'] += 1
+                    self._stats["handler_errors"] += 1
                     self.logger.error(f"Error in event handler: {e}")
 
-        self._stats['events_processed'] += 1
+        self._stats["events_processed"] += 1
         self.logger.debug(f"Dispatched event to {dispatched_count} handlers")
 
     def get_stats(self) -> Dict[str, int]:

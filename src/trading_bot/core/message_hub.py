@@ -6,9 +6,8 @@ communication, message routing, and system-wide monitoring.
 """
 
 import asyncio
-import logging
 from collections import defaultdict
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Any, Dict, List, Optional, Set
 from weakref import WeakKeyDictionary
 
@@ -21,16 +20,20 @@ class ComponentRegistry:
     """Registry for tracking registered components and their capabilities."""
 
     def __init__(self):
-        self.components: WeakKeyDictionary[BaseComponent, Dict[str, Any]] = WeakKeyDictionary()
+        self.components: WeakKeyDictionary[BaseComponent, Dict[str, Any]] = (
+            WeakKeyDictionary()
+        )
         self.components_by_name: Dict[str, BaseComponent] = {}
         self.capabilities: Dict[str, Set[BaseComponent]] = defaultdict(set)
 
-    def register(self, component: BaseComponent, capabilities: Optional[List[str]] = None) -> None:
+    def register(
+        self, component: BaseComponent, capabilities: Optional[List[str]] = None
+    ) -> None:
         """Register a component with optional capabilities."""
         self.components[component] = {
-            'name': component.name,
-            'registered_at': datetime.utcnow(),
-            'capabilities': capabilities or []
+            "name": component.name,
+            "registered_at": datetime.utcnow(),
+            "capabilities": capabilities or [],
         }
         self.components_by_name[component.name] = component
 
@@ -44,7 +47,7 @@ class ComponentRegistry:
         if component in self.components:
             # Remove from capabilities
             component_info = self.components[component]
-            for capability in component_info.get('capabilities', []):
+            for capability in component_info.get("capabilities", []):
                 self.capabilities[capability].discard(component)
 
             # Remove from registries
@@ -77,29 +80,30 @@ class MessageRouter:
         source_pattern: str,
         target_pattern: str,
         event_types: Optional[List[EventType]] = None,
-        condition: Optional[callable] = None
+        condition: Optional[callable] = None,
     ) -> None:
         """Add a message routing rule."""
         rule = {
-            'source_pattern': source_pattern,
-            'target_pattern': target_pattern,
-            'event_types': event_types or [],
-            'condition': condition
+            "source_pattern": source_pattern,
+            "target_pattern": target_pattern,
+            "event_types": event_types or [],
+            "condition": condition,
         }
         self.routing_rules.append(rule)
 
     def should_route(self, event: BaseEvent, source: str, target: str) -> bool:
         """Check if an event should be routed from source to target."""
         for rule in self.routing_rules:
-            if self._matches_pattern(source, rule['source_pattern']) and \
-               self._matches_pattern(target, rule['target_pattern']):
+            if self._matches_pattern(
+                source, rule["source_pattern"]
+            ) and self._matches_pattern(target, rule["target_pattern"]):
 
                 # Check event type filter
-                if rule['event_types'] and event.event_type not in rule['event_types']:
+                if rule["event_types"] and event.event_type not in rule["event_types"]:
                     continue
 
                 # Check custom condition
-                if rule['condition'] and not rule['condition'](event, source, target):
+                if rule["condition"] and not rule["condition"](event, source, target):
                     continue
 
                 return True
@@ -108,7 +112,7 @@ class MessageRouter:
 
     def _matches_pattern(self, name: str, pattern: str) -> bool:
         """Check if a name matches a pattern (supports wildcards)."""
-        if pattern == '*':
+        if pattern == "*":
             return True
         return name == pattern
 
@@ -121,34 +125,38 @@ class BackpressureManager:
         self.critical_threshold = critical_threshold
         self.component_metrics: Dict[str, Dict[str, Any]] = defaultdict(dict)
 
-    def update_metrics(self, component_name: str, queue_size: int, max_queue_size: int) -> None:
+    def update_metrics(
+        self, component_name: str, queue_size: int, max_queue_size: int
+    ) -> None:
         """Update component metrics for backpressure monitoring."""
         usage_percent = (queue_size / max_queue_size) * 100 if max_queue_size > 0 else 0
 
-        self.component_metrics[component_name].update({
-            'queue_size': queue_size,
-            'max_queue_size': max_queue_size,
-            'usage_percent': usage_percent,
-            'last_updated': datetime.utcnow()
-        })
+        self.component_metrics[component_name].update(
+            {
+                "queue_size": queue_size,
+                "max_queue_size": max_queue_size,
+                "usage_percent": usage_percent,
+                "last_updated": datetime.utcnow(),
+            }
+        )
 
     def get_backpressure_level(self, component_name: str) -> str:
         """Get backpressure level for a component."""
         metrics = self.component_metrics.get(component_name, {})
-        usage_percent = metrics.get('usage_percent', 0)
+        usage_percent = metrics.get("usage_percent", 0)
 
         if usage_percent >= self.critical_threshold:
-            return 'critical'
+            return "critical"
         elif usage_percent >= self.warning_threshold:
-            return 'warning'
+            return "warning"
         else:
-            return 'normal'
+            return "normal"
 
     def get_overloaded_components(self) -> List[str]:
         """Get list of components experiencing critical backpressure."""
         overloaded = []
         for component_name, metrics in self.component_metrics.items():
-            if metrics.get('usage_percent', 0) >= self.critical_threshold:
+            if metrics.get("usage_percent", 0) >= self.critical_threshold:
                 overloaded.append(component_name)
         return overloaded
 
@@ -176,10 +184,10 @@ class MessageHub(BaseComponent):
 
         # Statistics
         self.stats = {
-            'messages_routed': 0,
-            'routing_errors': 0,
-            'backpressure_events': 0,
-            'component_failures': 0
+            "messages_routed": 0,
+            "routing_errors": 0,
+            "backpressure_events": 0,
+            "component_failures": 0,
         }
 
     async def _start(self) -> None:
@@ -207,9 +215,7 @@ class MessageHub(BaseComponent):
         self.logger.info("MessageHub stopped successfully")
 
     async def register_component(
-        self,
-        component: BaseComponent,
-        capabilities: Optional[List[str]] = None
+        self, component: BaseComponent, capabilities: Optional[List[str]] = None
     ) -> None:
         """
         Register a component with the message hub.
@@ -219,7 +225,9 @@ class MessageHub(BaseComponent):
             capabilities: List of capabilities this component provides
         """
         self.component_registry.register(component, capabilities)
-        self.logger.info(f"Registered component: {component.name} with capabilities: {capabilities}")
+        self.logger.info(
+            f"Registered component: {component.name} with capabilities: {capabilities}"
+        )
 
     async def unregister_component(self, component: BaseComponent) -> None:
         """
@@ -243,9 +251,9 @@ class MessageHub(BaseComponent):
         """
         success = await self.event_bus.publish(event)
         if success:
-            self.stats['messages_routed'] += 1
+            self.stats["messages_routed"] += 1
         else:
-            self.stats['routing_errors'] += 1
+            self.stats["routing_errors"] += 1
 
         return success
 
@@ -254,7 +262,7 @@ class MessageHub(BaseComponent):
         component: BaseComponent,
         event_types: Optional[List[EventType]] = None,
         priority_filter=None,
-        source_filter: Optional[str] = None
+        source_filter: Optional[str] = None,
     ) -> None:
         """
         Subscribe a component to events.
@@ -265,10 +273,11 @@ class MessageHub(BaseComponent):
             priority_filter: Minimum priority level
             source_filter: Filter by source component
         """
+
         async def component_handler(event: BaseEvent):
             """Wrapper handler for component event processing."""
             try:
-                if hasattr(component, 'handle_event'):
+                if hasattr(component, "handle_event"):
                     await component.handle_event(event)
             except Exception as e:
                 self.logger.error(f"Error handling event in {component.name}: {e}")
@@ -278,7 +287,7 @@ class MessageHub(BaseComponent):
             handler=component_handler,
             event_types=event_types,
             priority_filter=priority_filter,
-            source_filter=source_filter
+            source_filter=source_filter,
         )
 
         self.logger.info(f"Subscribed component {component.name} to events")
@@ -307,7 +316,7 @@ class MessageHub(BaseComponent):
 
         for component in components:
             try:
-                if hasattr(component, 'handle_event'):
+                if hasattr(component, "handle_event"):
                     await component.handle_event(event)
                     count += 1
             except Exception as e:
@@ -332,7 +341,7 @@ class MessageHub(BaseComponent):
         """Check health of all registered components."""
         for component in self.component_registry.get_all():
             if not component.is_healthy():
-                self.stats['component_failures'] += 1
+                self.stats["component_failures"] += 1
 
                 # Create risk event for unhealthy component
                 risk_event = RiskEvent(
@@ -343,7 +352,7 @@ class MessageHub(BaseComponent):
                     limit_value=ComponentState.RUNNING.value,
                     description=f"Component {component.name} is in unhealthy state: {component.state.value}",
                     action_required=True,
-                    suggested_action=f"Investigate and restart component {component.name}"
+                    suggested_action=f"Investigate and restart component {component.name}",
                 )
 
                 await self.publish_event(risk_event)
@@ -358,13 +367,13 @@ class MessageHub(BaseComponent):
             self.backpressure_manager.update_metrics(
                 "EventBus",
                 total_queue_size,
-                self.event_bus.max_queue_size * len(queue_sizes)
+                self.event_bus.max_queue_size * len(queue_sizes),
             )
 
         # Check for overloaded components
         overloaded = self.backpressure_manager.get_overloaded_components()
         if overloaded:
-            self.stats['backpressure_events'] += 1
+            self.stats["backpressure_events"] += 1
 
             risk_event = RiskEvent(
                 source=self.name,
@@ -374,12 +383,14 @@ class MessageHub(BaseComponent):
                 limit_value=0,
                 description=f"Components experiencing critical backpressure: {', '.join(overloaded)}",
                 action_required=True,
-                suggested_action="Reduce message load or scale affected components"
+                suggested_action="Reduce message load or scale affected components",
             )
 
             await self.publish_event(risk_event)
 
-    async def _handle_component_error(self, component: BaseComponent, error: Exception) -> None:
+    async def _handle_component_error(
+        self, component: BaseComponent, error: Exception
+    ) -> None:
         """Handle errors from component event processing."""
         self.logger.error(f"Component {component.name} error: {error}")
 
@@ -391,7 +402,7 @@ class MessageHub(BaseComponent):
             limit_value="None",
             description=f"Error in component {component.name}: {str(error)}",
             action_required=False,
-            suggested_action="Check component logs and error handling"
+            suggested_action="Check component logs and error handling",
         )
 
         await self.publish_event(risk_event)
@@ -399,14 +410,14 @@ class MessageHub(BaseComponent):
     def get_system_stats(self) -> Dict[str, Any]:
         """Get comprehensive system statistics."""
         return {
-            'message_hub': self.stats.copy(),
-            'event_bus': self.event_bus.get_stats(),
-            'queue_sizes': self.event_bus.get_queue_sizes(),
-            'registered_components': len(self.component_registry.get_all()),
-            'capabilities': {
+            "message_hub": self.stats.copy(),
+            "event_bus": self.event_bus.get_stats(),
+            "queue_sizes": self.event_bus.get_queue_sizes(),
+            "registered_components": len(self.component_registry.get_all()),
+            "capabilities": {
                 cap: len(components)
                 for cap, components in self.component_registry.capabilities.items()
-            }
+            },
         }
 
     async def shutdown_all_components(self, timeout: float = 30.0) -> None:

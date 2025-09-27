@@ -8,19 +8,19 @@ and lifecycle management of components in the trading system.
 import asyncio
 import inspect
 import logging
-from abc import ABC, abstractmethod
 from enum import Enum
 from typing import Any, Callable, Dict, List, Optional, Set, Type, TypeVar, Union
 from weakref import WeakValueDictionary
 
-T = TypeVar('T')
+T = TypeVar("T")
 
 
 class Lifetime(Enum):
     """Dependency lifetime management options."""
-    SINGLETON = "singleton"      # Single instance per container
-    TRANSIENT = "transient"      # New instance per resolution
-    SCOPED = "scoped"           # Single instance per scope
+
+    SINGLETON = "singleton"  # Single instance per container
+    TRANSIENT = "transient"  # New instance per resolution
+    SCOPED = "scoped"  # Single instance per scope
 
 
 class DependencyDescriptor:
@@ -31,7 +31,7 @@ class DependencyDescriptor:
         factory: Union[Type[T], Callable[..., T]],
         lifetime: Lifetime = Lifetime.TRANSIENT,
         name: Optional[str] = None,
-        dependencies: Optional[List[str]] = None
+        dependencies: Optional[List[str]] = None,
     ):
         """
         Initialize dependency descriptor.
@@ -54,11 +54,13 @@ class DependencyDescriptor:
 
 class CircularDependencyError(Exception):
     """Raised when circular dependencies are detected."""
+
     pass
 
 
 class DependencyNotFoundError(Exception):
     """Raised when a required dependency cannot be resolved."""
+
     pass
 
 
@@ -125,7 +127,7 @@ class DIContainer:
         interface: Type[T],
         implementation: Type[T],
         lifetime: Lifetime = Lifetime.TRANSIENT,
-        name: Optional[str] = None
+        name: Optional[str] = None,
     ) -> None:
         """
         Register a type mapping in the container.
@@ -137,9 +139,7 @@ class DIContainer:
             name: Optional name for named registration
         """
         descriptor = DependencyDescriptor(
-            factory=implementation,
-            lifetime=lifetime,
-            name=name
+            factory=implementation, lifetime=lifetime, name=name
         )
 
         if name:
@@ -147,14 +147,16 @@ class DIContainer:
         else:
             self._descriptors[interface] = descriptor
 
-        self.logger.debug(f"Registered {implementation.__name__} for {interface.__name__} ({lifetime.value})")
+        self.logger.debug(
+            f"Registered {implementation.__name__} for {interface.__name__} ({lifetime.value})"
+        )
 
     def register_factory(
         self,
         interface: Type[T],
         factory: Callable[..., T],
         lifetime: Lifetime = Lifetime.TRANSIENT,
-        name: Optional[str] = None
+        name: Optional[str] = None,
     ) -> None:
         """
         Register a factory function for creating instances.
@@ -165,24 +167,19 @@ class DIContainer:
             lifetime: Instance lifetime management
             name: Optional name for named registration
         """
-        descriptor = DependencyDescriptor(
-            factory=factory,
-            lifetime=lifetime,
-            name=name
-        )
+        descriptor = DependencyDescriptor(factory=factory, lifetime=lifetime, name=name)
 
         if name:
             self._named_descriptors[name] = descriptor
         else:
             self._descriptors[interface] = descriptor
 
-        self.logger.debug(f"Registered factory for {interface.__name__} ({lifetime.value})")
+        self.logger.debug(
+            f"Registered factory for {interface.__name__} ({lifetime.value})"
+        )
 
     def register_instance(
-        self,
-        interface: Type[T],
-        instance: T,
-        name: Optional[str] = None
+        self, interface: Type[T], instance: T, name: Optional[str] = None
     ) -> None:
         """
         Register a pre-created instance.
@@ -193,9 +190,7 @@ class DIContainer:
             name: Optional name for named registration
         """
         descriptor = DependencyDescriptor(
-            factory=lambda: instance,
-            lifetime=Lifetime.SINGLETON,
-            name=name
+            factory=lambda: instance, lifetime=Lifetime.SINGLETON, name=name
         )
         descriptor.instance = instance
 
@@ -226,7 +221,9 @@ class DIContainer:
         # Check for circular dependencies
         if key in self._resolution_stack:
             cycle = list(self._resolution_stack) + [key]
-            raise CircularDependencyError(f"Circular dependency detected: {' -> '.join(cycle)}")
+            raise CircularDependencyError(
+                f"Circular dependency detected: {' -> '.join(cycle)}"
+            )
 
         try:
             self._resolution_stack.add(key)
@@ -239,7 +236,9 @@ class DIContainer:
         # Get descriptor
         descriptor = self._get_descriptor(interface, name)
         if not descriptor:
-            raise DependencyNotFoundError(f"No registration found for {interface.__name__}")
+            raise DependencyNotFoundError(
+                f"No registration found for {interface.__name__}"
+            )
 
         # Handle different lifetimes
         if descriptor.lifetime == Lifetime.SINGLETON:
@@ -249,14 +248,18 @@ class DIContainer:
         else:  # TRANSIENT
             return self._create_instance(descriptor)
 
-    def _get_descriptor(self, interface: Type[T], name: Optional[str] = None) -> Optional[DependencyDescriptor]:
+    def _get_descriptor(
+        self, interface: Type[T], name: Optional[str] = None
+    ) -> Optional[DependencyDescriptor]:
         """Get descriptor for interface/name combination."""
         if name:
             return self._named_descriptors.get(name)
         else:
             return self._descriptors.get(interface)
 
-    def _resolve_singleton(self, descriptor: DependencyDescriptor, interface: Type[T], name: Optional[str]) -> T:
+    def _resolve_singleton(
+        self, descriptor: DependencyDescriptor, interface: Type[T], name: Optional[str]
+    ) -> T:
         """Resolve singleton instance."""
         key = name if name else interface.__name__
 
@@ -275,7 +278,9 @@ class DIContainer:
 
         return instance
 
-    def _resolve_scoped(self, descriptor: DependencyDescriptor, interface: Type[T], name: Optional[str]) -> T:
+    def _resolve_scoped(
+        self, descriptor: DependencyDescriptor, interface: Type[T], name: Optional[str]
+    ) -> T:
         """Resolve scoped instance."""
         if not self._current_scope:
             # Fall back to singleton behavior if no scope
@@ -313,7 +318,9 @@ class DIContainer:
                     except DependencyNotFoundError:
                         # Try to resolve by name
                         try:
-                            kwargs[param.name] = self.resolve(param.annotation, param.name)
+                            kwargs[param.name] = self.resolve(
+                                param.annotation, param.name
+                            )
                         except DependencyNotFoundError:
                             if param.default == inspect.Parameter.empty:
                                 raise DependencyNotFoundError(

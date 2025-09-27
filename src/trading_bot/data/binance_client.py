@@ -6,21 +6,25 @@ async support, error handling, and logging for futures trading operations.
 """
 
 import asyncio
-import logging
-from decimal import Decimal
-from typing import Dict, List, Optional, Any, Union
 from datetime import datetime
+from decimal import Decimal
+from typing import Any, Dict, List, Optional, Union
 
 from binance import AsyncClient, BinanceSocketManager
-from binance.exceptions import BinanceAPIException, BinanceRequestException
-from binance.enums import KLINE_INTERVAL_5MINUTE, KLINE_INTERVAL_15MINUTE, KLINE_INTERVAL_4HOUR, KLINE_INTERVAL_1DAY
+from binance.enums import (
+    KLINE_INTERVAL_1DAY,
+    KLINE_INTERVAL_4HOUR,
+    KLINE_INTERVAL_5MINUTE,
+    KLINE_INTERVAL_15MINUTE,
+)
+from binance.exceptions import BinanceAPIException
 
 from ..core.base_component import BaseComponent
-from ..core.events import MarketDataEvent, EventPriority
 
 
 class BinanceClientError(Exception):
     """Custom exception for Binance client errors."""
+
     pass
 
 
@@ -37,7 +41,7 @@ class BinanceClient(BaseComponent):
         api_key: Optional[str] = None,
         api_secret: Optional[str] = None,
         testnet: bool = False,
-        event_bus=None
+        event_bus=None,
     ):
         """
         Initialize the Binance client.
@@ -72,7 +76,7 @@ class BinanceClient(BaseComponent):
                 self._client = await AsyncClient.create(
                     api_key=self.api_key,
                     api_secret=self.api_secret,
-                    testnet=self.testnet
+                    testnet=self.testnet,
                 )
 
                 # Test connection
@@ -115,7 +119,9 @@ class BinanceClient(BaseComponent):
 
             # Get server time to verify connection
             server_time = await self._client.get_server_time()
-            self._last_heartbeat = datetime.fromtimestamp(server_time['serverTime'] / 1000)
+            self._last_heartbeat = datetime.fromtimestamp(
+                server_time["serverTime"] / 1000
+            )
 
             self.logger.debug("Connection test successful")
 
@@ -138,8 +144,8 @@ class BinanceClient(BaseComponent):
         try:
             exchange_info = await self._client.futures_exchange_info()
 
-            for symbol_info in exchange_info['symbols']:
-                if symbol_info['symbol'] == symbol:
+            for symbol_info in exchange_info["symbols"]:
+                if symbol_info["symbol"] == symbol:
                     return symbol_info
 
             raise BinanceClientError(f"Symbol {symbol} not found")
@@ -166,7 +172,7 @@ class BinanceClient(BaseComponent):
 
         try:
             ticker = await self._client.futures_symbol_ticker(symbol=symbol)
-            return Decimal(ticker['price'])
+            return Decimal(ticker["price"])
 
         except BinanceAPIException as e:
             self.logger.error(f"API error getting ticker price: {e}")
@@ -190,7 +196,9 @@ class BinanceClient(BaseComponent):
             raise BinanceClientError("Client not connected")
 
         try:
-            orderbook = await self._client.futures_order_book(symbol=symbol, limit=limit)
+            orderbook = await self._client.futures_order_book(
+                symbol=symbol, limit=limit
+            )
             return orderbook
 
         except BinanceAPIException as e:
@@ -206,7 +214,7 @@ class BinanceClient(BaseComponent):
         interval: str,
         start_time: Optional[Union[str, int, datetime]] = None,
         end_time: Optional[Union[str, int, datetime]] = None,
-        limit: int = 500
+        limit: int = 500,
     ) -> List[List[str]]:
         """
         Get historical kline/candlestick data.
@@ -226,10 +234,10 @@ class BinanceClient(BaseComponent):
 
         # Map interval strings to Binance constants
         interval_map = {
-            '5m': KLINE_INTERVAL_5MINUTE,
-            '15m': KLINE_INTERVAL_15MINUTE,
-            '4h': KLINE_INTERVAL_4HOUR,
-            '1d': KLINE_INTERVAL_1DAY
+            "5m": KLINE_INTERVAL_5MINUTE,
+            "15m": KLINE_INTERVAL_15MINUTE,
+            "4h": KLINE_INTERVAL_4HOUR,
+            "1d": KLINE_INTERVAL_1DAY,
         }
 
         if interval not in interval_map:
@@ -241,7 +249,7 @@ class BinanceClient(BaseComponent):
                 interval=interval_map[interval],
                 startTime=start_time,
                 endTime=end_time,
-                limit=limit
+                limit=limit,
             )
             return klines
 
@@ -293,12 +301,15 @@ class BinanceClient(BaseComponent):
             account = await self.get_account_info()
             balances = {}
 
-            for asset_info in account['assets']:
-                asset = asset_info['asset']
+            for asset_info in account["assets"]:
+                asset = asset_info["asset"]
                 balances[asset] = {
-                    'free': asset_info['availableBalance'],
-                    'locked': asset_info['initialMargin'],
-                    'total': str(Decimal(asset_info['availableBalance']) + Decimal(asset_info['initialMargin']))
+                    "free": asset_info["availableBalance"],
+                    "locked": asset_info["initialMargin"],
+                    "total": str(
+                        Decimal(asset_info["availableBalance"])
+                        + Decimal(asset_info["initialMargin"])
+                    ),
                 }
 
             return balances
@@ -315,8 +326,8 @@ class BinanceClient(BaseComponent):
         quantity: Union[str, Decimal],
         price: Optional[Union[str, Decimal]] = None,
         stop_price: Optional[Union[str, Decimal]] = None,
-        time_in_force: str = 'GTC',
-        **kwargs
+        time_in_force: str = "GTC",
+        **kwargs,
     ) -> Dict[str, Any]:
         """
         Place a futures order.
@@ -342,18 +353,18 @@ class BinanceClient(BaseComponent):
 
         try:
             order_params = {
-                'symbol': symbol,
-                'side': side.upper(),
-                'type': order_type.upper(),
-                'quantity': str(quantity),
-                'timeInForce': time_in_force,
-                **kwargs
+                "symbol": symbol,
+                "side": side.upper(),
+                "type": order_type.upper(),
+                "quantity": str(quantity),
+                "timeInForce": time_in_force,
+                **kwargs,
             }
 
             if price is not None:
-                order_params['price'] = str(price)
+                order_params["price"] = str(price)
             if stop_price is not None:
-                order_params['stopPrice'] = str(stop_price)
+                order_params["stopPrice"] = str(stop_price)
 
             order = await self._client.futures_create_order(**order_params)
 
@@ -386,8 +397,7 @@ class BinanceClient(BaseComponent):
 
         try:
             result = await self._client.futures_cancel_order(
-                symbol=symbol,
-                orderId=order_id
+                symbol=symbol, orderId=order_id
             )
 
             self.logger.info(f"Order cancelled: {order_id} for {symbol}")
@@ -400,7 +410,9 @@ class BinanceClient(BaseComponent):
             self.logger.error(f"Error canceling order: {e}")
             raise BinanceClientError(f"Failed to cancel order: {e}") from e
 
-    async def get_open_orders(self, symbol: Optional[str] = None) -> List[Dict[str, Any]]:
+    async def get_open_orders(
+        self, symbol: Optional[str] = None
+    ) -> List[Dict[str, Any]]:
         """
         Get open orders.
 
@@ -439,9 +451,9 @@ class BinanceClient(BaseComponent):
             Connection status information
         """
         return {
-            'connected': self.is_connected(),
-            'testnet': self.testnet,
-            'last_heartbeat': self._last_heartbeat,
-            'connection_retries': self._connection_retries,
-            'max_retries': self._max_retries
+            "connected": self.is_connected(),
+            "testnet": self.testnet,
+            "last_heartbeat": self._last_heartbeat,
+            "connection_retries": self._connection_retries,
+            "max_retries": self._max_retries,
         }

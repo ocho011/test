@@ -7,24 +7,22 @@ compression, data integrity validation, and automatic cache management.
 
 import asyncio
 import gzip
+import hashlib
 import json
 import logging
 import os
 import time
-import hashlib
-from datetime import datetime, timedelta
-from decimal import Decimal
-from pathlib import Path
-from typing import Dict, List, Optional, Any, Tuple
-from dataclasses import dataclass, asdict
 from concurrent.futures import ThreadPoolExecutor
-
-import pandas as pd
+from dataclasses import asdict, dataclass
+from datetime import datetime
+from pathlib import Path
+from typing import Any, Dict, List, Optional
 
 
 @dataclass
 class CacheEntry:
     """Cache entry metadata."""
+
     symbol: str
     interval: str
     start_time: int
@@ -40,6 +38,7 @@ class CacheEntry:
 @dataclass
 class CacheStats:
     """Cache statistics."""
+
     total_entries: int
     total_size_bytes: int
     hit_count: int
@@ -62,7 +61,7 @@ class DataCache:
         cache_dir: str = "data/cache",
         max_cache_size_gb: float = 5.0,
         max_age_days: int = 30,
-        compression_enabled: bool = True
+        compression_enabled: bool = True,
     ):
         """
         Initialize data cache.
@@ -94,7 +93,7 @@ class DataCache:
             miss_count=0,
             eviction_count=0,
             oldest_entry=None,
-            newest_entry=None
+            newest_entry=None,
         )
 
         # Initialize cache directory
@@ -113,7 +112,9 @@ class DataCache:
             # Load existing metadata
             self._load_metadata()
 
-            self.logger.info(f"Cache initialized: {len(self._entries)} entries, {self._stats.total_size_bytes / 1024 / 1024:.1f} MB")
+            self.logger.info(
+                f"Cache initialized: {len(self._entries)} entries, {self._stats.total_size_bytes / 1024 / 1024:.1f} MB"
+            )
 
         except Exception as e:
             self.logger.error(f"Failed to initialize cache: {e}")
@@ -125,11 +126,11 @@ class DataCache:
             return
 
         try:
-            with open(self._metadata_file, 'r') as f:
+            with open(self._metadata_file, "r") as f:
                 metadata = json.load(f)
 
             # Load cache entries
-            for key, entry_data in metadata.get('entries', {}).items():
+            for key, entry_data in metadata.get("entries", {}).items():
                 entry = CacheEntry(**entry_data)
 
                 # Verify file still exists
@@ -148,11 +149,11 @@ class DataCache:
         """Save cache metadata to file."""
         try:
             metadata = {
-                'entries': {key: asdict(entry) for key, entry in self._entries.items()},
-                'last_updated': time.time()
+                "entries": {key: asdict(entry) for key, entry in self._entries.items()},
+                "last_updated": time.time(),
             }
 
-            with open(self._metadata_file, 'w') as f:
+            with open(self._metadata_file, "w") as f:
                 json.dump(metadata, f, indent=2)
 
         except Exception as e:
@@ -161,7 +162,9 @@ class DataCache:
     def _update_stats(self) -> None:
         """Update cache statistics."""
         self._stats.total_entries = len(self._entries)
-        self._stats.total_size_bytes = sum(entry.size_bytes for entry in self._entries.values())
+        self._stats.total_size_bytes = sum(
+            entry.size_bytes for entry in self._entries.values()
+        )
 
         if self._entries:
             created_times = [entry.created_at for entry in self._entries.values()]
@@ -171,7 +174,9 @@ class DataCache:
             self._stats.oldest_entry = None
             self._stats.newest_entry = None
 
-    def _generate_cache_key(self, symbol: str, interval: str, start_time: int, end_time: int) -> str:
+    def _generate_cache_key(
+        self, symbol: str, interval: str, start_time: int, end_time: int
+    ) -> str:
         """Generate unique cache key for data."""
         key_data = f"{symbol}_{interval}_{start_time}_{end_time}"
         return hashlib.md5(key_data.encode()).hexdigest()
@@ -182,11 +187,7 @@ class DataCache:
         return hashlib.sha256(data_str.encode()).hexdigest()
 
     async def get_kline_data(
-        self,
-        symbol: str,
-        interval: str,
-        start_time: int,
-        end_time: int
+        self, symbol: str, interval: str, start_time: int, end_time: int
     ) -> Optional[List[List[Any]]]:
         """
         Get cached kline data.
@@ -245,7 +246,7 @@ class DataCache:
         interval: str,
         start_time: int,
         end_time: int,
-        data: List[List[Any]]
+        data: List[List[Any]],
     ) -> bool:
         """
         Store kline data in cache.
@@ -291,7 +292,7 @@ class DataCache:
                 created_at=time.time(),
                 last_accessed=time.time(),
                 size_bytes=file_size,
-                compressed=self.compression_enabled
+                compressed=self.compression_enabled,
             )
 
             async with self._lock:
@@ -311,29 +312,35 @@ class DataCache:
             self.logger.error(f"Failed to store cache data: {e}")
             return False
 
-    async def _save_data_file(self, file_path: str, data: List[List[Any]], compress: bool) -> None:
+    async def _save_data_file(
+        self, file_path: str, data: List[List[Any]], compress: bool
+    ) -> None:
         """Save data to file with optional compression."""
+
         def _save_sync():
             data_json = json.dumps(data)
 
             if compress:
-                with gzip.open(file_path, 'wt', encoding='utf-8') as f:
+                with gzip.open(file_path, "wt", encoding="utf-8") as f:
                     f.write(data_json)
             else:
-                with open(file_path, 'w', encoding='utf-8') as f:
+                with open(file_path, "w", encoding="utf-8") as f:
                     f.write(data_json)
 
         loop = asyncio.get_event_loop()
         await loop.run_in_executor(self._executor, _save_sync)
 
-    async def _load_data_file(self, file_path: str, compressed: bool) -> List[List[Any]]:
+    async def _load_data_file(
+        self, file_path: str, compressed: bool
+    ) -> List[List[Any]]:
         """Load data from file with optional decompression."""
+
         def _load_sync():
             if compressed:
-                with gzip.open(file_path, 'rt', encoding='utf-8') as f:
+                with gzip.open(file_path, "rt", encoding="utf-8") as f:
                     return json.load(f)
             else:
-                with open(file_path, 'r', encoding='utf-8') as f:
+                with open(file_path, "r", encoding="utf-8") as f:
                     return json.load(f)
 
         loop = asyncio.get_event_loop()
@@ -373,11 +380,12 @@ class DataCache:
             self._stats.eviction_count += 1
 
         # Remove oldest entries if cache is too large
-        while self._stats.total_size_bytes > self.max_cache_size_bytes and self._entries:
+        while (
+            self._stats.total_size_bytes > self.max_cache_size_bytes and self._entries
+        ):
             # Find oldest entry by last access time
             oldest_key = min(
-                self._entries.keys(),
-                key=lambda k: self._entries[k].last_accessed
+                self._entries.keys(), key=lambda k: self._entries[k].last_accessed
             )
 
             await self._remove_entry(oldest_key)
@@ -476,26 +484,26 @@ class DataCache:
         )
 
         return {
-            'cache_dir': str(self.cache_dir),
-            'max_size_gb': self.max_cache_size_bytes / (1024 ** 3),
-            'current_size_gb': self._stats.total_size_bytes / (1024 ** 3),
-            'max_age_days': self.max_age_seconds / (24 * 3600),
-            'compression_enabled': self.compression_enabled,
-            'total_entries': self._stats.total_entries,
-            'hit_count': self._stats.hit_count,
-            'miss_count': self._stats.miss_count,
-            'hit_rate': hit_rate,
-            'eviction_count': self._stats.eviction_count,
-            'oldest_entry_age_hours': (
+            "cache_dir": str(self.cache_dir),
+            "max_size_gb": self.max_cache_size_bytes / (1024**3),
+            "current_size_gb": self._stats.total_size_bytes / (1024**3),
+            "max_age_days": self.max_age_seconds / (24 * 3600),
+            "compression_enabled": self.compression_enabled,
+            "total_entries": self._stats.total_entries,
+            "hit_count": self._stats.hit_count,
+            "miss_count": self._stats.miss_count,
+            "hit_rate": hit_rate,
+            "eviction_count": self._stats.eviction_count,
+            "oldest_entry_age_hours": (
                 (time.time() - self._stats.oldest_entry) / 3600
                 if self._stats.oldest_entry
                 else None
             ),
-            'newest_entry_age_hours': (
+            "newest_entry_age_hours": (
                 (time.time() - self._stats.newest_entry) / 3600
                 if self._stats.newest_entry
                 else None
-            )
+            ),
         }
 
     def list_cached_symbols(self) -> Dict[str, Dict[str, List[str]]]:
@@ -519,7 +527,9 @@ class DataCache:
             # Add time range
             start_dt = datetime.fromtimestamp(entry.start_time / 1000)
             end_dt = datetime.fromtimestamp(entry.end_time / 1000)
-            time_range = f"{start_dt.strftime('%Y-%m-%d')} to {end_dt.strftime('%Y-%m-%d')}"
+            time_range = (
+                f"{start_dt.strftime('%Y-%m-%d')} to {end_dt.strftime('%Y-%m-%d')}"
+            )
             symbols[symbol][interval].append(time_range)
 
         return symbols
@@ -538,7 +548,7 @@ class DataCache:
         expired_removed = await self.cleanup_expired()
 
         return {
-            'expired_removed': expired_removed,
-            'total_entries': self._stats.total_entries,
-            'total_size_mb': self._stats.total_size_bytes / (1024 * 1024)
+            "expired_removed": expired_removed,
+            "total_entries": self._stats.total_entries,
+            "total_size_mb": self._stats.total_size_bytes / (1024 * 1024),
         }
