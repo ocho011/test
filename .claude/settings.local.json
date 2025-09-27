@@ -12,7 +12,8 @@
       "Bash(python3 -m pytest tests/data/ -v --tb=short)",
       "Bash(pip3 install:*)",
       "Bash(PYTHONPATH=/Users/osangwon/github/test/src python3 -c \"from trading_bot.data.binance_client import BinanceClient; print(''BinanceClient imported successfully'')\")",
-      "Bash(PYTHONPATH=/Users/osangwon/github/test/src python3:*)"
+      "Bash(PYTHONPATH=/Users/osangwon/github/test/src python3:*)",
+      "mcp__task-master-ai__set_task_status"
     ]
   },
   "enableAllProjectMcpServers": true,
