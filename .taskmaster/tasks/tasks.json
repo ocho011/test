@@ -205,7 +205,7 @@
         "dependencies": [
           3
         ],
-        "status": "in-progress",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -253,7 +253,7 @@
               "4.3"
             ],
             "details": "pandas 기반 기술적 지표 라이브러리 통합, ICT 패턴과 전통 지표의 융합 분석, 지표 계산 파이프라인 최적화, 실시간 지표 업데이트 시스템, 메모리 사용량 최적화",
-            "status": "in-progress",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -298,7 +298,7 @@
         "dependencies": [
           4
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -306,7 +306,7 @@
             "description": "ICT 패턴 조합을 통한 매매 신호 생성 로직의 핵심 클래스 구현",
             "dependencies": [],
             "details": "SignalGenerator 클래스 설계 및 구현. ICT 패턴(Order Block, FVG, 시장 구조) 입력을 받아 매매 신호 생성. 신호 타입(롱/숏) 결정 로직. 기본적인 신호 생성 알고리즘 구현. 패턴 조합 우선순위 정의.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -317,7 +317,7 @@
               "5.1"
             ],
             "details": "ConfluenceValidator 클래스 구현. Order Block + FVG + 시장 구조 조합 검증. 최소 confluence 개수 확인 로직. 각 패턴의 신뢰도 가중치 적용. 패턴 간 시간적/공간적 일치성 검증.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -328,7 +328,7 @@
               "5.2"
             ],
             "details": "SignalStrengthCalculator 클래스 구현. confluence 개수, 패턴 신뢰도, 시장 조건을 종합한 점수 계산. 0-100 스케일의 신호 강도 산출. 점수 가중치 조정 가능한 파라미터 시스템. 점수 기반 신호 등급 분류.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -339,7 +339,7 @@
               "5.3"
             ],
             "details": "시간대별 바이어스 확인 로직 구현. 아시아/런던/뉴욕 세션별 특성 반영. 백테스트 기반 임계값 설정 시스템. 거짓 신호 패턴 학습 및 필터링. 시장 변동성 기반 신호 조정.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -350,7 +350,7 @@
               "5.4"
             ],
             "details": "SignalEvent 클래스 정의 및 발행 로직. 진입가 계산 알고리즘. 리스크 기반 스탑로스 계산. 수익률 목표 기반 익절가 설정. 이벤트 버스를 통한 신호 전파. 신호 메타데이터 포함.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -361,7 +361,7 @@
               "5.5"
             ],
             "details": "신호 유효성 타이머 관리 시스템. 5분 유효성 시간 제한 구현. 미체결 신호 자동 취소 로직. 신호 상태 추적 및 업데이트. 만료된 신호 정리 및 알림. 유효성 시간 설정 가능한 파라미터 시스템.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           }
         ]
@@ -731,7 +731,7 @@
     ],
     "metadata": {
       "created": "2025-09-27T09:52:28.484Z",
-      "updated": "2025-09-27T20:25:26.970Z",
+      "updated": "2025-09-28T00:20:47.369Z",
       "description": "Tasks for master context"
     }
   }
