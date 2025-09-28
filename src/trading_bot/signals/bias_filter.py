@@ -6,19 +6,18 @@ align with optimal market sessions, bias periods, and temporal trading patterns
 based on ICT methodology.
 """
 
-from typing import Dict, List, Optional, Tuple, Any
-from dataclasses import dataclass
-from enum import Enum
 import logging
-from datetime import datetime, timedelta, time
-import pytz
+from dataclasses import dataclass
+from datetime import datetime, time
+from enum import Enum
+from typing import Any, Dict, List, Optional, Tuple
 
-import pandas as pd
-import numpy as np
+import pytz
 
 
 class SessionType(Enum):
     """Trading session types"""
+
     ASIAN = "asian"
     LONDON = "london"
     NEW_YORK = "new_york"
@@ -27,6 +26,7 @@ class SessionType(Enum):
 
 class BiasDirection(Enum):
     """Market bias directions"""
+
     BULLISH = "bullish"
     BEARISH = "bearish"
     NEUTRAL = "neutral"
@@ -35,6 +35,7 @@ class BiasDirection(Enum):
 
 class TimeFilter(Enum):
     """Time-based filter types"""
+
     SESSION_FILTER = "session_filter"
     BIAS_FILTER = "bias_filter"
     NEWS_FILTER = "news_filter"
@@ -45,6 +46,7 @@ class TimeFilter(Enum):
 @dataclass
 class SessionInfo:
     """Trading session information"""
+
     session_type: SessionType
     start_time: time
     end_time: time
@@ -57,6 +59,7 @@ class SessionInfo:
 @dataclass
 class BiasWindow:
     """Time window with specific market bias"""
+
     start_time: datetime
     end_time: datetime
     bias_direction: BiasDirection
@@ -68,6 +71,7 @@ class BiasWindow:
 @dataclass
 class FilterResult:
     """Result of bias filtering"""
+
     is_allowed: bool
     filter_score: float
     active_filters: List[TimeFilter]
@@ -81,6 +85,7 @@ class FilterResult:
 @dataclass
 class BiasFilterConfig:
     """Configuration for bias filtering"""
+
     timezone: str = "UTC"
     allowed_sessions: List[SessionType] = None
     minimum_session_score: float = 0.6
@@ -107,7 +112,7 @@ class BiasFilter:
         if self.config.allowed_sessions is None:
             self.config.allowed_sessions = [
                 SessionType.LONDON,
-                SessionType.NEW_YORK
+                SessionType.NEW_YORK,
             ]
 
         self.logger = logging.getLogger(__name__)
@@ -117,52 +122,52 @@ class BiasFilter:
             SessionType.SYDNEY: SessionInfo(
                 session_type=SessionType.SYDNEY,
                 start_time=time(22, 0),  # 22:00 UTC
-                end_time=time(6, 0),     # 06:00 UTC next day
+                end_time=time(6, 0),  # 06:00 UTC next day
                 timezone="Australia/Sydney",
                 volatility_score=0.4,
-                liquidity_score=0.3
+                liquidity_score=0.3,
             ),
             SessionType.ASIAN: SessionInfo(
                 session_type=SessionType.ASIAN,
-                start_time=time(0, 0),   # 00:00 UTC
-                end_time=time(9, 0),     # 09:00 UTC
+                start_time=time(0, 0),  # 00:00 UTC
+                end_time=time(9, 0),  # 09:00 UTC
                 timezone="Asia/Tokyo",
                 volatility_score=0.5,
-                liquidity_score=0.4
+                liquidity_score=0.4,
             ),
             SessionType.LONDON: SessionInfo(
                 session_type=SessionType.LONDON,
-                start_time=time(8, 0),   # 08:00 UTC
-                end_time=time(17, 0),    # 17:00 UTC
+                start_time=time(8, 0),  # 08:00 UTC
+                end_time=time(17, 0),  # 17:00 UTC
                 timezone="Europe/London",
                 volatility_score=0.8,
                 liquidity_score=0.9,
-                optimal_for_direction=BiasDirection.BULLISH
+                optimal_for_direction=BiasDirection.BULLISH,
             ),
             SessionType.NEW_YORK: SessionInfo(
                 session_type=SessionType.NEW_YORK,
                 start_time=time(13, 0),  # 13:00 UTC
-                end_time=time(22, 0),    # 22:00 UTC
+                end_time=time(22, 0),  # 22:00 UTC
                 timezone="America/New_York",
                 volatility_score=0.9,
                 liquidity_score=1.0,
-                optimal_for_direction=BiasDirection.BEARISH
-            )
+                optimal_for_direction=BiasDirection.BEARISH,
+            ),
         }
 
         # High-impact news times to avoid (UTC)
         self.news_times = [
-            time(8, 30),   # London open
+            time(8, 30),  # London open
             time(13, 30),  # NY open
             time(14, 30),  # US economic data
             time(16, 30),  # London close
-            time(20, 0),   # US close data
+            time(20, 0),  # US close data
         ]
 
     def filter_signal(
         self,
         signal_data: Dict[str, Any],
-        current_time: Optional[datetime] = None
+        current_time: Optional[datetime] = None,
     ) -> FilterResult:
         """
         Filter signal based on time-based bias criteria.
@@ -183,7 +188,9 @@ class BiasFilter:
             failed_filters = []
 
             # Apply session filter
-            session_result = self._apply_session_filter(signal_data, current_time)
+            session_result = self._apply_session_filter(
+                signal_data, current_time
+            )
             filter_results["session"] = session_result
             if session_result["passed"]:
                 active_filters.append(TimeFilter.SESSION_FILTER)
@@ -200,7 +207,9 @@ class BiasFilter:
 
             # Apply news filter
             if self.config.avoid_news_times:
-                news_result = self._apply_news_filter(signal_data, current_time)
+                news_result = self._apply_news_filter(
+                    signal_data, current_time
+                )
                 filter_results["news"] = news_result
                 if news_result["passed"]:
                     active_filters.append(TimeFilter.NEWS_FILTER)
@@ -208,7 +217,9 @@ class BiasFilter:
                     failed_filters.append(TimeFilter.NEWS_FILTER)
 
             # Apply volatility filter
-            volatility_result = self._apply_volatility_filter(signal_data, current_time)
+            volatility_result = self._apply_volatility_filter(
+                signal_data, current_time
+            )
             filter_results["volatility"] = volatility_result
             if volatility_result["passed"]:
                 active_filters.append(TimeFilter.VOLATILITY_FILTER)
@@ -217,7 +228,9 @@ class BiasFilter:
 
             # Apply liquidity filter
             if self.config.require_liquidity:
-                liquidity_result = self._apply_liquidity_filter(signal_data, current_time)
+                liquidity_result = self._apply_liquidity_filter(
+                    signal_data, current_time
+                )
                 filter_results["liquidity"] = liquidity_result
                 if liquidity_result["passed"]:
                     active_filters.append(TimeFilter.LIQUIDITY_FILTER)
@@ -229,10 +242,14 @@ class BiasFilter:
 
             # Determine current session and bias
             current_session = self._get_current_session(current_time)
-            current_bias = self._determine_current_bias(current_time, signal_data)
+            current_bias = self._determine_current_bias(
+                current_time, signal_data
+            )
 
             # Determine if signal is allowed
-            is_allowed = self._is_signal_allowed(active_filters, failed_filters, filter_score)
+            is_allowed = self._is_signal_allowed(
+                active_filters, failed_filters, filter_score
+            )
 
             return FilterResult(
                 is_allowed=is_allowed,
@@ -242,7 +259,7 @@ class BiasFilter:
                 current_session=current_session,
                 current_bias=current_bias,
                 details=filter_results,
-                filter_timestamp=current_time
+                filter_timestamp=current_time,
             )
 
         except Exception as e:
@@ -255,13 +272,11 @@ class BiasFilter:
                 current_session=SessionType.ASIAN,  # Default
                 current_bias=BiasDirection.NEUTRAL,
                 details={"error": str(e)},
-                filter_timestamp=current_time
+                filter_timestamp=current_time,
             )
 
     def _apply_session_filter(
-        self,
-        signal_data: Dict[str, Any],
-        current_time: datetime
+        self, signal_data: Dict[str, Any], current_time: datetime
     ) -> Dict[str, Any]:
         """Apply trading session filter"""
         try:
@@ -272,7 +287,10 @@ class BiasFilter:
             session_allowed = current_session in self.config.allowed_sessions
 
             # Calculate session score
-            base_score = session_info.volatility_score * 0.6 + session_info.liquidity_score * 0.4
+            base_score = (
+                session_info.volatility_score * 0.6
+                + session_info.liquidity_score * 0.4
+            )
 
             # Check for session overlaps (bonus)
             overlap_bonus = 0.0
@@ -282,7 +300,9 @@ class BiasFilter:
             session_score = min(1.0, base_score + overlap_bonus)
 
             # Check minimum session score requirement
-            score_requirement_met = session_score >= self.config.minimum_session_score
+            score_requirement_met = (
+                session_score >= self.config.minimum_session_score
+            )
 
             # Overall session filter result
             passed = session_allowed and score_requirement_met
@@ -297,36 +317,38 @@ class BiasFilter:
                 "details": {
                     "volatility_score": session_info.volatility_score,
                     "liquidity_score": session_info.liquidity_score,
-                    "minimum_required": self.config.minimum_session_score
-                }
+                    "minimum_required": self.config.minimum_session_score,
+                },
             }
 
         except Exception as e:
             self.logger.error(f"Error in session filter: {e}")
-            return {
-                "passed": False,
-                "score": 0.0,
-                "error": str(e)
-            }
+            return {"passed": False, "score": 0.0, "error": str(e)}
 
     def _apply_bias_filter(
-        self,
-        signal_data: Dict[str, Any],
-        current_time: datetime
+        self, signal_data: Dict[str, Any], current_time: datetime
     ) -> Dict[str, Any]:
         """Apply market bias filter"""
         try:
             signal_direction = signal_data.get("direction", "unknown")
-            current_bias = self._determine_current_bias(current_time, signal_data)
+            current_bias = self._determine_current_bias(
+                current_time, signal_data
+            )
 
             # Check bias alignment
             bias_aligned = False
             bias_confidence = 0.5
 
-            if signal_direction == "long" and current_bias == BiasDirection.BULLISH:
+            if (
+                signal_direction == "long"
+                and current_bias == BiasDirection.BULLISH
+            ):
                 bias_aligned = True
                 bias_confidence = 0.8
-            elif signal_direction == "short" and current_bias == BiasDirection.BEARISH:
+            elif (
+                signal_direction == "short"
+                and current_bias == BiasDirection.BEARISH
+            ):
                 bias_aligned = True
                 bias_confidence = 0.8
             elif current_bias == BiasDirection.NEUTRAL:
@@ -338,10 +360,14 @@ class BiasFilter:
                 bias_confidence = 0.4
 
             # Check confidence threshold
-            confidence_met = bias_confidence >= self.config.bias_confidence_threshold
+            confidence_met = (
+                bias_confidence >= self.config.bias_confidence_threshold
+            )
 
             # Overall bias filter result
-            passed = bias_aligned and (not self.config.respect_bias_windows or confidence_met)
+            passed = bias_aligned and (
+                not self.config.respect_bias_windows or confidence_met
+            )
 
             return {
                 "passed": passed,
@@ -352,22 +378,16 @@ class BiasFilter:
                 "confidence_met": confidence_met,
                 "details": {
                     "bias_confidence_threshold": self.config.bias_confidence_threshold,
-                    "respect_bias_windows": self.config.respect_bias_windows
-                }
+                    "respect_bias_windows": self.config.respect_bias_windows,
+                },
             }
 
         except Exception as e:
             self.logger.error(f"Error in bias filter: {e}")
-            return {
-                "passed": False,
-                "score": 0.0,
-                "error": str(e)
-            }
+            return {"passed": False, "score": 0.0, "error": str(e)}
 
     def _apply_news_filter(
-        self,
-        signal_data: Dict[str, Any],
-        current_time: datetime
+        self, signal_data: Dict[str, Any], current_time: datetime
     ) -> Dict[str, Any]:
         """Apply news time avoidance filter"""
         try:
@@ -377,11 +397,13 @@ class BiasFilter:
             # Check if current time is within avoidance window of news times
             in_news_window = False
             closest_news_time = None
-            minutes_to_news = float('inf')
+            minutes_to_news = float("inf")
 
             for news_time in self.news_times:
                 # Calculate time difference in minutes
-                current_minutes = current_utc_time.hour * 60 + current_utc_time.minute
+                current_minutes = (
+                    current_utc_time.hour * 60 + current_utc_time.minute
+                )
                 news_minutes = news_time.hour * 60 + news_time.minute
 
                 time_diff = abs(current_minutes - news_minutes)
@@ -404,26 +426,26 @@ class BiasFilter:
                 "passed": passed,
                 "score": 1.0 if passed else 0.0,
                 "in_news_window": in_news_window,
-                "closest_news_time": closest_news_time.strftime("%H:%M") if closest_news_time else None,
+                "closest_news_time": (
+                    closest_news_time.strftime("%H:%M")
+                    if closest_news_time
+                    else None
+                ),
                 "minutes_to_news": int(minutes_to_news),
                 "details": {
                     "avoidance_minutes": avoidance_minutes,
-                    "news_times_utc": [t.strftime("%H:%M") for t in self.news_times]
-                }
+                    "news_times_utc": [
+                        t.strftime("%H:%M") for t in self.news_times
+                    ],
+                },
             }
 
         except Exception as e:
             self.logger.error(f"Error in news filter: {e}")
-            return {
-                "passed": False,
-                "score": 0.0,
-                "error": str(e)
-            }
+            return {"passed": False, "score": 0.0, "error": str(e)}
 
     def _apply_volatility_filter(
-        self,
-        signal_data: Dict[str, Any],
-        current_time: datetime
+        self, signal_data: Dict[str, Any], current_time: datetime
     ) -> Dict[str, Any]:
         """Apply volatility-based filter"""
         try:
@@ -459,22 +481,16 @@ class BiasFilter:
                 "is_session_overlap": self._is_session_overlap(current_time),
                 "details": {
                     "hour_utc": hour_utc,
-                    "session": current_session.value
-                }
+                    "session": current_session.value,
+                },
             }
 
         except Exception as e:
             self.logger.error(f"Error in volatility filter: {e}")
-            return {
-                "passed": False,
-                "score": 0.0,
-                "error": str(e)
-            }
+            return {"passed": False, "score": 0.0, "error": str(e)}
 
     def _apply_liquidity_filter(
-        self,
-        signal_data: Dict[str, Any],
-        current_time: datetime
+        self, signal_data: Dict[str, Any], current_time: datetime
     ) -> Dict[str, Any]:
         """Apply liquidity-based filter"""
         try:
@@ -504,17 +520,13 @@ class BiasFilter:
                 "is_session_overlap": self._is_session_overlap(current_time),
                 "details": {
                     "weekday": weekday,
-                    "session": current_session.value
-                }
+                    "session": current_session.value,
+                },
             }
 
         except Exception as e:
             self.logger.error(f"Error in liquidity filter: {e}")
-            return {
-                "passed": False,
-                "score": 0.0,
-                "error": str(e)
-            }
+            return {"passed": False, "score": 0.0, "error": str(e)}
 
     def _get_current_session(self, current_time: datetime) -> SessionType:
         """Determine current trading session"""
@@ -550,9 +562,7 @@ class BiasFilter:
         return london_ny_overlap or sydney_asian_overlap
 
     def _determine_current_bias(
-        self,
-        current_time: datetime,
-        signal_data: Dict[str, Any]
+        self, current_time: datetime, signal_data: Dict[str, Any]
     ) -> BiasDirection:
         """Determine current market bias based on time and context"""
         try:
@@ -590,15 +600,16 @@ class BiasFilter:
             self.logger.error(f"Error determining current bias: {e}")
             return BiasDirection.NEUTRAL
 
-    def _calculate_filter_score(self, filter_results: Dict[str, Dict[str, Any]]) -> float:
+    def _calculate_filter_score(
+        self, filter_results: Dict[str, Dict[str, Any]]
+    ) -> float:
         """Calculate overall filter score from individual filter results"""
-        scores = []
         weights = {
             "session": 0.30,
             "bias": 0.25,
             "news": 0.20,
             "volatility": 0.15,
-            "liquidity": 0.10
+            "liquidity": 0.10,
         }
 
         total_weight = 0.0
@@ -618,7 +629,7 @@ class BiasFilter:
         self,
         active_filters: List[TimeFilter],
         failed_filters: List[TimeFilter],
-        filter_score: float
+        filter_score: float,
     ) -> bool:
         """Determine if signal should be allowed based on filter results"""
         # Critical filters that must pass
@@ -635,9 +646,7 @@ class BiasFilter:
         return critical_passed and score_met
 
     def get_optimal_trading_windows(
-        self,
-        date: datetime,
-        signal_direction: Optional[str] = None
+        self, date: datetime, signal_direction: Optional[str] = None
     ) -> List[BiasWindow]:
         """Get optimal trading windows for a given date"""
         try:
@@ -647,40 +656,46 @@ class BiasFilter:
             london_start = datetime.combine(date.date(), time(8, 0))
             london_end = datetime.combine(date.date(), time(17, 0))
 
-            windows.append(BiasWindow(
-                start_time=london_start,
-                end_time=london_end,
-                bias_direction=BiasDirection.BULLISH,
-                confidence=0.8,
-                session=SessionType.LONDON,
-                rationale="London session with high liquidity and volatility"
-            ))
+            windows.append(
+                BiasWindow(
+                    start_time=london_start,
+                    end_time=london_end,
+                    bias_direction=BiasDirection.BULLISH,
+                    confidence=0.8,
+                    session=SessionType.LONDON,
+                    rationale="London session with high liquidity and volatility",
+                )
+            )
 
             # NY session window
             ny_start = datetime.combine(date.date(), time(13, 0))
             ny_end = datetime.combine(date.date(), time(22, 0))
 
-            windows.append(BiasWindow(
-                start_time=ny_start,
-                end_time=ny_end,
-                bias_direction=BiasDirection.BEARISH,
-                confidence=0.8,
-                session=SessionType.NEW_YORK,
-                rationale="New York session with maximum liquidity"
-            ))
+            windows.append(
+                BiasWindow(
+                    start_time=ny_start,
+                    end_time=ny_end,
+                    bias_direction=BiasDirection.BEARISH,
+                    confidence=0.8,
+                    session=SessionType.NEW_YORK,
+                    rationale="New York session with maximum liquidity",
+                )
+            )
 
             # Overlap window (premium)
             overlap_start = datetime.combine(date.date(), time(13, 0))
             overlap_end = datetime.combine(date.date(), time(17, 0))
 
-            windows.append(BiasWindow(
-                start_time=overlap_start,
-                end_time=overlap_end,
-                bias_direction=BiasDirection.RANGING,
-                confidence=0.9,
-                session=SessionType.LONDON,  # Considered London for overlap
-                rationale="London-NY overlap with maximum liquidity and volatility"
-            ))
+            windows.append(
+                BiasWindow(
+                    start_time=overlap_start,
+                    end_time=overlap_end,
+                    bias_direction=BiasDirection.RANGING,
+                    confidence=0.9,
+                    session=SessionType.LONDON,  # Considered London for overlap
+                    rationale="London-NY overlap with maximum liquidity and volatility",
+                )
+            )
 
             return windows
 
@@ -688,29 +703,40 @@ class BiasFilter:
             self.logger.error(f"Error getting optimal trading windows: {e}")
             return []
 
-    def get_session_info(self, session_type: SessionType) -> Optional[SessionInfo]:
+    def get_session_info(
+        self, session_type: SessionType
+    ) -> Optional[SessionInfo]:
         """Get information about a specific trading session"""
         return self.sessions.get(session_type)
 
     def is_optimal_time_for_direction(
-        self,
-        current_time: datetime,
-        signal_direction: str
+        self, current_time: datetime, signal_direction: str
     ) -> Tuple[bool, float]:
         """Check if current time is optimal for given signal direction"""
         try:
-            current_bias = self._determine_current_bias(current_time, {"direction": signal_direction})
+            current_bias = self._determine_current_bias(
+                current_time, {"direction": signal_direction}
+            )
 
             optimal = False
             confidence = 0.0
 
-            if signal_direction == "long" and current_bias == BiasDirection.BULLISH:
+            if (
+                signal_direction == "long"
+                and current_bias == BiasDirection.BULLISH
+            ):
                 optimal = True
                 confidence = 0.8
-            elif signal_direction == "short" and current_bias == BiasDirection.BEARISH:
+            elif (
+                signal_direction == "short"
+                and current_bias == BiasDirection.BEARISH
+            ):
                 optimal = True
                 confidence = 0.8
-            elif current_bias in [BiasDirection.NEUTRAL, BiasDirection.RANGING]:
+            elif current_bias in [
+                BiasDirection.NEUTRAL,
+                BiasDirection.RANGING,
+            ]:
                 optimal = True
                 confidence = 0.5
 

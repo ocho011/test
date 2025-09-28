@@ -6,29 +6,29 @@ ensuring signals meet multiple ICT criteria across different timeframes and
 pattern types before being considered valid for execution.
 """
 
-from typing import Dict, List, Optional, Tuple, Any
-from dataclasses import dataclass
-from enum import Enum
 import logging
-from datetime import datetime, timedelta
+from dataclasses import dataclass
+from datetime import datetime
+from enum import Enum
+from typing import Any, Dict, List, Optional, Tuple
 
-import pandas as pd
 import numpy as np
+import pandas as pd
 
 from ..analysis.ict_analyzer import (
-    OrderBlockDetector,
+    FairValueGap,
     FairValueGapAnalyzer,
     MarketStructureAnalyzer,
-    TimeFrameManager,
-    PatternValidationEngine,
     OrderBlock,
-    FairValueGap,
-    MarketStructure
+    OrderBlockDetector,
+    PatternValidationEngine,
+    TimeFrameManager,
 )
 
 
 class ConfluenceType(Enum):
     """Types of confluence validation criteria"""
+
     STRUCTURAL = "structural"  # Market structure alignment
     PATTERN = "pattern"  # Multiple pattern confirmation
     TEMPORAL = "temporal"  # Time-based confluence
@@ -39,6 +39,7 @@ class ConfluenceType(Enum):
 
 class ConfluenceLevel(Enum):
     """Levels of confluence strength"""
+
     WEAK = "weak"
     MODERATE = "moderate"
     STRONG = "strong"
@@ -48,6 +49,7 @@ class ConfluenceLevel(Enum):
 @dataclass
 class ConfluenceResult:
     """Result of confluence validation"""
+
     is_valid: bool
     confluence_level: ConfluenceLevel
     confidence_score: float
@@ -60,6 +62,7 @@ class ConfluenceResult:
 @dataclass
 class ConfluenceConfig:
     """Configuration for confluence validation"""
+
     required_confluences: List[ConfluenceType]
     minimum_confluence_count: int = 3
     structural_weight: float = 0.25
@@ -87,7 +90,7 @@ class ConfluenceValidator:
         structure_analyzer: MarketStructureAnalyzer,
         timeframe_manager: TimeFrameManager,
         pattern_validator: PatternValidationEngine,
-        config: Optional[ConfluenceConfig] = None
+        config: Optional[ConfluenceConfig] = None,
     ):
         self.order_block_detector = order_block_detector
         self.fvg_analyzer = fvg_analyzer
@@ -98,16 +101,14 @@ class ConfluenceValidator:
             required_confluences=[
                 ConfluenceType.STRUCTURAL,
                 ConfluenceType.PATTERN,
-                ConfluenceType.TEMPORAL
+                ConfluenceType.TEMPORAL,
             ]
         )
 
         self.logger = logging.getLogger(__name__)
 
     def validate_signal_confluence(
-        self,
-        signal_data: Dict[str, Any],
-        market_data: Dict[str, pd.DataFrame]
+        self, signal_data: Dict[str, Any], market_data: Dict[str, pd.DataFrame]
     ) -> ConfluenceResult:
         """
         Validate signal confluence across multiple dimensions.
@@ -131,7 +132,9 @@ class ConfluenceValidator:
                     signal_data, market_data
                 )
                 validation_results["structural"] = structural_result
-                confidence_scores["structural"] = structural_result["confidence"]
+                confidence_scores["structural"] = structural_result[
+                    "confidence"
+                ]
 
                 if structural_result["valid"]:
                     met_criteria.append(ConfluenceType.STRUCTURAL)
@@ -204,7 +207,9 @@ class ConfluenceValidator:
                     failed_criteria.append(ConfluenceType.SENTIMENT)
 
             # Calculate overall confidence score
-            overall_confidence = self._calculate_overall_confidence(confidence_scores)
+            overall_confidence = self._calculate_overall_confidence(
+                confidence_scores
+            )
 
             # Determine confluence level
             confluence_level = self._determine_confluence_level(
@@ -221,7 +226,7 @@ class ConfluenceValidator:
                 met_criteria=met_criteria,
                 failed_criteria=failed_criteria,
                 details=validation_results,
-                validation_timestamp=datetime.now()
+                validation_timestamp=datetime.now(),
             )
 
         except Exception as e:
@@ -233,13 +238,11 @@ class ConfluenceValidator:
                 met_criteria=[],
                 failed_criteria=list(self.config.required_confluences),
                 details={"error": str(e)},
-                validation_timestamp=datetime.now()
+                validation_timestamp=datetime.now(),
             )
 
     def _validate_structural_confluence(
-        self,
-        signal_data: Dict[str, Any],
-        market_data: Dict[str, pd.DataFrame]
+        self, signal_data: Dict[str, Any], market_data: Dict[str, pd.DataFrame]
     ) -> Dict[str, Any]:
         """Validate market structure confluence across timeframes"""
         try:
@@ -252,7 +255,9 @@ class ConfluenceValidator:
                 data = market_data[timeframe]
 
                 # Analyze market structure
-                structure_analysis = self.structure_analyzer.analyze_structure(data)
+                structure_analysis = self.structure_analyzer.analyze_structure(
+                    data
+                )
 
                 if not structure_analysis:
                     continue
@@ -265,21 +270,27 @@ class ConfluenceValidator:
                 alignment_score = 0.0
                 if signal_direction == "long" and structure_bias == "bullish":
                     alignment_score = 1.0
-                elif signal_direction == "short" and structure_bias == "bearish":
+                elif (
+                    signal_direction == "short" and structure_bias == "bearish"
+                ):
                     alignment_score = 1.0
                 elif structure_bias == "neutral":
                     alignment_score = 0.5
 
-                structural_alignments.append({
-                    "timeframe": timeframe,
-                    "bias": structure_bias,
-                    "alignment_score": alignment_score,
-                    "structure_type": latest_structure.structure_type
-                })
+                structural_alignments.append(
+                    {
+                        "timeframe": timeframe,
+                        "bias": structure_bias,
+                        "alignment_score": alignment_score,
+                        "structure_type": latest_structure.structure_type,
+                    }
+                )
 
             # Calculate overall structural confidence
             if structural_alignments:
-                avg_alignment = np.mean([s["alignment_score"] for s in structural_alignments])
+                avg_alignment = np.mean(
+                    [s["alignment_score"] for s in structural_alignments]
+                )
                 structural_confidence = avg_alignment
             else:
                 structural_confidence = 0.0
@@ -292,23 +303,23 @@ class ConfluenceValidator:
                 "alignments": structural_alignments,
                 "details": {
                     "signal_direction": signal_direction,
-                    "structure_count": len(structural_alignments)
-                }
+                    "structure_count": len(structural_alignments),
+                },
             }
 
         except Exception as e:
-            self.logger.error(f"Error in structural confluence validation: {e}")
+            self.logger.error(
+                f"Error in structural confluence validation: {e}"
+            )
             return {
                 "valid": False,
                 "confidence": 0.0,
                 "alignments": [],
-                "details": {"error": str(e)}
+                "details": {"error": str(e)},
             }
 
     def _validate_pattern_confluence(
-        self,
-        signal_data: Dict[str, Any],
-        market_data: Dict[str, pd.DataFrame]
+        self, signal_data: Dict[str, Any], market_data: Dict[str, pd.DataFrame]
     ) -> Dict[str, Any]:
         """Validate pattern confluence across multiple pattern types"""
         try:
@@ -320,12 +331,14 @@ class ConfluenceValidator:
                     "valid": False,
                     "confidence": 0.0,
                     "confirmations": [],
-                    "details": {"error": "No patterns in signal data"}
+                    "details": {"error": "No patterns in signal data"},
                 }
 
             for timeframe, data in market_data.items():
                 # Check Order Block patterns
-                order_blocks = self.order_block_detector.detect_order_blocks(data)
+                order_blocks = self.order_block_detector.detect_order_blocks(
+                    data
+                )
                 if order_blocks:
                     ob_confirmation = self._check_order_block_confluence(
                         order_blocks, signal_data, timeframe
@@ -356,8 +369,8 @@ class ConfluenceValidator:
                 "confirmations": pattern_confirmations,
                 "details": {
                     "pattern_count": len(pattern_confirmations),
-                    "signal_patterns": signal_patterns
-                }
+                    "signal_patterns": signal_patterns,
+                },
             }
 
         except Exception as e:
@@ -366,13 +379,11 @@ class ConfluenceValidator:
                 "valid": False,
                 "confidence": 0.0,
                 "confirmations": [],
-                "details": {"error": str(e)}
+                "details": {"error": str(e)},
             }
 
     def _validate_temporal_confluence(
-        self,
-        signal_data: Dict[str, Any],
-        market_data: Dict[str, pd.DataFrame]
+        self, signal_data: Dict[str, Any], market_data: Dict[str, pd.DataFrame]
     ) -> Dict[str, Any]:
         """Validate temporal confluence and timing alignment"""
         try:
@@ -384,7 +395,9 @@ class ConfluenceValidator:
             temporal_factors.append(session_alignment)
 
             # Check market hours
-            market_hours_alignment = self._check_market_hours_alignment(signal_time)
+            market_hours_alignment = self._check_market_hours_alignment(
+                signal_time
+            )
             temporal_factors.append(market_hours_alignment)
 
             # Check news time avoidance
@@ -403,8 +416,8 @@ class ConfluenceValidator:
                 "factors": temporal_factors,
                 "details": {
                     "signal_time": signal_time.isoformat(),
-                    "valid_factors": len(valid_factors)
-                }
+                    "valid_factors": len(valid_factors),
+                },
             }
 
         except Exception as e:
@@ -413,13 +426,11 @@ class ConfluenceValidator:
                 "valid": False,
                 "confidence": 0.0,
                 "factors": [],
-                "details": {"error": str(e)}
+                "details": {"error": str(e)},
             }
 
     def _validate_volume_confluence(
-        self,
-        signal_data: Dict[str, Any],
-        market_data: Dict[str, pd.DataFrame]
+        self, signal_data: Dict[str, Any], market_data: Dict[str, pd.DataFrame]
     ) -> Dict[str, Any]:
         """Validate volume-based confluence"""
         try:
@@ -433,20 +444,24 @@ class ConfluenceValidator:
                 recent_volume = data["volume"].tail(20).mean()
                 volume_sma = data["volume"].rolling(50).mean().iloc[-1]
 
-                volume_ratio = recent_volume / volume_sma if volume_sma > 0 else 0
+                volume_ratio = (
+                    recent_volume / volume_sma if volume_sma > 0 else 0
+                )
 
                 # Check volume confirmation
                 volume_confirmation = {
                     "timeframe": timeframe,
                     "volume_ratio": volume_ratio,
-                    "valid": volume_ratio > 1.2  # Above average volume
+                    "valid": volume_ratio > 1.2,  # Above average volume
                 }
 
                 volume_confirmations.append(volume_confirmation)
 
             # Calculate volume confidence
             valid_volumes = [v for v in volume_confirmations if v["valid"]]
-            volume_confidence = len(valid_volumes) / max(1, len(volume_confirmations))
+            volume_confidence = len(valid_volumes) / max(
+                1, len(volume_confirmations)
+            )
 
             is_valid = volume_confidence >= 0.5
 
@@ -454,9 +469,7 @@ class ConfluenceValidator:
                 "valid": is_valid,
                 "confidence": volume_confidence,
                 "confirmations": volume_confirmations,
-                "details": {
-                    "valid_timeframes": len(valid_volumes)
-                }
+                "details": {"valid_timeframes": len(valid_volumes)},
             }
 
         except Exception as e:
@@ -465,13 +478,11 @@ class ConfluenceValidator:
                 "valid": False,
                 "confidence": 0.0,
                 "confirmations": [],
-                "details": {"error": str(e)}
+                "details": {"error": str(e)},
             }
 
     def _validate_momentum_confluence(
-        self,
-        signal_data: Dict[str, Any],
-        market_data: Dict[str, pd.DataFrame]
+        self, signal_data: Dict[str, Any], market_data: Dict[str, pd.DataFrame]
     ) -> Dict[str, Any]:
         """Validate momentum confluence across timeframes"""
         try:
@@ -488,25 +499,34 @@ class ConfluenceValidator:
 
                 if signal_direction == "long":
                     momentum_aligned = (
-                        rsi.iloc[-1] > 40 and rsi.iloc[-1] < 70 and
-                        macd_line.iloc[-1] > macd_signal.iloc[-1]
+                        rsi.iloc[-1] > 40
+                        and rsi.iloc[-1] < 70
+                        and macd_line.iloc[-1] > macd_signal.iloc[-1]
                     )
                 elif signal_direction == "short":
                     momentum_aligned = (
-                        rsi.iloc[-1] < 60 and rsi.iloc[-1] > 30 and
-                        macd_line.iloc[-1] < macd_signal.iloc[-1]
+                        rsi.iloc[-1] < 60
+                        and rsi.iloc[-1] > 30
+                        and macd_line.iloc[-1] < macd_signal.iloc[-1]
                     )
 
-                momentum_confirmations.append({
-                    "timeframe": timeframe,
-                    "rsi": rsi.iloc[-1],
-                    "macd_bullish": macd_line.iloc[-1] > macd_signal.iloc[-1],
-                    "aligned": momentum_aligned
-                })
+                momentum_confirmations.append(
+                    {
+                        "timeframe": timeframe,
+                        "rsi": rsi.iloc[-1],
+                        "macd_bullish": macd_line.iloc[-1]
+                        > macd_signal.iloc[-1],
+                        "aligned": momentum_aligned,
+                    }
+                )
 
             # Calculate momentum confidence
-            aligned_momentum = [m for m in momentum_confirmations if m["aligned"]]
-            momentum_confidence = len(aligned_momentum) / max(1, len(momentum_confirmations))
+            aligned_momentum = [
+                m for m in momentum_confirmations if m["aligned"]
+            ]
+            momentum_confidence = len(aligned_momentum) / max(
+                1, len(momentum_confirmations)
+            )
 
             is_valid = momentum_confidence >= 0.6
 
@@ -516,8 +536,8 @@ class ConfluenceValidator:
                 "confirmations": momentum_confirmations,
                 "details": {
                     "signal_direction": signal_direction,
-                    "aligned_timeframes": len(aligned_momentum)
-                }
+                    "aligned_timeframes": len(aligned_momentum),
+                },
             }
 
         except Exception as e:
@@ -526,13 +546,11 @@ class ConfluenceValidator:
                 "valid": False,
                 "confidence": 0.0,
                 "confirmations": [],
-                "details": {"error": str(e)}
+                "details": {"error": str(e)},
             }
 
     def _validate_sentiment_confluence(
-        self,
-        signal_data: Dict[str, Any],
-        market_data: Dict[str, pd.DataFrame]
+        self, signal_data: Dict[str, Any], market_data: Dict[str, pd.DataFrame]
     ) -> Dict[str, Any]:
         """Validate market sentiment confluence"""
         try:
@@ -542,26 +560,41 @@ class ConfluenceValidator:
             for timeframe, data in market_data.items():
                 # Calculate basic sentiment from price action
                 recent_closes = data["close"].tail(10)
-                price_trend = (recent_closes.iloc[-1] - recent_closes.iloc[0]) / recent_closes.iloc[0]
+                price_trend = (
+                    recent_closes.iloc[-1] - recent_closes.iloc[0]
+                ) / recent_closes.iloc[0]
 
-                sentiment = "bullish" if price_trend > 0.001 else "bearish" if price_trend < -0.001 else "neutral"
+                sentiment = (
+                    "bullish"
+                    if price_trend > 0.001
+                    else "bearish" if price_trend < -0.001 else "neutral"
+                )
 
-                sentiment_factors.append({
-                    "timeframe": timeframe,
-                    "sentiment": sentiment,
-                    "price_trend": price_trend
-                })
+                sentiment_factors.append(
+                    {
+                        "timeframe": timeframe,
+                        "sentiment": sentiment,
+                        "price_trend": price_trend,
+                    }
+                )
 
             # Calculate sentiment confidence (simplified)
             signal_direction = signal_data.get("direction", "unknown")
             aligned_sentiment = 0
 
             for factor in sentiment_factors:
-                if (signal_direction == "long" and factor["sentiment"] == "bullish") or \
-                   (signal_direction == "short" and factor["sentiment"] == "bearish"):
+                if (
+                    signal_direction == "long"
+                    and factor["sentiment"] == "bullish"
+                ) or (
+                    signal_direction == "short"
+                    and factor["sentiment"] == "bearish"
+                ):
                     aligned_sentiment += 1
 
-            sentiment_confidence = aligned_sentiment / max(1, len(sentiment_factors))
+            sentiment_confidence = aligned_sentiment / max(
+                1, len(sentiment_factors)
+            )
             is_valid = sentiment_confidence >= 0.5
 
             return {
@@ -570,8 +603,8 @@ class ConfluenceValidator:
                 "factors": sentiment_factors,
                 "details": {
                     "signal_direction": signal_direction,
-                    "aligned_sentiment": aligned_sentiment
-                }
+                    "aligned_sentiment": aligned_sentiment,
+                },
             }
 
         except Exception as e:
@@ -580,14 +613,14 @@ class ConfluenceValidator:
                 "valid": False,
                 "confidence": 0.0,
                 "factors": [],
-                "details": {"error": str(e)}
+                "details": {"error": str(e)},
             }
 
     def _check_order_block_confluence(
         self,
         order_blocks: List[OrderBlock],
         signal_data: Dict[str, Any],
-        timeframe: str
+        timeframe: str,
     ) -> Dict[str, Any]:
         """Check Order Block confluence with signal"""
         signal_direction = signal_data.get("direction", "unknown")
@@ -606,14 +639,14 @@ class ConfluenceValidator:
             "valid": len(relevant_obs) > 0,
             "timeframe": timeframe,
             "pattern_type": "order_block",
-            "relevant_patterns": len(relevant_obs)
+            "relevant_patterns": len(relevant_obs),
         }
 
     def _check_fvg_confluence(
         self,
         fvgs: List[FairValueGap],
         signal_data: Dict[str, Any],
-        timeframe: str
+        timeframe: str,
     ) -> Dict[str, Any]:
         """Check Fair Value Gap confluence with signal"""
         signal_direction = signal_data.get("direction", "unknown")
@@ -632,10 +665,12 @@ class ConfluenceValidator:
             "valid": len(relevant_fvgs) > 0,
             "timeframe": timeframe,
             "pattern_type": "fair_value_gap",
-            "relevant_patterns": len(relevant_fvgs)
+            "relevant_patterns": len(relevant_fvgs),
         }
 
-    def _check_session_alignment(self, signal_time: datetime) -> Dict[str, Any]:
+    def _check_session_alignment(
+        self, signal_time: datetime
+    ) -> Dict[str, Any]:
         """Check if signal timing aligns with optimal trading sessions"""
         # London session: 8:00-17:00 GMT
         # New York session: 13:00-22:00 GMT
@@ -648,7 +683,9 @@ class ConfluenceValidator:
         in_london = 8 <= hour_utc <= 17
         in_newyork = 13 <= hour_utc <= 22
 
-        session_score = 1.0 if in_overlap else 0.7 if (in_london or in_newyork) else 0.3
+        session_score = (
+            1.0 if in_overlap else 0.7 if (in_london or in_newyork) else 0.3
+        )
 
         return {
             "valid": session_score >= 0.7,
@@ -657,11 +694,13 @@ class ConfluenceValidator:
                 "hour_utc": hour_utc,
                 "in_overlap": in_overlap,
                 "in_london": in_london,
-                "in_newyork": in_newyork
-            }
+                "in_newyork": in_newyork,
+            },
         }
 
-    def _check_market_hours_alignment(self, signal_time: datetime) -> Dict[str, Any]:
+    def _check_market_hours_alignment(
+        self, signal_time: datetime
+    ) -> Dict[str, Any]:
         """Check if signal is during active market hours"""
         # Avoid weekends and major holidays
         weekday = signal_time.weekday()  # 0=Monday, 6=Sunday
@@ -671,13 +710,12 @@ class ConfluenceValidator:
         return {
             "valid": is_weekday,
             "score": 1.0 if is_weekday else 0.0,
-            "details": {
-                "weekday": weekday,
-                "is_weekend": not is_weekday
-            }
+            "details": {"weekday": weekday, "is_weekend": not is_weekday},
         }
 
-    def _check_news_time_alignment(self, signal_time: datetime) -> Dict[str, Any]:
+    def _check_news_time_alignment(
+        self, signal_time: datetime
+    ) -> Dict[str, Any]:
         """Check if signal avoids high-impact news times"""
         # Simplified: avoid first and last 30 minutes of major sessions
         hour_utc = signal_time.hour
@@ -688,15 +726,15 @@ class ConfluenceValidator:
         # Avoid 16:30-17:00 GMT (London close)
 
         avoid_times = [
-            (8, 0, 8, 30),   # London open
-            (13, 0, 13, 30), # NY open
-            (16, 30, 17, 0)  # London close
+            (8, 0, 8, 30),  # London open
+            (13, 0, 13, 30),  # NY open
+            (16, 30, 17, 0),  # London close
         ]
 
         in_avoid_period = any(
-            (start_h < hour_utc < end_h) or
-            (start_h == hour_utc and minute >= start_m) or
-            (end_h == hour_utc and minute <= end_m)
+            (start_h < hour_utc < end_h)
+            or (start_h == hour_utc and minute >= start_m)
+            or (end_h == hour_utc and minute <= end_m)
             for start_h, start_m, end_h, end_m in avoid_times
         )
 
@@ -706,8 +744,8 @@ class ConfluenceValidator:
             "details": {
                 "hour_utc": hour_utc,
                 "minute": minute,
-                "in_avoid_period": in_avoid_period
-            }
+                "in_avoid_period": in_avoid_period,
+            },
         }
 
     def _calculate_rsi(self, prices: pd.Series, period: int = 14) -> pd.Series:
@@ -724,7 +762,7 @@ class ConfluenceValidator:
         prices: pd.Series,
         fast: int = 12,
         slow: int = 26,
-        signal: int = 9
+        signal: int = 9,
     ) -> Tuple[pd.Series, pd.Series]:
         """Calculate MACD indicator"""
         ema_fast = prices.ewm(span=fast).mean()
@@ -733,7 +771,9 @@ class ConfluenceValidator:
         signal_line = macd_line.ewm(span=signal).mean()
         return macd_line, signal_line
 
-    def _calculate_overall_confidence(self, confidence_scores: Dict[str, float]) -> float:
+    def _calculate_overall_confidence(
+        self, confidence_scores: Dict[str, float]
+    ) -> float:
         """Calculate weighted overall confidence score"""
         weights = {
             "structural": self.config.structural_weight,
@@ -741,7 +781,7 @@ class ConfluenceValidator:
             "temporal": self.config.temporal_weight,
             "volume": self.config.volume_weight,
             "momentum": self.config.momentum_weight,
-            "sentiment": self.config.sentiment_weight
+            "sentiment": self.config.sentiment_weight,
         }
 
         weighted_score = 0.0
@@ -755,9 +795,7 @@ class ConfluenceValidator:
         return weighted_score / total_weight if total_weight > 0 else 0.0
 
     def _determine_confluence_level(
-        self,
-        met_criteria_count: int,
-        confidence_score: float
+        self, met_criteria_count: int, confidence_score: float
     ) -> ConfluenceLevel:
         """Determine confluence strength level"""
         if met_criteria_count >= 5 and confidence_score >= 0.85:
@@ -770,12 +808,12 @@ class ConfluenceValidator:
             return ConfluenceLevel.WEAK
 
     def _is_signal_valid(
-        self,
-        met_criteria: List[ConfluenceType],
-        confidence_score: float
+        self, met_criteria: List[ConfluenceType], confidence_score: float
     ) -> bool:
         """Determine if signal meets validation requirements"""
-        criteria_met = len(met_criteria) >= self.config.minimum_confluence_count
+        criteria_met = (
+            len(met_criteria) >= self.config.minimum_confluence_count
+        )
         confidence_met = confidence_score >= self.config.confidence_threshold
 
         if self.config.strict_mode:

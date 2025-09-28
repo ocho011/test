@@ -13,7 +13,15 @@
       "Bash(pip3 install:*)",
       "Bash(PYTHONPATH=/Users/osangwon/github/test/src python3 -c \"from trading_bot.data.binance_client import BinanceClient; print(''BinanceClient imported successfully'')\")",
       "Bash(PYTHONPATH=/Users/osangwon/github/test/src python3:*)",
-      "mcp__task-master-ai__set_task_status"
+      "mcp__task-master-ai__set_task_status",
+      "Bash(python:*)",
+      "Bash(python3 -m flake8:*)",
+      "Bash(python3 -m black:*)",
+      "Bash(python3 -m isort:*)",
+      "Bash(git add:*)",
+      "Bash(python3:*)",
+      "Bash(git commit -m \"$(cat <<''EOF''\nfeat: implement comprehensive trading signal generation and validation system\n\nComplete Task 5: 매매 신호 생성 및 검증 시스템\n\n- SignalGenerator: ICT pattern-based signal generation with confidence scoring\n- ConfluenceValidator: Multi-condition signal verification across 6 confluence types\n- SignalStrengthCalculator: 7-category weighted signal strength analysis\n- BiasFilter: Time-based filtering with trading session awareness\n- SignalEventPublisher: Event publishing with multiple modes and batch processing\n- SignalValidityManager: Signal lifecycle and timeout management\n- IntegratedSignalSystem: Complete pipeline integration example\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
+      "Bash(git push:*)"
     ]
   },
   "enableAllProjectMcpServers": true,

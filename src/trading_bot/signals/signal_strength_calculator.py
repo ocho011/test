@@ -6,25 +6,21 @@ factors including pattern quality, market context, risk-reward ratios, and
 historical performance metrics.
 """
 
-from typing import Dict, List, Optional, Tuple, Any
-from dataclasses import dataclass
-from enum import Enum
 import logging
-from datetime import datetime, timedelta
+from dataclasses import dataclass
+from datetime import datetime
+from enum import Enum
+from typing import Any, Dict, List, Optional, Tuple
 
-import pandas as pd
 import numpy as np
+import pandas as pd
 
-from ..analysis.ict_analyzer import (
-    OrderBlock,
-    FairValueGap,
-    MarketStructure,
-    PatternValidationEngine
-)
+from ..analysis.ict_analyzer import PatternValidationEngine
 
 
 class StrengthCategory(Enum):
     """Categories for signal strength assessment"""
+
     PATTERN_QUALITY = "pattern_quality"
     MARKET_CONTEXT = "market_context"
     RISK_REWARD = "risk_reward"
@@ -36,6 +32,7 @@ class StrengthCategory(Enum):
 
 class StrengthLevel(Enum):
     """Signal strength levels"""
+
     VERY_WEAK = "very_weak"
     WEAK = "weak"
     MODERATE = "moderate"
@@ -46,6 +43,7 @@ class StrengthLevel(Enum):
 @dataclass
 class StrengthScore:
     """Individual strength score for a category"""
+
     category: StrengthCategory
     score: float  # 0.0 to 1.0
     weight: float
@@ -56,6 +54,7 @@ class StrengthScore:
 @dataclass
 class SignalStrength:
     """Overall signal strength assessment"""
+
     overall_score: float  # 0.0 to 1.0
     strength_level: StrengthLevel
     category_scores: List[StrengthScore]
@@ -68,6 +67,7 @@ class SignalStrength:
 @dataclass
 class StrengthConfig:
     """Configuration for signal strength calculation"""
+
     pattern_quality_weight: float = 0.25
     market_context_weight: float = 0.20
     risk_reward_weight: float = 0.20
@@ -91,7 +91,7 @@ class SignalStrengthCalculator:
     def __init__(
         self,
         pattern_validator: PatternValidationEngine,
-        config: Optional[StrengthConfig] = None
+        config: Optional[StrengthConfig] = None,
     ):
         self.pattern_validator = pattern_validator
         self.config = config or StrengthConfig()
@@ -104,7 +104,7 @@ class SignalStrengthCalculator:
         self,
         signal_data: Dict[str, Any],
         market_data: Dict[str, pd.DataFrame],
-        confluence_result: Optional[Dict[str, Any]] = None
+        confluence_result: Optional[Dict[str, Any]] = None,
     ) -> SignalStrength:
         """
         Calculate comprehensive signal strength score.
@@ -133,9 +133,7 @@ class SignalStrengthCalculator:
             category_scores.append(context_score)
 
             # Calculate risk-reward score
-            risk_reward_score = self._calculate_risk_reward_score(
-                signal_data
-            )
+            risk_reward_score = self._calculate_risk_reward_score(signal_data)
             category_scores.append(risk_reward_score)
 
             # Calculate volume profile score
@@ -158,8 +156,8 @@ class SignalStrengthCalculator:
 
             # Calculate historical performance score (if enabled)
             if self.config.historical_performance_weight > 0:
-                historical_score = self._calculate_historical_performance_score(
-                    signal_data
+                historical_score = (
+                    self._calculate_historical_performance_score(signal_data)
                 )
                 category_scores.append(historical_score)
 
@@ -188,8 +186,8 @@ class SignalStrengthCalculator:
                     "signal_id": signal_data.get("id", "unknown"),
                     "pattern_count": len(signal_data.get("patterns", [])),
                     "timeframes_analyzed": len(market_data),
-                    "confluence_available": confluence_result is not None
-                }
+                    "confluence_available": confluence_result is not None,
+                },
             )
 
         except Exception as e:
@@ -197,9 +195,7 @@ class SignalStrengthCalculator:
             return self._create_error_strength_result(str(e))
 
     def _calculate_pattern_quality_score(
-        self,
-        signal_data: Dict[str, Any],
-        market_data: Dict[str, pd.DataFrame]
+        self, signal_data: Dict[str, Any], market_data: Dict[str, pd.DataFrame]
     ) -> StrengthScore:
         """Calculate pattern quality score based on ICT pattern integrity"""
         try:
@@ -213,7 +209,7 @@ class SignalStrengthCalculator:
                     score=0.0,
                     weight=self.config.pattern_quality_weight,
                     details={"error": "No patterns found"},
-                    rationale="No patterns available for analysis"
+                    rationale="No patterns available for analysis",
                 )
 
             # Evaluate each pattern type
@@ -226,21 +222,21 @@ class SignalStrengthCalculator:
                         pattern, market_data
                     )
                     quality_scores.append(ob_quality)
-                    details[f"order_block_quality"] = ob_quality
+                    details["order_block_quality"] = ob_quality
 
                 elif pattern_type == "fair_value_gap":
                     fvg_quality = self._evaluate_fvg_quality(
                         pattern, market_data
                     )
                     quality_scores.append(fvg_quality)
-                    details[f"fvg_quality"] = fvg_quality
+                    details["fvg_quality"] = fvg_quality
 
                 elif pattern_type == "market_structure":
                     structure_quality = self._evaluate_structure_quality(
                         pattern, market_data
                     )
                     quality_scores.append(structure_quality)
-                    details[f"structure_quality"] = structure_quality
+                    details["structure_quality"] = structure_quality
 
                 # Add base pattern strength
                 quality_scores.append(pattern_strength)
@@ -252,16 +248,20 @@ class SignalStrengthCalculator:
                 pattern_quality = 0.5
 
             # Apply pattern diversity bonus
-            unique_patterns = len(set(p.get("type", "unknown") for p in patterns))
+            unique_patterns = len(
+                set(p.get("type", "unknown") for p in patterns)
+            )
             diversity_bonus = min(0.2, unique_patterns * 0.05)
             pattern_quality = min(1.0, pattern_quality + diversity_bonus)
 
-            details.update({
-                "pattern_count": len(patterns),
-                "unique_pattern_types": unique_patterns,
-                "diversity_bonus": diversity_bonus,
-                "individual_scores": quality_scores
-            })
+            details.update(
+                {
+                    "pattern_count": len(patterns),
+                    "unique_pattern_types": unique_patterns,
+                    "diversity_bonus": diversity_bonus,
+                    "individual_scores": quality_scores,
+                }
+            )
 
             rationale = f"Pattern quality based on {len(patterns)} patterns with {unique_patterns} unique types"
 
@@ -270,7 +270,7 @@ class SignalStrengthCalculator:
                 score=pattern_quality,
                 weight=self.config.pattern_quality_weight,
                 details=details,
-                rationale=rationale
+                rationale=rationale,
             )
 
         except Exception as e:
@@ -280,13 +280,11 @@ class SignalStrengthCalculator:
                 score=0.0,
                 weight=self.config.pattern_quality_weight,
                 details={"error": str(e)},
-                rationale="Error in pattern quality analysis"
+                rationale="Error in pattern quality analysis",
             )
 
     def _calculate_market_context_score(
-        self,
-        signal_data: Dict[str, Any],
-        market_data: Dict[str, pd.DataFrame]
+        self, signal_data: Dict[str, Any], market_data: Dict[str, pd.DataFrame]
     ) -> StrengthScore:
         """Calculate market context score based on current market conditions"""
         try:
@@ -318,14 +316,14 @@ class SignalStrengthCalculator:
 
             details["individual_factors"] = context_factors
 
-            rationale = f"Market context based on volatility, trend, phase, and session analysis"
+            rationale = "Market context based on volatility, trend, phase, and session analysis"
 
             return StrengthScore(
                 category=StrengthCategory.MARKET_CONTEXT,
                 score=context_score,
                 weight=self.config.market_context_weight,
                 details=details,
-                rationale=rationale
+                rationale=rationale,
             )
 
         except Exception as e:
@@ -335,12 +333,11 @@ class SignalStrengthCalculator:
                 score=0.0,
                 weight=self.config.market_context_weight,
                 details={"error": str(e)},
-                rationale="Error in market context analysis"
+                rationale="Error in market context analysis",
             )
 
     def _calculate_risk_reward_score(
-        self,
-        signal_data: Dict[str, Any]
+        self, signal_data: Dict[str, Any]
     ) -> StrengthScore:
         """Calculate risk-reward score based on trade setup metrics"""
         try:
@@ -354,7 +351,7 @@ class SignalStrengthCalculator:
                     score=0.0,
                     weight=self.config.risk_reward_weight,
                     details={"error": "Missing price levels"},
-                    rationale="Incomplete price level information"
+                    rationale="Incomplete price level information",
                 )
 
             # Calculate risk and reward
@@ -369,21 +366,30 @@ class SignalStrengthCalculator:
             # Score based on risk-reward ratio
             if risk_reward_ratio >= self.config.minimum_risk_reward_ratio:
                 # Scale score based on how much the ratio exceeds minimum
-                excess_ratio = risk_reward_ratio - self.config.minimum_risk_reward_ratio
+                excess_ratio = (
+                    risk_reward_ratio - self.config.minimum_risk_reward_ratio
+                )
                 rr_score = min(1.0, 0.7 + (excess_ratio * 0.1))
             else:
                 # Penalize signals with poor risk-reward
-                rr_score = max(0.0, risk_reward_ratio / self.config.minimum_risk_reward_ratio * 0.5)
+                rr_score = max(
+                    0.0,
+                    risk_reward_ratio
+                    / self.config.minimum_risk_reward_ratio
+                    * 0.5,
+                )
 
             # Calculate stop loss distance as percentage of entry price
-            stop_loss_percentage = (risk / entry_price) * 100 if entry_price > 0 else 0
+            stop_loss_percentage = (
+                (risk / entry_price) * 100 if entry_price > 0 else 0
+            )
 
             details = {
                 "risk_reward_ratio": risk_reward_ratio,
                 "risk_amount": risk,
                 "reward_amount": reward,
                 "stop_loss_percentage": stop_loss_percentage,
-                "minimum_required_ratio": self.config.minimum_risk_reward_ratio
+                "minimum_required_ratio": self.config.minimum_risk_reward_ratio,
             }
 
             rationale = f"Risk-reward ratio of {risk_reward_ratio:.2f} with {stop_loss_percentage:.2f}% stop loss"
@@ -393,7 +399,7 @@ class SignalStrengthCalculator:
                 score=rr_score,
                 weight=self.config.risk_reward_weight,
                 details=details,
-                rationale=rationale
+                rationale=rationale,
             )
 
         except Exception as e:
@@ -403,13 +409,11 @@ class SignalStrengthCalculator:
                 score=0.0,
                 weight=self.config.risk_reward_weight,
                 details={"error": str(e)},
-                rationale="Error in risk-reward analysis"
+                rationale="Error in risk-reward analysis",
             )
 
     def _calculate_volume_profile_score(
-        self,
-        signal_data: Dict[str, Any],
-        market_data: Dict[str, pd.DataFrame]
+        self, signal_data: Dict[str, Any], market_data: Dict[str, pd.DataFrame]
     ) -> StrengthScore:
         """Calculate volume profile score"""
         try:
@@ -438,7 +442,7 @@ class SignalStrengthCalculator:
                     score=0.5,
                     weight=self.config.volume_profile_weight,
                     details={"warning": "No volume data available"},
-                    rationale="Volume data not available for analysis"
+                    rationale="Volume data not available for analysis",
                 )
 
             # Calculate average volume ratio across timeframes
@@ -446,15 +450,23 @@ class SignalStrengthCalculator:
 
             # Score based on volume threshold
             if avg_volume_ratio >= self.config.volume_threshold:
-                volume_score = min(1.0, 0.6 + (avg_volume_ratio - self.config.volume_threshold) * 0.2)
+                volume_score = min(
+                    1.0,
+                    0.6
+                    + (avg_volume_ratio - self.config.volume_threshold) * 0.2,
+                )
             else:
-                volume_score = max(0.0, avg_volume_ratio / self.config.volume_threshold * 0.6)
+                volume_score = max(
+                    0.0, avg_volume_ratio / self.config.volume_threshold * 0.6
+                )
 
-            details.update({
-                "average_volume_ratio": avg_volume_ratio,
-                "volume_threshold": self.config.volume_threshold,
-                "timeframes_analyzed": len(volume_factors)
-            })
+            details.update(
+                {
+                    "average_volume_ratio": avg_volume_ratio,
+                    "volume_threshold": self.config.volume_threshold,
+                    "timeframes_analyzed": len(volume_factors),
+                }
+            )
 
             rationale = f"Volume analysis across {len(volume_factors)} timeframes with {avg_volume_ratio:.2f} average ratio"
 
@@ -463,7 +475,7 @@ class SignalStrengthCalculator:
                 score=volume_score,
                 weight=self.config.volume_profile_weight,
                 details=details,
-                rationale=rationale
+                rationale=rationale,
             )
 
         except Exception as e:
@@ -473,13 +485,11 @@ class SignalStrengthCalculator:
                 score=0.0,
                 weight=self.config.volume_profile_weight,
                 details={"error": str(e)},
-                rationale="Error in volume profile analysis"
+                rationale="Error in volume profile analysis",
             )
 
     def _calculate_momentum_score(
-        self,
-        signal_data: Dict[str, Any],
-        market_data: Dict[str, pd.DataFrame]
+        self, signal_data: Dict[str, Any], market_data: Dict[str, pd.DataFrame]
     ) -> StrengthScore:
         """Calculate momentum score based on technical indicators"""
         try:
@@ -523,7 +533,7 @@ class SignalStrengthCalculator:
                 details[f"{timeframe}_momentum"] = {
                     "rsi": current_rsi,
                     "macd_bullish": macd_bullish,
-                    "momentum_score": momentum_score
+                    "momentum_score": momentum_score,
                 }
 
             if not momentum_factors:
@@ -532,17 +542,19 @@ class SignalStrengthCalculator:
                     score=0.5,
                     weight=self.config.momentum_weight,
                     details={"warning": "No momentum data calculated"},
-                    rationale="Insufficient data for momentum analysis"
+                    rationale="Insufficient data for momentum analysis",
                 )
 
             # Calculate average momentum score
             avg_momentum = np.mean(momentum_factors)
 
-            details.update({
-                "average_momentum": avg_momentum,
-                "signal_direction": signal_direction,
-                "timeframes_analyzed": len(momentum_factors)
-            })
+            details.update(
+                {
+                    "average_momentum": avg_momentum,
+                    "signal_direction": signal_direction,
+                    "timeframes_analyzed": len(momentum_factors),
+                }
+            )
 
             rationale = f"Momentum analysis for {signal_direction} signal across {len(momentum_factors)} timeframes"
 
@@ -551,7 +563,7 @@ class SignalStrengthCalculator:
                 score=avg_momentum,
                 weight=self.config.momentum_weight,
                 details=details,
-                rationale=rationale
+                rationale=rationale,
             )
 
         except Exception as e:
@@ -561,13 +573,11 @@ class SignalStrengthCalculator:
                 score=0.0,
                 weight=self.config.momentum_weight,
                 details={"error": str(e)},
-                rationale="Error in momentum analysis"
+                rationale="Error in momentum analysis",
             )
 
     def _calculate_structural_bias_score(
-        self,
-        signal_data: Dict[str, Any],
-        market_data: Dict[str, pd.DataFrame]
+        self, signal_data: Dict[str, Any], market_data: Dict[str, pd.DataFrame]
     ) -> StrengthScore:
         """Calculate structural bias alignment score"""
         try:
@@ -593,7 +603,10 @@ class SignalStrengthCalculator:
                 alignment_score = 0.0
                 if signal_direction == "long" and structural_bias == "bullish":
                     alignment_score = 1.0
-                elif signal_direction == "short" and structural_bias == "bearish":
+                elif (
+                    signal_direction == "short"
+                    and structural_bias == "bearish"
+                ):
                     alignment_score = 1.0
                 elif structural_bias == "neutral":
                     alignment_score = 0.5
@@ -604,7 +617,7 @@ class SignalStrengthCalculator:
                     "alignment_score": alignment_score,
                     "short_ma": short_ma,
                     "long_ma": long_ma,
-                    "current_price": current_price
+                    "current_price": current_price,
                 }
 
             if not bias_factors:
@@ -613,17 +626,19 @@ class SignalStrengthCalculator:
                     score=0.5,
                     weight=self.config.structural_bias_weight,
                     details={"warning": "No structural bias data calculated"},
-                    rationale="Insufficient data for structural bias analysis"
+                    rationale="Insufficient data for structural bias analysis",
                 )
 
             # Calculate average structural alignment
             avg_bias_score = np.mean(bias_factors)
 
-            details.update({
-                "average_bias_score": avg_bias_score,
-                "signal_direction": signal_direction,
-                "timeframes_analyzed": len(bias_factors)
-            })
+            details.update(
+                {
+                    "average_bias_score": avg_bias_score,
+                    "signal_direction": signal_direction,
+                    "timeframes_analyzed": len(bias_factors),
+                }
+            )
 
             rationale = f"Structural bias alignment for {signal_direction} signal across {len(bias_factors)} timeframes"
 
@@ -632,7 +647,7 @@ class SignalStrengthCalculator:
                 score=avg_bias_score,
                 weight=self.config.structural_bias_weight,
                 details=details,
-                rationale=rationale
+                rationale=rationale,
             )
 
         except Exception as e:
@@ -642,12 +657,11 @@ class SignalStrengthCalculator:
                 score=0.0,
                 weight=self.config.structural_bias_weight,
                 details={"error": str(e)},
-                rationale="Error in structural bias analysis"
+                rationale="Error in structural bias analysis",
             )
 
     def _calculate_historical_performance_score(
-        self,
-        signal_data: Dict[str, Any]
+        self, signal_data: Dict[str, Any]
     ) -> StrengthScore:
         """Calculate score based on historical performance of similar signals"""
         try:
@@ -663,7 +677,7 @@ class SignalStrengthCalculator:
                 "order_block": 0.75,
                 "fair_value_gap": 0.70,
                 "market_structure": 0.65,
-                "liquidity_sweep": 0.80
+                "liquidity_sweep": 0.80,
             }
 
             type_scores = []
@@ -678,7 +692,7 @@ class SignalStrengthCalculator:
             details = {
                 "pattern_types": pattern_types,
                 "individual_scores": type_scores,
-                "historical_data_points": len(self.performance_history)
+                "historical_data_points": len(self.performance_history),
             }
 
             rationale = f"Historical performance based on {len(pattern_types)} pattern types"
@@ -688,23 +702,23 @@ class SignalStrengthCalculator:
                 score=historical_score,
                 weight=self.config.historical_performance_weight,
                 details=details,
-                rationale=rationale
+                rationale=rationale,
             )
 
         except Exception as e:
-            self.logger.error(f"Error in historical performance calculation: {e}")
+            self.logger.error(
+                f"Error in historical performance calculation: {e}"
+            )
             return StrengthScore(
                 category=StrengthCategory.HISTORICAL_PERFORMANCE,
                 score=0.0,
                 weight=self.config.historical_performance_weight,
                 details={"error": str(e)},
-                rationale="Error in historical performance analysis"
+                rationale="Error in historical performance analysis",
             )
 
     def _evaluate_order_block_quality(
-        self,
-        pattern: Dict[str, Any],
-        market_data: Dict[str, pd.DataFrame]
+        self, pattern: Dict[str, Any], market_data: Dict[str, pd.DataFrame]
     ) -> float:
         """Evaluate Order Block pattern quality"""
         # Base quality from pattern strength
@@ -728,9 +742,7 @@ class SignalStrengthCalculator:
         return min(1.0, quality_score)
 
     def _evaluate_fvg_quality(
-        self,
-        pattern: Dict[str, Any],
-        market_data: Dict[str, pd.DataFrame]
+        self, pattern: Dict[str, Any], market_data: Dict[str, pd.DataFrame]
     ) -> float:
         """Evaluate Fair Value Gap pattern quality"""
         # Base quality from pattern strength
@@ -751,9 +763,7 @@ class SignalStrengthCalculator:
         return min(1.0, quality_score)
 
     def _evaluate_structure_quality(
-        self,
-        pattern: Dict[str, Any],
-        market_data: Dict[str, pd.DataFrame]
+        self, pattern: Dict[str, Any], market_data: Dict[str, pd.DataFrame]
     ) -> float:
         """Evaluate Market Structure pattern quality"""
         # Base quality from pattern strength
@@ -771,8 +781,7 @@ class SignalStrengthCalculator:
         return min(1.0, quality_score)
 
     def _evaluate_volatility_context(
-        self,
-        market_data: Dict[str, pd.DataFrame]
+        self, market_data: Dict[str, pd.DataFrame]
     ) -> float:
         """Evaluate current market volatility context"""
         volatility_scores = []
@@ -797,8 +806,7 @@ class SignalStrengthCalculator:
         return np.mean(volatility_scores) if volatility_scores else 0.5
 
     def _evaluate_trend_strength(
-        self,
-        market_data: Dict[str, pd.DataFrame]
+        self, market_data: Dict[str, pd.DataFrame]
     ) -> float:
         """Evaluate current trend strength"""
         trend_scores = []
@@ -827,8 +835,7 @@ class SignalStrengthCalculator:
         return np.mean(trend_scores) if trend_scores else 0.5
 
     def _evaluate_market_phase(
-        self,
-        market_data: Dict[str, pd.DataFrame]
+        self, market_data: Dict[str, pd.DataFrame]
     ) -> float:
         """Evaluate current market phase (trending vs ranging)"""
         phase_scores = []
@@ -843,7 +850,9 @@ class SignalStrengthCalculator:
             recent_low = low_prices.min()
 
             current_price = data["close"].iloc[-1]
-            price_position = (current_price - recent_low) / (recent_high - recent_low)
+            price_position = (current_price - recent_low) / (
+                recent_high - recent_low
+            )
 
             # Prefer clear directional bias (not stuck in middle)
             if price_position < 0.3 or price_position > 0.7:
@@ -853,10 +862,7 @@ class SignalStrengthCalculator:
 
         return np.mean(phase_scores) if phase_scores else 0.5
 
-    def _evaluate_session_context(
-        self,
-        signal_data: Dict[str, Any]
-    ) -> float:
+    def _evaluate_session_context(self, signal_data: Dict[str, Any]) -> float:
         """Evaluate trading session context"""
         signal_time = signal_data.get("timestamp", datetime.now())
         hour_utc = signal_time.hour
@@ -887,7 +893,7 @@ class SignalStrengthCalculator:
         prices: pd.Series,
         fast: int = 12,
         slow: int = 26,
-        signal: int = 9
+        signal: int = 9,
     ) -> Tuple[pd.Series, pd.Series]:
         """Calculate MACD indicator"""
         ema_fast = prices.ewm(span=fast).mean()
@@ -896,13 +902,19 @@ class SignalStrengthCalculator:
         signal_line = macd_line.ewm(span=signal).mean()
         return macd_line, signal_line
 
-    def _calculate_weighted_score(self, category_scores: List[StrengthScore]) -> float:
+    def _calculate_weighted_score(
+        self, category_scores: List[StrengthScore]
+    ) -> float:
         """Calculate weighted overall score"""
-        weighted_sum = sum(score.score * score.weight for score in category_scores)
+        weighted_sum = sum(
+            score.score * score.weight for score in category_scores
+        )
         total_weight = sum(score.weight for score in category_scores)
         return weighted_sum / total_weight if total_weight > 0 else 0.0
 
-    def _determine_strength_level(self, weighted_score: float) -> StrengthLevel:
+    def _determine_strength_level(
+        self, weighted_score: float
+    ) -> StrengthLevel:
         """Determine strength level based on score"""
         if weighted_score >= 0.85:
             return StrengthLevel.VERY_STRONG
@@ -918,7 +930,7 @@ class SignalStrengthCalculator:
     def _calculate_confidence_interval(
         self,
         category_scores: List[StrengthScore],
-        confluence_result: Optional[Dict[str, Any]] = None
+        confluence_result: Optional[Dict[str, Any]] = None,
     ) -> Tuple[float, float]:
         """Calculate confidence interval for the strength score"""
         scores = [score.score for score in category_scores]
@@ -933,7 +945,9 @@ class SignalStrengthCalculator:
 
         # Adjust based on confluence result if available
         if confluence_result and confluence_result.get("is_valid"):
-            confluence_confidence = confluence_result.get("confidence_score", 0.5)
+            confluence_confidence = confluence_result.get(
+                "confidence_score", 0.5
+            )
             # Narrow the interval if confluence is high
             adjustment = (1.0 - confluence_confidence) * 0.1
             lower_bound = max(lower_bound, mean_score - adjustment)
@@ -941,7 +955,9 @@ class SignalStrengthCalculator:
 
         return (lower_bound, upper_bound)
 
-    def _create_error_strength_result(self, error_message: str) -> SignalStrength:
+    def _create_error_strength_result(
+        self, error_message: str
+    ) -> SignalStrength:
         """Create error result for signal strength calculation"""
         return SignalStrength(
             overall_score=0.0,
@@ -950,5 +966,5 @@ class SignalStrengthCalculator:
             weighted_score=0.0,
             confidence_interval=(0.0, 0.0),
             calculation_timestamp=datetime.now(),
-            details={"error": error_message}
+            details={"error": error_message},
         )

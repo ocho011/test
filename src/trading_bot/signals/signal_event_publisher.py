@@ -5,23 +5,23 @@ This module implements comprehensive signal event publishing to integrate
 trading signals with the broader event-driven architecture of the trading bot.
 """
 
-from typing import Dict, List, Optional, Any, Callable
-from dataclasses import dataclass, asdict
-from enum import Enum
-import logging
-from datetime import datetime
 import asyncio
-import json
+import logging
+from dataclasses import asdict, dataclass
+from datetime import datetime, timedelta
+from enum import Enum
+from typing import Any, Callable, Dict, List, Optional
 from uuid import uuid4
 
-from ..core.events import SignalEvent, EventType
+from ..core.events import EventType, SignalEvent
+from .bias_filter import FilterResult
 from .confluence_validator import ConfluenceResult
 from .signal_strength_calculator import SignalStrength
-from .bias_filter import FilterResult
 
 
 class PublishingMode(Enum):
     """Signal publishing modes"""
+
     IMMEDIATE = "immediate"
     BATCH = "batch"
     SCHEDULED = "scheduled"
@@ -30,6 +30,7 @@ class PublishingMode(Enum):
 
 class EventPriority(Enum):
     """Event priority levels"""
+
     LOW = "low"
     NORMAL = "normal"
     HIGH = "high"
@@ -38,6 +39,7 @@ class EventPriority(Enum):
 
 class PublishingStatus(Enum):
     """Publishing status"""
+
     PENDING = "pending"
     PUBLISHED = "published"
     FAILED = "failed"
@@ -48,6 +50,7 @@ class PublishingStatus(Enum):
 @dataclass
 class SignalEventData:
     """Enhanced signal event data for publishing"""
+
     signal_id: str
     signal_type: str
     direction: str
@@ -70,6 +73,7 @@ class SignalEventData:
 @dataclass
 class PublishingConfig:
     """Configuration for signal event publishing"""
+
     mode: PublishingMode = PublishingMode.IMMEDIATE
     batch_size: int = 10
     batch_timeout_seconds: int = 30
@@ -88,6 +92,7 @@ class PublishingConfig:
 @dataclass
 class PublishingResult:
     """Result of signal publishing"""
+
     success: bool
     signal_id: str
     event_id: Optional[str]
@@ -110,7 +115,7 @@ class SignalEventPublisher:
     def __init__(
         self,
         config: Optional[PublishingConfig] = None,
-        event_handlers: Optional[List[Callable]] = None
+        event_handlers: Optional[List[Callable]] = None,
     ):
         self.config = config or PublishingConfig()
         self.event_handlers = event_handlers or []
@@ -120,7 +125,9 @@ class SignalEventPublisher:
         self.pending_events = []
         self.published_events = {}
         self.failed_events = {}
-        self.publishing_semaphore = asyncio.Semaphore(self.config.max_concurrent_publishes)
+        self.publishing_semaphore = asyncio.Semaphore(
+            self.config.max_concurrent_publishes
+        )
 
         # Batch processing
         self.batch_queue = []
@@ -132,7 +139,7 @@ class SignalEventPublisher:
         confluence_result: Optional[ConfluenceResult] = None,
         strength_result: Optional[SignalStrength] = None,
         filter_result: Optional[FilterResult] = None,
-        priority: EventPriority = EventPriority.NORMAL
+        priority: EventPriority = EventPriority.NORMAL,
     ) -> PublishingResult:
         """
         Publish a trading signal as an event.
@@ -162,7 +169,7 @@ class SignalEventPublisher:
                     published_at=None,
                     error_message=validation_result["error_message"],
                     retry_count=0,
-                    metadata=validation_result
+                    metadata=validation_result,
                 )
 
             # Create enhanced signal event data
@@ -192,7 +199,7 @@ class SignalEventPublisher:
                 published_at=None,
                 error_message=str(e),
                 retry_count=0,
-                metadata={"error": str(e)}
+                metadata={"error": str(e)},
             )
 
     async def publish_signal_async(
@@ -201,7 +208,7 @@ class SignalEventPublisher:
         confluence_result: Optional[ConfluenceResult] = None,
         strength_result: Optional[SignalStrength] = None,
         filter_result: Optional[FilterResult] = None,
-        priority: EventPriority = EventPriority.NORMAL
+        priority: EventPriority = EventPriority.NORMAL,
     ) -> PublishingResult:
         """Async version of signal publishing"""
         async with self.publishing_semaphore:
@@ -212,7 +219,7 @@ class SignalEventPublisher:
                 confluence_result,
                 strength_result,
                 filter_result,
-                priority
+                priority,
             )
 
     def _validate_signal_for_publishing(
@@ -220,37 +227,58 @@ class SignalEventPublisher:
         signal_data: Dict[str, Any],
         confluence_result: Optional[ConfluenceResult],
         strength_result: Optional[SignalStrength],
-        filter_result: Optional[FilterResult]
+        filter_result: Optional[FilterResult],
     ) -> Dict[str, Any]:
         """Validate signal meets publishing requirements"""
         validation_errors = []
 
         # Check required signal data
-        required_fields = ["id", "direction", "entry_price", "stop_loss", "take_profit"]
+        required_fields = [
+            "id",
+            "direction",
+            "entry_price",
+            "stop_loss",
+            "take_profit",
+        ]
         for field in required_fields:
             if field not in signal_data or signal_data[field] is None:
                 validation_errors.append(f"Missing required field: {field}")
 
         # Check confluence validation requirement
-        if self.config.require_confluence_validation and confluence_result is None:
-            validation_errors.append("Confluence validation required but not provided")
+        if (
+            self.config.require_confluence_validation
+            and confluence_result is None
+        ):
+            validation_errors.append(
+                "Confluence validation required but not provided"
+            )
 
         if confluence_result and not confluence_result.is_valid:
             validation_errors.append("Signal failed confluence validation")
 
         # Check strength calculation requirement
-        if self.config.require_strength_calculation and strength_result is None:
-            validation_errors.append("Strength calculation required but not provided")
+        if (
+            self.config.require_strength_calculation
+            and strength_result is None
+        ):
+            validation_errors.append(
+                "Strength calculation required but not provided"
+            )
 
         if strength_result:
-            if strength_result.weighted_score < self.config.minimum_strength_score:
+            if (
+                strength_result.weighted_score
+                < self.config.minimum_strength_score
+            ):
                 validation_errors.append(
                     f"Signal strength {strength_result.weighted_score:.2f} below minimum {self.config.minimum_strength_score}"
                 )
 
         # Check bias filtering requirement
         if self.config.require_bias_filtering and filter_result is None:
-            validation_errors.append("Bias filtering required but not provided")
+            validation_errors.append(
+                "Bias filtering required but not provided"
+            )
 
         if filter_result and not filter_result.is_allowed:
             validation_errors.append("Signal failed bias filtering")
@@ -266,8 +294,10 @@ class SignalEventPublisher:
 
         return {
             "is_valid": is_valid,
-            "error_message": "; ".join(validation_errors) if validation_errors else None,
-            "validation_errors": validation_errors
+            "error_message": (
+                "; ".join(validation_errors) if validation_errors else None
+            ),
+            "validation_errors": validation_errors,
         }
 
     def _create_signal_event_data(
@@ -275,7 +305,7 @@ class SignalEventPublisher:
         signal_data: Dict[str, Any],
         confluence_result: Optional[ConfluenceResult],
         strength_result: Optional[SignalStrength],
-        filter_result: Optional[FilterResult]
+        filter_result: Optional[FilterResult],
     ) -> SignalEventData:
         """Create comprehensive signal event data"""
         # Extract core signal information
@@ -293,8 +323,14 @@ class SignalEventPublisher:
 
         # Extract scores
         confidence_score = signal_data.get("confidence_score", 0.0)
-        strength_score = strength_result.weighted_score if strength_result else 0.0
-        confluence_level = confluence_result.confluence_level.value if confluence_result else "unknown"
+        strength_score = (
+            strength_result.weighted_score if strength_result else 0.0
+        )
+        confluence_level = (
+            confluence_result.confluence_level.value
+            if confluence_result
+            else "unknown"
+        )
         filter_passed = filter_result.is_allowed if filter_result else False
 
         # Extract patterns and timeframes
@@ -307,23 +343,29 @@ class SignalEventPublisher:
             session_info = {
                 "current_session": filter_result.current_session.value,
                 "current_bias": filter_result.current_bias.value,
-                "filter_score": filter_result.filter_score
+                "filter_score": filter_result.filter_score,
             }
 
         # Create metadata
         metadata = {
             "created_by": "signal_generator",
             "validation_timestamp": datetime.now().isoformat(),
-            "confluence_details": asdict(confluence_result) if confluence_result else None,
-            "strength_details": asdict(strength_result) if strength_result else None,
+            "confluence_details": (
+                asdict(confluence_result) if confluence_result else None
+            ),
+            "strength_details": (
+                asdict(strength_result) if strength_result else None
+            ),
             "filter_details": asdict(filter_result) if filter_result else None,
-            "original_signal_data": signal_data
+            "original_signal_data": signal_data,
         }
 
         # Calculate expiration time
         expires_at = signal_data.get("expires_at")
         if expires_at is None and "validity_minutes" in signal_data:
-            expires_at = datetime.now() + timedelta(minutes=signal_data["validity_minutes"])
+            expires_at = datetime.now() + timedelta(
+                minutes=signal_data["validity_minutes"]
+            )
 
         return SignalEventData(
             signal_id=signal_id,
@@ -342,13 +384,11 @@ class SignalEventPublisher:
             session_info=session_info,
             metadata=metadata,
             created_at=datetime.now(),
-            expires_at=expires_at
+            expires_at=expires_at,
         )
 
     def _publish_immediately(
-        self,
-        event_data: SignalEventData,
-        priority: EventPriority
+        self, event_data: SignalEventData, priority: EventPriority
     ) -> PublishingResult:
         """Publish signal event immediately"""
         try:
@@ -371,8 +411,8 @@ class SignalEventPublisher:
                     "strength_score": event_data.strength_score,
                     "confluence_level": event_data.confluence_level,
                     "filter_passed": event_data.filter_passed,
-                    "session_info": event_data.session_info
-                }
+                    "session_info": event_data.session_info,
+                },
             )
 
             # Publish to event handlers
@@ -386,7 +426,7 @@ class SignalEventPublisher:
             self.published_events[event_data.signal_id] = {
                 "event": signal_event,
                 "published_at": datetime.now(),
-                "priority": priority
+                "priority": priority,
             }
 
             return PublishingResult(
@@ -399,8 +439,8 @@ class SignalEventPublisher:
                 retry_count=0,
                 metadata={
                     "priority": priority.value,
-                    "handlers_count": len(self.event_handlers)
-                }
+                    "handlers_count": len(self.event_handlers),
+                },
             )
 
         except Exception as e:
@@ -413,21 +453,21 @@ class SignalEventPublisher:
                 published_at=None,
                 error_message=str(e),
                 retry_count=0,
-                metadata={"error": str(e)}
+                metadata={"error": str(e)},
             )
 
     def _add_to_batch(
-        self,
-        event_data: SignalEventData,
-        priority: EventPriority
+        self, event_data: SignalEventData, priority: EventPriority
     ) -> PublishingResult:
         """Add signal to batch queue"""
         try:
-            self.batch_queue.append({
-                "event_data": event_data,
-                "priority": priority,
-                "added_at": datetime.now()
-            })
+            self.batch_queue.append(
+                {
+                    "event_data": event_data,
+                    "priority": priority,
+                    "added_at": datetime.now(),
+                }
+            )
 
             # Check if batch is full
             if len(self.batch_queue) >= self.config.batch_size:
@@ -436,8 +476,7 @@ class SignalEventPublisher:
             # Set batch timer if not already set
             elif self.batch_timer is None:
                 self.batch_timer = asyncio.get_event_loop().call_later(
-                    self.config.batch_timeout_seconds,
-                    self._process_batch
+                    self.config.batch_timeout_seconds, self._process_batch
                 )
 
             return PublishingResult(
@@ -450,8 +489,8 @@ class SignalEventPublisher:
                 retry_count=0,
                 metadata={
                     "batch_position": len(self.batch_queue),
-                    "batch_size": self.config.batch_size
-                }
+                    "batch_size": self.config.batch_size,
+                },
             )
 
         except Exception as e:
@@ -464,7 +503,7 @@ class SignalEventPublisher:
                 published_at=None,
                 error_message=str(e),
                 retry_count=0,
-                metadata={"error": str(e)}
+                metadata={"error": str(e)},
             )
 
     def _process_batch(self):
@@ -478,12 +517,12 @@ class SignalEventPublisher:
                 EventPriority.CRITICAL: 0,
                 EventPriority.HIGH: 1,
                 EventPriority.NORMAL: 2,
-                EventPriority.LOW: 3
+                EventPriority.LOW: 3,
             }
 
             sorted_batch = sorted(
                 self.batch_queue,
-                key=lambda x: priority_order.get(x["priority"], 2)
+                key=lambda x: priority_order.get(x["priority"], 2),
             )
 
             # Publish each signal
@@ -509,9 +548,7 @@ class SignalEventPublisher:
             self.logger.error(f"Error processing batch: {e}")
 
     def _schedule_publish(
-        self,
-        event_data: SignalEventData,
-        priority: EventPriority
+        self, event_data: SignalEventData, priority: EventPriority
     ) -> PublishingResult:
         """Schedule signal for future publishing"""
         # This is a placeholder for scheduled publishing
@@ -519,9 +556,7 @@ class SignalEventPublisher:
         return self._publish_immediately(event_data, priority)
 
     def _publish_conditionally(
-        self,
-        event_data: SignalEventData,
-        priority: EventPriority
+        self, event_data: SignalEventData, priority: EventPriority
     ) -> PublishingResult:
         """Publish signal based on conditional logic"""
         # Check conditions (example: only high-confidence signals during off-hours)
@@ -547,8 +582,8 @@ class SignalEventPublisher:
                 metadata={
                     "condition": "off_hours_low_confidence",
                     "current_hour": current_hour,
-                    "confidence_score": event_data.confidence_score
-                }
+                    "confidence_score": event_data.confidence_score,
+                },
             )
 
     def add_event_handler(self, handler: Callable):
@@ -584,5 +619,5 @@ class SignalEventPublisher:
             "failed_count": len(self.failed_events),
             "pending_count": len(self.batch_queue),
             "handlers_count": len(self.event_handlers),
-            "config": asdict(self.config)
+            "config": asdict(self.config),
         }
