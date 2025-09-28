@@ -15,7 +15,6 @@ import pandas as pd
 from .bias_filter import BiasFilter, BiasFilterConfig
 from .confluence_validator import ConfluenceConfig, ConfluenceValidator
 from .signal_event_publisher import PublishingConfig, SignalEventPublisher
-from .signal_generator import SignalGenerator
 from .signal_strength_calculator import (
     SignalStrengthCalculator,
     StrengthConfig,
@@ -122,10 +121,8 @@ class IntegratedSignalSystem:
             logger.debug(f"Generated raw signal: {raw_signal['signal_type']}")
 
             # Step 2: Validate confluence across multiple criteria
-            confluence_result = (
-                self.confluence_validator.validate_signal_confluence(
-                    raw_signal, market_data
-                )
+            confluence_result = self.confluence_validator.validate_signal_confluence(
+                raw_signal, market_data
             )
 
             if not confluence_result.is_valid:
@@ -138,9 +135,7 @@ class IntegratedSignalSystem:
             raw_signal["confluence"] = {
                 "score": confluence_result.total_score,
                 "level": confluence_result.level.value,
-                "met_criteria": [
-                    c.value for c in confluence_result.met_criteria
-                ],
+                "met_criteria": [c.value for c in confluence_result.met_criteria],
                 "validation_details": confluence_result.validation_details,
             }
 
@@ -149,10 +144,8 @@ class IntegratedSignalSystem:
             )
 
             # Step 3: Calculate signal strength and scoring
-            strength_result = (
-                self.strength_calculator.calculate_signal_strength(
-                    raw_signal, market_data
-                )
+            strength_result = self.strength_calculator.calculate_signal_strength(
+                raw_signal, market_data
             )
 
             # Add strength data to signal
@@ -172,9 +165,7 @@ class IntegratedSignalSystem:
             )
 
             # Step 4: Apply time-based bias filtering
-            bias_result = self.bias_filter.filter_signal(
-                raw_signal, metadata or {}
-            )
+            bias_result = self.bias_filter.filter_signal(raw_signal, metadata or {})
 
             if not bias_result.is_valid:
                 logger.debug(
@@ -216,9 +207,7 @@ class IntegratedSignalSystem:
             validity_info = self.validity_manager.register_signal(
                 signal_id=signal_id,
                 signal_data=validated_signal,
-                custom_timeout_minutes=self._calculate_signal_timeout(
-                    validated_signal
-                ),
+                custom_timeout_minutes=self._calculate_signal_timeout(validated_signal),
             )
 
             validated_signal["validity"] = {
@@ -237,9 +226,7 @@ class IntegratedSignalSystem:
             if publish_success:
                 published_signals.append(validated_signal)
                 self._processed_signals[signal_id] = validated_signal
-                logger.info(
-                    f"Successfully processed and published signal {signal_id}"
-                )
+                logger.info(f"Successfully processed and published signal {signal_id}")
             else:
                 logger.warning(f"Failed to publish signal {signal_id}")
 
@@ -255,9 +242,7 @@ class IntegratedSignalSystem:
         active_signals = []
         for validity_info in active_validity_infos:
             if validity_info.signal_id in self._processed_signals:
-                signal = self._processed_signals[
-                    validity_info.signal_id
-                ].copy()
+                signal = self._processed_signals[validity_info.signal_id].copy()
                 signal["validity"] = {
                     "signal_id": validity_info.signal_id,
                     "created_at": validity_info.created_at.isoformat(),
@@ -282,9 +267,7 @@ class IntegratedSignalSystem:
         Returns:
             True if successfully marked as executed
         """
-        success = self.validity_manager.mark_signal_executed(
-            signal_id, execution_data
-        )
+        success = self.validity_manager.mark_signal_executed(signal_id, execution_data)
 
         if success and signal_id in self._processed_signals:
             # Update local signal record
@@ -316,26 +299,18 @@ class IntegratedSignalSystem:
 
         # Calculate execution rates and timing
         executed_count = sum(
-            1
-            for signal in self._processed_signals.values()
-            if "execution" in signal
+            1 for signal in self._processed_signals.values() if "execution" in signal
         )
 
-        execution_rate = (
-            executed_count / total_processed if total_processed > 0 else 0
-        )
+        execution_rate = executed_count / total_processed if total_processed > 0 else 0
 
         return {
             "total_signals_processed": total_processed,
             "executed_signals": executed_count,
             "execution_rate": execution_rate,
             "validity_management": validity_stats,
-            "active_signals_count": len(
-                self.validity_manager.get_active_signals()
-            ),
-            "expired_signals_count": len(
-                self.validity_manager.get_expired_signals()
-            ),
+            "active_signals_count": len(self.validity_manager.get_active_signals()),
+            "expired_signals_count": len(self.validity_manager.get_expired_signals()),
         }
 
     def _create_final_signal(
@@ -458,17 +433,13 @@ class IntegratedSignalSystem:
             )
 
         def on_signal_executed(validity_info):
-            logger.info(
-                f"Signal {validity_info.signal_id} executed successfully"
-            )
+            logger.info(f"Signal {validity_info.signal_id} executed successfully")
 
         def on_signal_archived(validity_info):
             # Clean up from local storage when archived
             if validity_info.signal_id in self._processed_signals:
                 del self._processed_signals[validity_info.signal_id]
-            logger.debug(
-                f"Signal {validity_info.signal_id} archived and cleaned up"
-            )
+            logger.debug(f"Signal {validity_info.signal_id} archived and cleaned up")
 
         self.validity_manager.register_state_callback(
             SignalState.EXPIRED, on_signal_expired

@@ -5,11 +5,10 @@ This module implements ATR-based volatility filtering to detect abnormal market 
 and control trading frequency during high volatility periods.
 """
 
-import logging
-from datetime import datetime, timedelta
+from datetime import datetime
 from decimal import Decimal
-from typing import Dict, List, Optional, Tuple
 from enum import Enum
+from typing import Dict, List, Optional, Tuple
 
 from pydantic import BaseModel, Field
 
@@ -39,9 +38,15 @@ class VolatilityReading(BaseModel):
 class VolatilityThresholds(BaseModel):
     """Volatility classification thresholds."""
 
-    low_threshold: float = Field(default=0.5, description="Multiplier for low volatility")
-    high_threshold: float = Field(default=1.5, description="Multiplier for high volatility")
-    extreme_threshold: float = Field(default=2.5, description="Multiplier for extreme volatility")
+    low_threshold: float = Field(
+        default=0.5, description="Multiplier for low volatility"
+    )
+    high_threshold: float = Field(
+        default=1.5, description="Multiplier for high volatility"
+    )
+    extreme_threshold: float = Field(
+        default=2.5, description="Multiplier for extreme volatility"
+    )
 
 
 class VolatilityFilter(BaseComponent):
@@ -58,7 +63,7 @@ class VolatilityFilter(BaseComponent):
         atr_period: int = 14,
         atr_lookback_periods: int = 50,
         daily_trade_limit: int = 5,
-        volatility_thresholds: Optional[VolatilityThresholds] = None
+        volatility_thresholds: Optional[VolatilityThresholds] = None,
     ):
         """
         Initialize volatility filter.
@@ -99,7 +104,9 @@ class VolatilityFilter(BaseComponent):
         """Stop volatility filtering."""
         self.logger.info("Stopping volatility filter")
 
-    def update_atr(self, symbol: str, atr_value: Decimal, price: Decimal) -> VolatilityState:
+    def update_atr(
+        self, symbol: str, atr_value: Decimal, price: Decimal
+    ) -> VolatilityState:
         """
         Update ATR reading and determine volatility state.
 
@@ -117,7 +124,7 @@ class VolatilityFilter(BaseComponent):
             atr_value=atr_value,
             atr_period=self.atr_period,
             price=price,
-            atr_percentage=float(atr_value / price) * 100
+            atr_percentage=float(atr_value / price) * 100,
         )
 
         # Initialize symbol tracking if needed
@@ -131,9 +138,13 @@ class VolatilityFilter(BaseComponent):
         self.volatility_readings[symbol].append(reading)
 
         # Keep only recent readings
-        max_readings = self.atr_lookback_periods * 2  # Keep extra for rolling calculations
+        max_readings = (
+            self.atr_lookback_periods * 2
+        )  # Keep extra for rolling calculations
         if len(self.volatility_readings[symbol]) > max_readings:
-            self.volatility_readings[symbol] = self.volatility_readings[symbol][-max_readings:]
+            self.volatility_readings[symbol] = self.volatility_readings[symbol][
+                -max_readings:
+            ]
 
         # Calculate volatility state
         volatility_state = self._calculate_volatility_state(symbol)
@@ -161,11 +172,13 @@ class VolatilityFilter(BaseComponent):
             return VolatilityState.NORMAL
 
         # Get recent readings for average calculation
-        recent_readings = readings[-self.atr_lookback_periods:]
+        recent_readings = readings[-self.atr_lookback_periods :]
         current_reading = readings[-1]
 
         # Calculate average ATR percentage
-        avg_atr_percentage = sum(r.atr_percentage for r in recent_readings) / len(recent_readings)
+        avg_atr_percentage = sum(r.atr_percentage for r in recent_readings) / len(
+            recent_readings
+        )
 
         # Calculate volatility ratio (current vs average)
         volatility_ratio = current_reading.atr_percentage / avg_atr_percentage
@@ -180,17 +193,23 @@ class VolatilityFilter(BaseComponent):
         else:
             return VolatilityState.EXTREME
 
-    def _update_trading_restrictions(self, symbol: str, volatility_state: VolatilityState) -> None:
+    def _update_trading_restrictions(
+        self, symbol: str, volatility_state: VolatilityState
+    ) -> None:
         """Update trading restrictions based on volatility state."""
         previous_restricted = self.trading_restricted.get(symbol, False)
 
         if volatility_state == VolatilityState.EXTREME:
             # Extreme volatility - halt trading
             self.trading_restricted[symbol] = True
-            self.restriction_reasons[symbol] = f"Extreme volatility detected (state: {volatility_state.value})"
+            self.restriction_reasons[symbol] = (
+                f"Extreme volatility detected (state: {volatility_state.value})"
+            )
 
             if not previous_restricted:
-                self.logger.warning(f"Trading restricted for {symbol}: {self.restriction_reasons[symbol]}")
+                self.logger.warning(
+                    f"Trading restricted for {symbol}: {self.restriction_reasons[symbol]}"
+                )
 
         elif volatility_state == VolatilityState.HIGH:
             # High volatility - check daily trade limit
@@ -202,7 +221,9 @@ class VolatilityFilter(BaseComponent):
                 )
 
                 if not previous_restricted:
-                    self.logger.warning(f"Trading restricted for {symbol}: {self.restriction_reasons[symbol]}")
+                    self.logger.warning(
+                        f"Trading restricted for {symbol}: {self.restriction_reasons[symbol]}"
+                    )
             else:
                 # High volatility but within trade limit
                 self.trading_restricted[symbol] = False
@@ -214,7 +235,9 @@ class VolatilityFilter(BaseComponent):
             self.restriction_reasons[symbol] = ""
 
             if previous_restricted:
-                self.logger.info(f"Trading restrictions lifted for {symbol} (volatility: {volatility_state.value})")
+                self.logger.info(
+                    f"Trading restrictions lifted for {symbol} (volatility: {volatility_state.value})"
+                )
 
     def _check_daily_reset(self) -> None:
         """Check if daily trade counts need to be reset."""
@@ -229,7 +252,9 @@ class VolatilityFilter(BaseComponent):
 
             # Re-evaluate restrictions without daily limits
             for symbol in self.current_volatility_state:
-                self._update_trading_restrictions(symbol, self.current_volatility_state[symbol])
+                self._update_trading_restrictions(
+                    symbol, self.current_volatility_state[symbol]
+                )
 
             self.last_reset_date = current_date
 
@@ -251,11 +276,16 @@ class VolatilityFilter(BaseComponent):
             return False, self.restriction_reasons[symbol]
 
         # Check if we're approaching daily limit during high volatility
-        current_state = self.current_volatility_state.get(symbol, VolatilityState.NORMAL)
+        current_state = self.current_volatility_state.get(
+            symbol, VolatilityState.NORMAL
+        )
         if current_state == VolatilityState.HIGH:
             remaining_trades = self.daily_trade_limit - self.daily_trade_counts[symbol]
             if remaining_trades <= 1:
-                return False, f"Approaching daily trade limit during high volatility ({remaining_trades} remaining)"
+                return (
+                    False,
+                    f"Approaching daily trade limit during high volatility ({remaining_trades} remaining)",
+                )
 
         return True, None
 
@@ -276,7 +306,9 @@ class VolatilityFilter(BaseComponent):
         )
 
         # Re-check restrictions after trade
-        current_state = self.current_volatility_state.get(symbol, VolatilityState.NORMAL)
+        current_state = self.current_volatility_state.get(
+            symbol, VolatilityState.NORMAL
+        )
         self._update_trading_restrictions(symbol, current_state)
 
     def get_volatility_status(self, symbol: Optional[str] = None) -> Dict[str, any]:
@@ -299,27 +331,45 @@ class VolatilityFilter(BaseComponent):
 
             return {
                 "symbol": symbol,
-                "current_state": self.current_volatility_state.get(symbol, VolatilityState.NORMAL).value,
+                "current_state": self.current_volatility_state.get(
+                    symbol, VolatilityState.NORMAL
+                ).value,
                 "trading_restricted": self.trading_restricted.get(symbol, False),
                 "restriction_reason": self.restriction_reasons.get(symbol, ""),
                 "daily_trades": self.daily_trade_counts.get(symbol, 0),
                 "daily_limit": self.daily_trade_limit,
-                "latest_reading": {
-                    "atr_value": float(latest_reading.atr_value) if latest_reading else None,
-                    "atr_percentage": latest_reading.atr_percentage if latest_reading else None,
-                    "price": float(latest_reading.price) if latest_reading else None,
-                    "timestamp": latest_reading.timestamp.isoformat() if latest_reading else None
-                } if latest_reading else None,
-                "readings_count": len(readings)
+                "latest_reading": (
+                    {
+                        "atr_value": (
+                            float(latest_reading.atr_value) if latest_reading else None
+                        ),
+                        "atr_percentage": (
+                            latest_reading.atr_percentage if latest_reading else None
+                        ),
+                        "price": (
+                            float(latest_reading.price) if latest_reading else None
+                        ),
+                        "timestamp": (
+                            latest_reading.timestamp.isoformat()
+                            if latest_reading
+                            else None
+                        ),
+                    }
+                    if latest_reading
+                    else None
+                ),
+                "readings_count": len(readings),
             }
         else:
             # All symbols status
             return {
                 "symbols": {
                     sym: {
-                        "state": self.current_volatility_state.get(sym, VolatilityState.NORMAL).value,
+                        "state": self.current_volatility_state.get(
+                            sym, VolatilityState.NORMAL
+                        ).value,
                         "restricted": self.trading_restricted.get(sym, False),
-                        "daily_trades": self.daily_trade_counts.get(sym, 0)
+                        "daily_trades": self.daily_trade_counts.get(sym, 0),
                     }
                     for sym in self.volatility_readings.keys()
                 },
@@ -327,10 +377,12 @@ class VolatilityFilter(BaseComponent):
                 "thresholds": {
                     "low": self.thresholds.low_threshold,
                     "high": self.thresholds.high_threshold,
-                    "extreme": self.thresholds.extreme_threshold
+                    "extreme": self.thresholds.extreme_threshold,
                 },
                 "total_symbols_tracked": len(self.volatility_readings),
-                "total_restricted": sum(1 for restricted in self.trading_restricted.values() if restricted)
+                "total_restricted": sum(
+                    1 for restricted in self.trading_restricted.values() if restricted
+                ),
             }
 
     def get_volatility_analysis(self, symbol: str, periods: int = 20) -> Dict[str, any]:
@@ -354,7 +406,6 @@ class VolatilityFilter(BaseComponent):
 
         # Calculate statistics
         atr_percentages = [r.atr_percentage for r in readings]
-        atr_values = [float(r.atr_value) for r in readings]
 
         avg_atr_percentage = sum(atr_percentages) / len(atr_percentages)
         min_atr_percentage = min(atr_percentages)
@@ -382,14 +433,16 @@ class VolatilityFilter(BaseComponent):
         return {
             "symbol": symbol,
             "analysis_periods": len(readings),
-            "current_state": self.current_volatility_state.get(symbol, VolatilityState.NORMAL).value,
+            "current_state": self.current_volatility_state.get(
+                symbol, VolatilityState.NORMAL
+            ).value,
             "statistics": {
                 "avg_atr_percentage": avg_atr_percentage,
                 "min_atr_percentage": min_atr_percentage,
                 "max_atr_percentage": max_atr_percentage,
                 "atr_range": max_atr_percentage - min_atr_percentage,
                 "current_atr_percentage": readings[-1].atr_percentage,
-                "volatility_ratio": readings[-1].atr_percentage / avg_atr_percentage
+                "volatility_ratio": readings[-1].atr_percentage / avg_atr_percentage,
             },
             "state_distribution": state_counts,
             "recent_readings": [
@@ -397,13 +450,18 @@ class VolatilityFilter(BaseComponent):
                     "timestamp": r.timestamp.isoformat(),
                     "atr_value": float(r.atr_value),
                     "atr_percentage": r.atr_percentage,
-                    "price": float(r.price)
+                    "price": float(r.price),
                 }
                 for r in readings[-10:]  # Last 10 readings
-            ]
+            ],
         }
 
-    def update_thresholds(self, low: Optional[float] = None, high: Optional[float] = None, extreme: Optional[float] = None) -> None:
+    def update_thresholds(
+        self,
+        low: Optional[float] = None,
+        high: Optional[float] = None,
+        extreme: Optional[float] = None,
+    ) -> None:
         """Update volatility thresholds."""
         if low is not None:
             self.thresholds.low_threshold = low

@@ -5,16 +5,14 @@ This module implements drawdown monitoring and control with daily and monthly li
 automatic trading halt functionality, and recovery tracking.
 """
 
-import logging
 from datetime import datetime, timedelta
 from decimal import Decimal
-from typing import Dict, List, Optional, Tuple
 from enum import Enum
+from typing import Dict, List, Optional, Tuple
 
 from pydantic import BaseModel, Field
 
 from ..core.base_component import BaseComponent
-from ..core.events import RiskEvent, RiskEventType, RiskSeverity
 
 
 class DrawdownPeriod(Enum):
@@ -29,7 +27,9 @@ class DrawdownLimit(BaseModel):
     """Drawdown limit configuration."""
 
     period: DrawdownPeriod = Field(..., description="Time period for limit")
-    percentage: float = Field(..., ge=0.01, le=0.5, description="Maximum drawdown percentage")
+    percentage: float = Field(
+        ..., ge=0.01, le=0.5, description="Maximum drawdown percentage"
+    )
     enabled: bool = Field(default=True, description="Whether limit is active")
 
 
@@ -69,7 +69,7 @@ class DrawdownController(BaseComponent):
         daily_limit: float = 0.05,  # 5% daily drawdown limit
         monthly_limit: float = 0.15,  # 15% monthly drawdown limit
         warning_threshold: float = 0.8,  # Warn at 80% of limit
-        recovery_threshold: float = 0.5  # Allow trading when recovered to 50% of limit
+        recovery_threshold: float = 0.5,  # Allow trading when recovered to 50% of limit
     ):
         """
         Initialize drawdown controller.
@@ -84,8 +84,12 @@ class DrawdownController(BaseComponent):
         super().__init__(name)
 
         self.limits = {
-            DrawdownPeriod.DAILY: DrawdownLimit(period=DrawdownPeriod.DAILY, percentage=daily_limit),
-            DrawdownPeriod.MONTHLY: DrawdownLimit(period=DrawdownPeriod.MONTHLY, percentage=monthly_limit)
+            DrawdownPeriod.DAILY: DrawdownLimit(
+                period=DrawdownPeriod.DAILY, percentage=daily_limit
+            ),
+            DrawdownPeriod.MONTHLY: DrawdownLimit(
+                period=DrawdownPeriod.MONTHLY, percentage=monthly_limit
+            ),
         }
 
         self.warning_threshold = warning_threshold
@@ -112,8 +116,12 @@ class DrawdownController(BaseComponent):
     async def _start(self) -> None:
         """Start drawdown monitoring."""
         self.logger.info("Starting drawdown controller")
-        self.logger.info(f"Daily limit: {self.limits[DrawdownPeriod.DAILY].percentage:.1%}")
-        self.logger.info(f"Monthly limit: {self.limits[DrawdownPeriod.MONTHLY].percentage:.1%}")
+        self.logger.info(
+            f"Daily limit: {self.limits[DrawdownPeriod.DAILY].percentage:.1%}"
+        )
+        self.logger.info(
+            f"Monthly limit: {self.limits[DrawdownPeriod.MONTHLY].percentage:.1%}"
+        )
 
     async def _stop(self) -> None:
         """Stop drawdown monitoring."""
@@ -138,8 +146,7 @@ class DrawdownController(BaseComponent):
         # Clean old history (keep 1 month)
         cutoff_time = current_time - timedelta(days=31)
         self.balance_history = [
-            (ts, balance) for ts, balance in self.balance_history
-            if ts > cutoff_time
+            (ts, balance) for ts, balance in self.balance_history if ts > cutoff_time
         ]
 
         # Check for period resets
@@ -167,7 +174,11 @@ class DrawdownController(BaseComponent):
             self.last_daily_reset = current_date
 
             # Clear daily trading halt if it exists
-            if self.trading_halted and self.halt_reason and "daily" in self.halt_reason.lower():
+            if (
+                self.trading_halted
+                and self.halt_reason
+                and "daily" in self.halt_reason.lower()
+            ):
                 self._resume_trading("Daily period reset")
 
         # Check monthly reset
@@ -178,7 +189,11 @@ class DrawdownController(BaseComponent):
             self.last_monthly_reset = monthly_reset_date
 
             # Clear monthly trading halt if it exists
-            if self.trading_halted and self.halt_reason and "monthly" in self.halt_reason.lower():
+            if (
+                self.trading_halted
+                and self.halt_reason
+                and "monthly" in self.halt_reason.lower()
+            ):
                 self._resume_trading("Monthly period reset")
 
     def _update_peak_balances(self, current_balance: Decimal) -> None:
@@ -211,12 +226,15 @@ class DrawdownController(BaseComponent):
                 DrawdownPeriod.DAILY,
                 self.daily_peak_balance,
                 self.current_balance,
-                self.limits[DrawdownPeriod.DAILY].percentage
+                self.limits[DrawdownPeriod.DAILY].percentage,
             )
             violations.append(daily_record)
 
             # Check for limit violation
-            if daily_record.status in [DrawdownStatus.LIMIT_REACHED, DrawdownStatus.TRADING_HALTED]:
+            if daily_record.status in [
+                DrawdownStatus.LIMIT_REACHED,
+                DrawdownStatus.TRADING_HALTED,
+            ]:
                 self._handle_limit_violation(daily_record)
 
         # Check monthly drawdown
@@ -225,12 +243,15 @@ class DrawdownController(BaseComponent):
                 DrawdownPeriod.MONTHLY,
                 self.monthly_peak_balance,
                 self.current_balance,
-                self.limits[DrawdownPeriod.MONTHLY].percentage
+                self.limits[DrawdownPeriod.MONTHLY].percentage,
             )
             violations.append(monthly_record)
 
             # Check for limit violation
-            if monthly_record.status in [DrawdownStatus.LIMIT_REACHED, DrawdownStatus.TRADING_HALTED]:
+            if monthly_record.status in [
+                DrawdownStatus.LIMIT_REACHED,
+                DrawdownStatus.TRADING_HALTED,
+            ]:
                 self._handle_limit_violation(monthly_record)
 
         # Add to history
@@ -247,11 +268,13 @@ class DrawdownController(BaseComponent):
         period: DrawdownPeriod,
         peak_balance: Decimal,
         current_balance: Decimal,
-        limit_percentage: float
+        limit_percentage: float,
     ) -> DrawdownRecord:
         """Calculate drawdown for a specific period."""
         drawdown_amount = peak_balance - current_balance
-        drawdown_percentage = float(drawdown_amount / peak_balance) if peak_balance > 0 else 0.0
+        drawdown_percentage = (
+            float(drawdown_amount / peak_balance) if peak_balance > 0 else 0.0
+        )
 
         # Determine status
         if drawdown_percentage >= limit_percentage:
@@ -262,9 +285,11 @@ class DrawdownController(BaseComponent):
             status = DrawdownStatus.NORMAL
 
         # If already halted for this period, maintain halt status
-        if (self.trading_halted and
-            self.halt_reason and
-            period.value in self.halt_reason.lower()):
+        if (
+            self.trading_halted
+            and self.halt_reason
+            and period.value in self.halt_reason.lower()
+        ):
             status = DrawdownStatus.TRADING_HALTED
 
         return DrawdownRecord(
@@ -274,13 +299,15 @@ class DrawdownController(BaseComponent):
             drawdown_amount=drawdown_amount,
             drawdown_percentage=drawdown_percentage,
             limit_percentage=limit_percentage,
-            status=status
+            status=status,
         )
 
     def _handle_limit_violation(self, record: DrawdownRecord) -> None:
         """Handle drawdown limit violation."""
         if record.status == DrawdownStatus.LIMIT_REACHED and not self.trading_halted:
-            self._halt_trading(f"{record.period.value.title()} drawdown limit exceeded: {record.drawdown_percentage:.1%}")
+            self._halt_trading(
+                f"{record.period.value.title()} drawdown limit exceeded: {record.drawdown_percentage:.1%}"
+            )
 
         # Log violation
         self.logger.warning(
@@ -320,7 +347,10 @@ class DrawdownController(BaseComponent):
         # Check if we're recovered enough to resume trading
         current_violations = self._check_drawdown_limits()
         for violation in current_violations:
-            if violation.drawdown_percentage >= violation.limit_percentage * self.recovery_threshold:
+            if (
+                violation.drawdown_percentage
+                >= violation.limit_percentage * self.recovery_threshold
+            ):
                 # Still too close to limit
                 continue
 
@@ -331,40 +361,64 @@ class DrawdownController(BaseComponent):
         if not self.current_balance:
             return {"status": "not_initialized"}
 
-        daily_drawdown = self._calculate_drawdown(
-            DrawdownPeriod.DAILY,
-            self.daily_peak_balance or self.current_balance,
-            self.current_balance,
-            self.limits[DrawdownPeriod.DAILY].percentage
-        ) if self.daily_peak_balance else None
+        daily_drawdown = (
+            self._calculate_drawdown(
+                DrawdownPeriod.DAILY,
+                self.daily_peak_balance or self.current_balance,
+                self.current_balance,
+                self.limits[DrawdownPeriod.DAILY].percentage,
+            )
+            if self.daily_peak_balance
+            else None
+        )
 
-        monthly_drawdown = self._calculate_drawdown(
-            DrawdownPeriod.MONTHLY,
-            self.monthly_peak_balance or self.current_balance,
-            self.current_balance,
-            self.limits[DrawdownPeriod.MONTHLY].percentage
-        ) if self.monthly_peak_balance else None
+        monthly_drawdown = (
+            self._calculate_drawdown(
+                DrawdownPeriod.MONTHLY,
+                self.monthly_peak_balance or self.current_balance,
+                self.current_balance,
+                self.limits[DrawdownPeriod.MONTHLY].percentage,
+            )
+            if self.monthly_peak_balance
+            else None
+        )
 
         return {
             "current_balance": float(self.current_balance),
             "trading_halted": self.trading_halted,
             "halt_reason": self.halt_reason,
-            "halt_timestamp": self.halt_timestamp.isoformat() if self.halt_timestamp else None,
+            "halt_timestamp": (
+                self.halt_timestamp.isoformat() if self.halt_timestamp else None
+            ),
             "daily": {
-                "peak_balance": float(self.daily_peak_balance) if self.daily_peak_balance else None,
-                "drawdown_percentage": daily_drawdown.drawdown_percentage if daily_drawdown else 0.0,
+                "peak_balance": (
+                    float(self.daily_peak_balance) if self.daily_peak_balance else None
+                ),
+                "drawdown_percentage": (
+                    daily_drawdown.drawdown_percentage if daily_drawdown else 0.0
+                ),
                 "limit_percentage": self.limits[DrawdownPeriod.DAILY].percentage,
-                "status": daily_drawdown.status.value if daily_drawdown else "normal"
+                "status": daily_drawdown.status.value if daily_drawdown else "normal",
             },
             "monthly": {
-                "peak_balance": float(self.monthly_peak_balance) if self.monthly_peak_balance else None,
-                "drawdown_percentage": monthly_drawdown.drawdown_percentage if monthly_drawdown else 0.0,
+                "peak_balance": (
+                    float(self.monthly_peak_balance)
+                    if self.monthly_peak_balance
+                    else None
+                ),
+                "drawdown_percentage": (
+                    monthly_drawdown.drawdown_percentage if monthly_drawdown else 0.0
+                ),
                 "limit_percentage": self.limits[DrawdownPeriod.MONTHLY].percentage,
-                "status": monthly_drawdown.status.value if monthly_drawdown else "normal"
-            }
+                "status": (
+                    monthly_drawdown.status.value if monthly_drawdown else "normal"
+                ),
+            },
         }
 
-    def update_limits(self, daily_limit: Optional[float] = None, monthly_limit: Optional[float] = None) -> None:
+    def update_limits(
+        self, daily_limit: Optional[float] = None, monthly_limit: Optional[float] = None
+    ) -> None:
         """Update drawdown limits."""
         if daily_limit is not None:
             self.limits[DrawdownPeriod.DAILY].percentage = daily_limit
@@ -391,7 +445,7 @@ class DrawdownController(BaseComponent):
                 "drawdown_amount": float(record.drawdown_amount),
                 "drawdown_percentage": record.drawdown_percentage,
                 "limit_percentage": record.limit_percentage,
-                "status": record.status.value
+                "status": record.status.value,
             }
             for record in recent_history
         ]

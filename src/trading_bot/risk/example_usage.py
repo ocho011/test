@@ -6,11 +6,11 @@ for trading operations.
 """
 
 import asyncio
-from decimal import Decimal
 from datetime import datetime
+from decimal import Decimal
 
-from .risk_manager import RiskManager, TradeRequest
 from .consecutive_loss_tracker import TradeRecord, TradeResult
+from .risk_manager import RiskManager, TradeRequest
 
 
 async def demo_risk_management():
@@ -23,8 +23,8 @@ async def demo_risk_management():
             "drawdown": 0.3,
             "consecutive_losses": 0.25,
             "volatility": 0.25,
-            "position_risk": 0.2
-        }
+            "position_risk": 0.2,
+        },
     )
 
     # Start the system
@@ -54,7 +54,7 @@ async def demo_risk_management():
             account_balance=initial_balance,
             risk_percentage=0.02,  # 2% risk
             win_rate=0.65,
-            avg_win_loss_ratio=1.5
+            avg_win_loss_ratio=1.5,
         )
 
         assessment = risk_manager.assess_trade_risk(trade_request)
@@ -63,7 +63,9 @@ async def demo_risk_management():
         print(f"Risk Score: {assessment.risk_score:.1%}")
         if assessment.position_size_result:
             print(f"Position Size: {assessment.position_size_result.position_size:.6f}")
-            print(f"Position Value: ${assessment.position_size_result.position_value:.2f}")
+            print(
+                f"Position Value: ${assessment.position_size_result.position_value:.2f}"
+            )
         print(f"Reasons: {assessment.reasons}")
 
         # Example 2: High risk trade
@@ -99,7 +101,7 @@ async def demo_risk_management():
                 quantity=Decimal("0.1"),
                 pnl=-loss_amount,
                 pnl_percentage=-0.02,
-                result=TradeResult.LOSS
+                result=TradeResult.LOSS,
             )
 
             risk_manager.record_trade_result(trade_record)
@@ -125,14 +127,14 @@ async def demo_risk_management():
         print(f"Block rate: {status['risk_manager']['block_rate']:.1%}")
 
         # Drawdown status
-        drawdown = status['drawdown_controller']
-        if drawdown.get('current_balance'):
+        drawdown = status["drawdown_controller"]
+        if drawdown.get("current_balance"):
             print(f"Current balance: ${drawdown['current_balance']:.2f}")
             print(f"Daily drawdown: {drawdown['daily']['drawdown_percentage']:.1%}")
             print(f"Monthly drawdown: {drawdown['monthly']['drawdown_percentage']:.1%}")
 
         # Loss tracker status
-        loss_tracker = status['loss_tracker']
+        loss_tracker = status["loss_tracker"]
         print(f"Consecutive losses: {loss_tracker['current_consecutive_losses']}")
         print(f"Trading halted: {loss_tracker['trading_halted']}")
 
@@ -147,7 +149,7 @@ async def demo_risk_management():
 
         # Example 6: Force override (emergency)
         print("\n=== Example 6: Emergency Override ===")
-        if status['risk_manager']['blocked_trades'] > 0:
+        if status["risk_manager"]["blocked_trades"] > 0:
             print("Forcing trading to resume (emergency override)")
             risk_manager.force_allow_trading("Demo emergency override")
 

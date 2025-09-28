@@ -143,9 +143,7 @@ class SignalStrengthCalculator:
             category_scores.append(volume_score)
 
             # Calculate momentum score
-            momentum_score = self._calculate_momentum_score(
-                signal_data, market_data
-            )
+            momentum_score = self._calculate_momentum_score(signal_data, market_data)
             category_scores.append(momentum_score)
 
             # Calculate structural bias score
@@ -156,8 +154,8 @@ class SignalStrengthCalculator:
 
             # Calculate historical performance score (if enabled)
             if self.config.historical_performance_weight > 0:
-                historical_score = (
-                    self._calculate_historical_performance_score(signal_data)
+                historical_score = self._calculate_historical_performance_score(
+                    signal_data
                 )
                 category_scores.append(historical_score)
 
@@ -225,9 +223,7 @@ class SignalStrengthCalculator:
                     details["order_block_quality"] = ob_quality
 
                 elif pattern_type == "fair_value_gap":
-                    fvg_quality = self._evaluate_fvg_quality(
-                        pattern, market_data
-                    )
+                    fvg_quality = self._evaluate_fvg_quality(pattern, market_data)
                     quality_scores.append(fvg_quality)
                     details["fvg_quality"] = fvg_quality
 
@@ -248,9 +244,7 @@ class SignalStrengthCalculator:
                 pattern_quality = 0.5
 
             # Apply pattern diversity bonus
-            unique_patterns = len(
-                set(p.get("type", "unknown") for p in patterns)
-            )
+            unique_patterns = len(set(p.get("type", "unknown") for p in patterns))
             diversity_bonus = min(0.2, unique_patterns * 0.05)
             pattern_quality = min(1.0, pattern_quality + diversity_bonus)
 
@@ -316,7 +310,9 @@ class SignalStrengthCalculator:
 
             details["individual_factors"] = context_factors
 
-            rationale = "Market context based on volatility, trend, phase, and session analysis"
+            rationale = (
+                "Market context based on volatility, trend, phase, and session analysis"
+            )
 
             return StrengthScore(
                 category=StrengthCategory.MARKET_CONTEXT,
@@ -366,23 +362,17 @@ class SignalStrengthCalculator:
             # Score based on risk-reward ratio
             if risk_reward_ratio >= self.config.minimum_risk_reward_ratio:
                 # Scale score based on how much the ratio exceeds minimum
-                excess_ratio = (
-                    risk_reward_ratio - self.config.minimum_risk_reward_ratio
-                )
+                excess_ratio = risk_reward_ratio - self.config.minimum_risk_reward_ratio
                 rr_score = min(1.0, 0.7 + (excess_ratio * 0.1))
             else:
                 # Penalize signals with poor risk-reward
                 rr_score = max(
                     0.0,
-                    risk_reward_ratio
-                    / self.config.minimum_risk_reward_ratio
-                    * 0.5,
+                    risk_reward_ratio / self.config.minimum_risk_reward_ratio * 0.5,
                 )
 
             # Calculate stop loss distance as percentage of entry price
-            stop_loss_percentage = (
-                (risk / entry_price) * 100 if entry_price > 0 else 0
-            )
+            stop_loss_percentage = (risk / entry_price) * 100 if entry_price > 0 else 0
 
             details = {
                 "risk_reward_ratio": risk_reward_ratio,
@@ -452,8 +442,7 @@ class SignalStrengthCalculator:
             if avg_volume_ratio >= self.config.volume_threshold:
                 volume_score = min(
                     1.0,
-                    0.6
-                    + (avg_volume_ratio - self.config.volume_threshold) * 0.2,
+                    0.6 + (avg_volume_ratio - self.config.volume_threshold) * 0.2,
                 )
             else:
                 volume_score = max(
@@ -603,10 +592,7 @@ class SignalStrengthCalculator:
                 alignment_score = 0.0
                 if signal_direction == "long" and structural_bias == "bullish":
                     alignment_score = 1.0
-                elif (
-                    signal_direction == "short"
-                    and structural_bias == "bearish"
-                ):
+                elif signal_direction == "short" and structural_bias == "bearish":
                     alignment_score = 1.0
                 elif structural_bias == "neutral":
                     alignment_score = 0.5
@@ -695,7 +681,9 @@ class SignalStrengthCalculator:
                 "historical_data_points": len(self.performance_history),
             }
 
-            rationale = f"Historical performance based on {len(pattern_types)} pattern types"
+            rationale = (
+                f"Historical performance based on {len(pattern_types)} pattern types"
+            )
 
             return StrengthScore(
                 category=StrengthCategory.HISTORICAL_PERFORMANCE,
@@ -706,9 +694,7 @@ class SignalStrengthCalculator:
             )
 
         except Exception as e:
-            self.logger.error(
-                f"Error in historical performance calculation: {e}"
-            )
+            self.logger.error(f"Error in historical performance calculation: {e}")
             return StrengthScore(
                 category=StrengthCategory.HISTORICAL_PERFORMANCE,
                 score=0.0,
@@ -805,9 +791,7 @@ class SignalStrengthCalculator:
 
         return np.mean(volatility_scores) if volatility_scores else 0.5
 
-    def _evaluate_trend_strength(
-        self, market_data: Dict[str, pd.DataFrame]
-    ) -> float:
+    def _evaluate_trend_strength(self, market_data: Dict[str, pd.DataFrame]) -> float:
         """Evaluate current trend strength"""
         trend_scores = []
 
@@ -834,9 +818,7 @@ class SignalStrengthCalculator:
 
         return np.mean(trend_scores) if trend_scores else 0.5
 
-    def _evaluate_market_phase(
-        self, market_data: Dict[str, pd.DataFrame]
-    ) -> float:
+    def _evaluate_market_phase(self, market_data: Dict[str, pd.DataFrame]) -> float:
         """Evaluate current market phase (trending vs ranging)"""
         phase_scores = []
 
@@ -850,9 +832,7 @@ class SignalStrengthCalculator:
             recent_low = low_prices.min()
 
             current_price = data["close"].iloc[-1]
-            price_position = (current_price - recent_low) / (
-                recent_high - recent_low
-            )
+            price_position = (current_price - recent_low) / (recent_high - recent_low)
 
             # Prefer clear directional bias (not stuck in middle)
             if price_position < 0.3 or price_position > 0.7:
@@ -902,19 +882,13 @@ class SignalStrengthCalculator:
         signal_line = macd_line.ewm(span=signal).mean()
         return macd_line, signal_line
 
-    def _calculate_weighted_score(
-        self, category_scores: List[StrengthScore]
-    ) -> float:
+    def _calculate_weighted_score(self, category_scores: List[StrengthScore]) -> float:
         """Calculate weighted overall score"""
-        weighted_sum = sum(
-            score.score * score.weight for score in category_scores
-        )
+        weighted_sum = sum(score.score * score.weight for score in category_scores)
         total_weight = sum(score.weight for score in category_scores)
         return weighted_sum / total_weight if total_weight > 0 else 0.0
 
-    def _determine_strength_level(
-        self, weighted_score: float
-    ) -> StrengthLevel:
+    def _determine_strength_level(self, weighted_score: float) -> StrengthLevel:
         """Determine strength level based on score"""
         if weighted_score >= 0.85:
             return StrengthLevel.VERY_STRONG
@@ -945,9 +919,7 @@ class SignalStrengthCalculator:
 
         # Adjust based on confluence result if available
         if confluence_result and confluence_result.get("is_valid"):
-            confluence_confidence = confluence_result.get(
-                "confidence_score", 0.5
-            )
+            confluence_confidence = confluence_result.get("confidence_score", 0.5)
             # Narrow the interval if confluence is high
             adjustment = (1.0 - confluence_confidence) * 0.1
             lower_bound = max(lower_bound, mean_score - adjustment)
@@ -955,9 +927,7 @@ class SignalStrengthCalculator:
 
         return (lower_bound, upper_bound)
 
-    def _create_error_strength_result(
-        self, error_message: str
-    ) -> SignalStrength:
+    def _create_error_strength_result(self, error_message: str) -> SignalStrength:
         """Create error result for signal strength calculation"""
         return SignalStrength(
             overall_score=0.0,

@@ -5,16 +5,19 @@ Test cases cover WebSocket connections, subscription management,
 data streaming, auto-reconnection, and event publishing.
 """
 
-import pytest
 import asyncio
 from decimal import Decimal
-from unittest.mock import Mock, AsyncMock, patch, MagicMock
+from unittest.mock import AsyncMock, Mock, patch
 
-from trading_bot.data.market_data_provider import (
-    MarketDataProvider, StreamType, StreamSubscription
-)
+import pytest
+
 from trading_bot.core.base_component import ComponentState
 from trading_bot.core.events import MarketDataEvent
+from trading_bot.data.market_data_provider import (
+    MarketDataProvider,
+    StreamSubscription,
+    StreamType,
+)
 
 
 class TestMarketDataProvider:
@@ -38,7 +41,10 @@ class TestMarketDataProvider:
     @pytest.fixture
     async def market_provider(self, mock_websocket):
         """Create MarketDataProvider instance for testing."""
-        with patch('trading_bot.data.market_data_provider.BinanceSocketManager', return_value=mock_websocket):
+        with patch(
+            "trading_bot.data.market_data_provider.BinanceSocketManager",
+            return_value=mock_websocket,
+        ):
             provider = MarketDataProvider()
             await provider.start()
             yield provider
@@ -57,7 +63,10 @@ class TestMarketDataProvider:
     @pytest.mark.asyncio
     async def test_connection_lifecycle(self, mock_websocket):
         """Test connection establishment and cleanup."""
-        with patch('trading_bot.data.market_data_provider.BinanceSocketManager', return_value=mock_websocket):
+        with patch(
+            "trading_bot.data.market_data_provider.BinanceSocketManager",
+            return_value=mock_websocket,
+        ):
             provider = MarketDataProvider()
 
             # Test start
@@ -140,22 +149,22 @@ class TestMarketDataProvider:
 
         # Mock kline message
         kline_msg = {
-            'stream': 'btcusdt@kline_5m',
-            'data': {
-                'k': {
-                    's': 'BTCUSDT',
-                    'i': '5m',
-                    'o': '50000.00',
-                    'h': '50100.00',
-                    'l': '49900.00',
-                    'c': '50050.00',
-                    'v': '100.50',
-                    'q': '5005000.00',
-                    't': 1640995200000,
-                    'T': 1640995499999,
-                    'x': True
+            "stream": "btcusdt@kline_5m",
+            "data": {
+                "k": {
+                    "s": "BTCUSDT",
+                    "i": "5m",
+                    "o": "50000.00",
+                    "h": "50100.00",
+                    "l": "49900.00",
+                    "c": "50050.00",
+                    "v": "100.50",
+                    "q": "5005000.00",
+                    "t": 1640995200000,
+                    "T": 1640995499999,
+                    "x": True,
                 }
-            }
+            },
         }
 
         # Add subscription to handle the message
@@ -170,8 +179,8 @@ class TestMarketDataProvider:
 
         assert isinstance(event, MarketDataEvent)
         assert event.symbol == "BTCUSDT"
-        assert event.price == Decimal('50050.00')
-        assert event.volume == Decimal('100.50')
+        assert event.price == Decimal("50050.00")
+        assert event.volume == Decimal("100.50")
 
     @pytest.mark.asyncio
     async def test_ticker_message_handling(self, market_provider):
@@ -181,15 +190,15 @@ class TestMarketDataProvider:
 
         # Mock ticker message
         ticker_msg = {
-            'stream': 'btcusdt@ticker',
-            'data': {
-                's': 'BTCUSDT',
-                'c': '50000.00',
-                'v': '1000.50',
-                'q': '50005000.00',
-                'P': '1.25',
-                'p': '625.00'
-            }
+            "stream": "btcusdt@ticker",
+            "data": {
+                "s": "BTCUSDT",
+                "c": "50000.00",
+                "v": "1000.50",
+                "q": "50005000.00",
+                "P": "1.25",
+                "p": "625.00",
+            },
         }
 
         # Add subscription to handle the message
@@ -204,13 +213,15 @@ class TestMarketDataProvider:
 
         assert isinstance(event, MarketDataEvent)
         assert event.symbol == "BTCUSDT"
-        assert event.price == Decimal('50000.00')
-        assert event.volume == Decimal('1000.50')
+        assert event.price == Decimal("50000.00")
+        assert event.volume == Decimal("1000.50")
 
     @pytest.mark.asyncio
     async def test_connection_error_handling(self):
         """Test handling of WebSocket connection errors."""
-        with patch('trading_bot.data.market_data_provider.BinanceSocketManager') as mock_manager:
+        with patch(
+            "trading_bot.data.market_data_provider.BinanceSocketManager"
+        ) as mock_manager:
             mock_manager.side_effect = Exception("Connection failed")
 
             provider = MarketDataProvider()
@@ -259,12 +270,7 @@ class TestMarketDataProvider:
     async def test_malformed_message_handling(self, market_provider):
         """Test handling of malformed WebSocket messages."""
         # Invalid kline message
-        invalid_msg = {
-            'stream': 'btcusdt@kline_5m',
-            'data': {
-                'invalid': 'structure'
-            }
-        }
+        invalid_msg = {"stream": "btcusdt@kline_5m", "data": {"invalid": "structure"}}
 
         # Should handle gracefully without crashing
         await market_provider._handle_kline_message(invalid_msg, "BTCUSDT_5m")
@@ -310,10 +316,10 @@ class TestMarketDataProvider:
         """Test connection status reporting."""
         status = market_provider.get_connection_status()
 
-        assert status['connected'] is True
-        assert status['subscriptions_count'] == 0
-        assert status['connection_retries'] >= 0
-        assert status['last_heartbeat'] is not None
+        assert status["connected"] is True
+        assert status["subscriptions_count"] == 0
+        assert status["connection_retries"] >= 0
+        assert status["last_heartbeat"] is not None
 
     @pytest.mark.asyncio
     async def test_not_connected_operations(self):

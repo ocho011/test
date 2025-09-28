@@ -188,9 +188,7 @@ class BiasFilter:
             failed_filters = []
 
             # Apply session filter
-            session_result = self._apply_session_filter(
-                signal_data, current_time
-            )
+            session_result = self._apply_session_filter(signal_data, current_time)
             filter_results["session"] = session_result
             if session_result["passed"]:
                 active_filters.append(TimeFilter.SESSION_FILTER)
@@ -207,9 +205,7 @@ class BiasFilter:
 
             # Apply news filter
             if self.config.avoid_news_times:
-                news_result = self._apply_news_filter(
-                    signal_data, current_time
-                )
+                news_result = self._apply_news_filter(signal_data, current_time)
                 filter_results["news"] = news_result
                 if news_result["passed"]:
                     active_filters.append(TimeFilter.NEWS_FILTER)
@@ -217,9 +213,7 @@ class BiasFilter:
                     failed_filters.append(TimeFilter.NEWS_FILTER)
 
             # Apply volatility filter
-            volatility_result = self._apply_volatility_filter(
-                signal_data, current_time
-            )
+            volatility_result = self._apply_volatility_filter(signal_data, current_time)
             filter_results["volatility"] = volatility_result
             if volatility_result["passed"]:
                 active_filters.append(TimeFilter.VOLATILITY_FILTER)
@@ -242,9 +236,7 @@ class BiasFilter:
 
             # Determine current session and bias
             current_session = self._get_current_session(current_time)
-            current_bias = self._determine_current_bias(
-                current_time, signal_data
-            )
+            current_bias = self._determine_current_bias(current_time, signal_data)
 
             # Determine if signal is allowed
             is_allowed = self._is_signal_allowed(
@@ -288,8 +280,7 @@ class BiasFilter:
 
             # Calculate session score
             base_score = (
-                session_info.volatility_score * 0.6
-                + session_info.liquidity_score * 0.4
+                session_info.volatility_score * 0.6 + session_info.liquidity_score * 0.4
             )
 
             # Check for session overlaps (bonus)
@@ -300,9 +291,7 @@ class BiasFilter:
             session_score = min(1.0, base_score + overlap_bonus)
 
             # Check minimum session score requirement
-            score_requirement_met = (
-                session_score >= self.config.minimum_session_score
-            )
+            score_requirement_met = session_score >= self.config.minimum_session_score
 
             # Overall session filter result
             passed = session_allowed and score_requirement_met
@@ -331,24 +320,16 @@ class BiasFilter:
         """Apply market bias filter"""
         try:
             signal_direction = signal_data.get("direction", "unknown")
-            current_bias = self._determine_current_bias(
-                current_time, signal_data
-            )
+            current_bias = self._determine_current_bias(current_time, signal_data)
 
             # Check bias alignment
             bias_aligned = False
             bias_confidence = 0.5
 
-            if (
-                signal_direction == "long"
-                and current_bias == BiasDirection.BULLISH
-            ):
+            if signal_direction == "long" and current_bias == BiasDirection.BULLISH:
                 bias_aligned = True
                 bias_confidence = 0.8
-            elif (
-                signal_direction == "short"
-                and current_bias == BiasDirection.BEARISH
-            ):
+            elif signal_direction == "short" and current_bias == BiasDirection.BEARISH:
                 bias_aligned = True
                 bias_confidence = 0.8
             elif current_bias == BiasDirection.NEUTRAL:
@@ -360,9 +341,7 @@ class BiasFilter:
                 bias_confidence = 0.4
 
             # Check confidence threshold
-            confidence_met = (
-                bias_confidence >= self.config.bias_confidence_threshold
-            )
+            confidence_met = bias_confidence >= self.config.bias_confidence_threshold
 
             # Overall bias filter result
             passed = bias_aligned and (
@@ -401,9 +380,7 @@ class BiasFilter:
 
             for news_time in self.news_times:
                 # Calculate time difference in minutes
-                current_minutes = (
-                    current_utc_time.hour * 60 + current_utc_time.minute
-                )
+                current_minutes = current_utc_time.hour * 60 + current_utc_time.minute
                 news_minutes = news_time.hour * 60 + news_time.minute
 
                 time_diff = abs(current_minutes - news_minutes)
@@ -427,16 +404,12 @@ class BiasFilter:
                 "score": 1.0 if passed else 0.0,
                 "in_news_window": in_news_window,
                 "closest_news_time": (
-                    closest_news_time.strftime("%H:%M")
-                    if closest_news_time
-                    else None
+                    closest_news_time.strftime("%H:%M") if closest_news_time else None
                 ),
                 "minutes_to_news": int(minutes_to_news),
                 "details": {
                     "avoidance_minutes": avoidance_minutes,
-                    "news_times_utc": [
-                        t.strftime("%H:%M") for t in self.news_times
-                    ],
+                    "news_times_utc": [t.strftime("%H:%M") for t in self.news_times],
                 },
             }
 
@@ -703,9 +676,7 @@ class BiasFilter:
             self.logger.error(f"Error getting optimal trading windows: {e}")
             return []
 
-    def get_session_info(
-        self, session_type: SessionType
-    ) -> Optional[SessionInfo]:
+    def get_session_info(self, session_type: SessionType) -> Optional[SessionInfo]:
         """Get information about a specific trading session"""
         return self.sessions.get(session_type)
 
@@ -721,16 +692,10 @@ class BiasFilter:
             optimal = False
             confidence = 0.0
 
-            if (
-                signal_direction == "long"
-                and current_bias == BiasDirection.BULLISH
-            ):
+            if signal_direction == "long" and current_bias == BiasDirection.BULLISH:
                 optimal = True
                 confidence = 0.8
-            elif (
-                signal_direction == "short"
-                and current_bias == BiasDirection.BEARISH
-            ):
+            elif signal_direction == "short" and current_bias == BiasDirection.BEARISH:
                 optimal = True
                 confidence = 0.8
             elif current_bias in [

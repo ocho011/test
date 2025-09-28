@@ -6,17 +6,18 @@ This script tests the basic functionality of the ICT analysis engine
 to ensure all components are working correctly.
 """
 
-import sys
 import os
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
+import sys
 
-import pandas as pd
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "src"))
+
 import numpy as np
-from datetime import datetime, timedelta
+import pandas as pd
+
 
 def create_sample_data(bars=200):
     """Create sample OHLC data for testing"""
-    dates = pd.date_range(start='2024-01-01', periods=bars, freq='H')
+    dates = pd.date_range(start="2024-01-01", periods=bars, freq="H")
 
     # Generate realistic OHLC data
     np.random.seed(42)
@@ -27,20 +28,23 @@ def create_sample_data(bars=200):
         close = close_prices[i]
         high = close + abs(np.random.randn() * 0.2)
         low = close - abs(np.random.randn() * 0.2)
-        open_price = close_prices[i-1] if i > 0 else close
+        open_price = close_prices[i - 1] if i > 0 else close
 
-        data.append({
-            'timestamp': date,
-            'open': open_price,
-            'high': high,
-            'low': low,
-            'close': close,
-            'volume': np.random.randint(1000, 10000)
-        })
+        data.append(
+            {
+                "timestamp": date,
+                "open": open_price,
+                "high": high,
+                "low": low,
+                "close": close,
+                "volume": np.random.randint(1000, 10000),
+            }
+        )
 
     df = pd.DataFrame(data)
-    df.set_index('timestamp', inplace=True)
+    df.set_index("timestamp", inplace=True)
     return df
+
 
 def test_ict_engine():
     """Test the ICT Analysis Engine"""
@@ -50,6 +54,7 @@ def test_ict_engine():
     try:
         # Import the main analyzer
         from trading_bot.analysis import TechnicalAnalyzer
+
         print("✅ TechnicalAnalyzer imported successfully")
 
         # Create sample data
@@ -63,7 +68,7 @@ def test_ict_engine():
             enable_validation=True,
             enable_parallel_processing=False,  # Disable for testing
             memory_optimization=True,
-            performance_monitoring=True
+            performance_monitoring=True,
         )
         print("✅ TechnicalAnalyzer initialized successfully")
 
@@ -72,7 +77,9 @@ def test_ict_engine():
 
         # Test Order Block detection
         swing_points = analyzer.order_block_detector.find_swing_points(data)
-        order_blocks = analyzer.order_block_detector.identify_order_blocks(data, swing_points)
+        order_blocks = analyzer.order_block_detector.identify_order_blocks(
+            data, swing_points
+        )
         print(f"✅ Order Blocks: Found {len(order_blocks)} patterns")
 
         # Test Fair Value Gap analysis
@@ -80,7 +87,9 @@ def test_ict_engine():
         print(f"✅ Fair Value Gaps: Found {len(fvgs)} patterns")
 
         # Test Market Structure analysis
-        market_structures = analyzer.market_structure_analyzer.analyze_structure(data, swing_points)
+        market_structures = analyzer.market_structure_analyzer.analyze_structure(
+            data, swing_points
+        )
         print(f"✅ Market Structures: Found {len(market_structures)} patterns")
 
         # Test Technical Indicators
@@ -107,7 +116,9 @@ def test_ict_engine():
         # Test performance report
         print("\n📈 Testing performance report...")
         perf_report = analyzer.get_performance_report()
-        print(f"✅ Performance Report: {perf_report.get('total_analyses', 0)} analyses recorded")
+        print(
+            f"✅ Performance Report: {perf_report.get('total_analyses', 0)} analyses recorded"
+        )
 
         print("\n🎉 All tests passed successfully!")
         print("=" * 50)
@@ -118,8 +129,10 @@ def test_ict_engine():
     except Exception as e:
         print(f"\n❌ Test failed with error: {e}")
         import traceback
+
         traceback.print_exc()
         return False
+
 
 if __name__ == "__main__":
     success = test_ict_engine()

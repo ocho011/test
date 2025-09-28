@@ -5,19 +5,21 @@ This module coordinates all risk management components and provides unified
 risk assessment and control for trading operations.
 """
 
-import logging
-from datetime import datetime, timedelta
+from datetime import datetime
 from decimal import Decimal
-from typing import Dict, List, Optional, Tuple, Any
 from enum import Enum
+from typing import Any, Dict, List, Optional, Tuple
 
 from pydantic import BaseModel, Field
 
 from ..core.base_component import BaseComponent
-from ..core.events import RiskEvent, RiskEventType, RiskSeverity
-from .position_size_calculator import PositionSizeCalculator, PositionSizeRequest, PositionSizeResult
-from .drawdown_controller import DrawdownController
 from .consecutive_loss_tracker import ConsecutiveLossTracker, TradeRecord
+from .drawdown_controller import DrawdownController
+from .position_size_calculator import (
+    PositionSizeCalculator,
+    PositionSizeRequest,
+    PositionSizeResult,
+)
 from .volatility_filter import VolatilityFilter
 
 
@@ -35,17 +37,29 @@ class RiskAssessment(BaseModel):
     decision: RiskDecision = Field(..., description="Overall risk decision")
     confidence: float = Field(..., ge=0.0, le=1.0, description="Confidence in decision")
     reasons: List[str] = Field(default_factory=list, description="Reasons for decision")
-    restrictions: List[str] = Field(default_factory=list, description="Active restrictions")
+    restrictions: List[str] = Field(
+        default_factory=list, description="Active restrictions"
+    )
 
     # Component assessments
-    position_size_result: Optional[PositionSizeResult] = Field(None, description="Position sizing result")
-    drawdown_status: Dict[str, Any] = Field(default_factory=dict, description="Drawdown status")
-    loss_tracker_status: Dict[str, Any] = Field(default_factory=dict, description="Loss tracker status")
-    volatility_status: Dict[str, Any] = Field(default_factory=dict, description="Volatility status")
+    position_size_result: Optional[PositionSizeResult] = Field(
+        None, description="Position sizing result"
+    )
+    drawdown_status: Dict[str, Any] = Field(
+        default_factory=dict, description="Drawdown status"
+    )
+    loss_tracker_status: Dict[str, Any] = Field(
+        default_factory=dict, description="Loss tracker status"
+    )
+    volatility_status: Dict[str, Any] = Field(
+        default_factory=dict, description="Volatility status"
+    )
 
     # Risk metrics
     risk_score: float = Field(..., ge=0.0, le=1.0, description="Overall risk score")
-    timestamp: datetime = Field(default_factory=datetime.utcnow, description="Assessment timestamp")
+    timestamp: datetime = Field(
+        default_factory=datetime.utcnow, description="Assessment timestamp"
+    )
 
 
 class TradeRequest(BaseModel):
@@ -55,11 +69,17 @@ class TradeRequest(BaseModel):
     entry_price: Decimal = Field(..., gt=0, description="Planned entry price")
     stop_loss_price: Decimal = Field(..., gt=0, description="Stop loss price")
     account_balance: Decimal = Field(..., gt=0, description="Current account balance")
-    risk_percentage: float = Field(default=0.02, ge=0.001, le=0.1, description="Risk percentage")
+    risk_percentage: float = Field(
+        default=0.02, ge=0.001, le=0.1, description="Risk percentage"
+    )
 
     # Optional parameters for advanced sizing
-    win_rate: Optional[float] = Field(None, ge=0.0, le=1.0, description="Historical win rate")
-    avg_win_loss_ratio: Optional[float] = Field(None, gt=0, description="Average win/loss ratio")
+    win_rate: Optional[float] = Field(
+        None, ge=0.0, le=1.0, description="Historical win rate"
+    )
+    avg_win_loss_ratio: Optional[float] = Field(
+        None, gt=0, description="Average win/loss ratio"
+    )
     current_atr: Optional[Decimal] = Field(None, gt=0, description="Current ATR")
     avg_atr: Optional[Decimal] = Field(None, gt=0, description="Average ATR")
 
@@ -76,7 +96,7 @@ class RiskManager(BaseComponent):
         self,
         name: str = "risk_manager",
         max_risk_score: float = 0.8,
-        risk_score_weights: Optional[Dict[str, float]] = None
+        risk_score_weights: Optional[Dict[str, float]] = None,
     ):
         """
         Initialize risk manager.
@@ -95,7 +115,7 @@ class RiskManager(BaseComponent):
             "drawdown": 0.3,
             "consecutive_losses": 0.25,
             "volatility": 0.25,
-            "position_risk": 0.2
+            "position_risk": 0.2,
         }
 
         # Initialize components
@@ -119,7 +139,11 @@ class RiskManager(BaseComponent):
         self.logger.info("Starting risk management system")
 
         # Start all components
-        await self.position_calculator.start() if hasattr(self.position_calculator, 'start') else None
+        (
+            await self.position_calculator.start()
+            if hasattr(self.position_calculator, "start")
+            else None
+        )
         await self.drawdown_controller.start()
         await self.loss_tracker.start()
         await self.volatility_filter.start()
@@ -131,7 +155,11 @@ class RiskManager(BaseComponent):
         self.logger.info("Stopping risk management system")
 
         # Stop all components
-        await self.position_calculator.stop() if hasattr(self.position_calculator, 'stop') else None
+        (
+            await self.position_calculator.stop()
+            if hasattr(self.position_calculator, "stop")
+            else None
+        )
         await self.drawdown_controller.stop()
         await self.loss_tracker.stop()
         await self.volatility_filter.stop()
@@ -163,21 +191,29 @@ class RiskManager(BaseComponent):
             win_rate=trade_request.win_rate,
             avg_win_loss_ratio=trade_request.avg_win_loss_ratio,
             current_atr=trade_request.current_atr,
-            avg_atr=trade_request.avg_atr
+            avg_atr=trade_request.avg_atr,
         )
 
         # Calculate position size
-        position_result = self.position_calculator.calculate_position_size(position_request)
+        position_result = self.position_calculator.calculate_position_size(
+            position_request
+        )
 
         # Get component status
-        drawdown_allowed, drawdown_reason = self.drawdown_controller.check_trading_allowed()
+        drawdown_allowed, drawdown_reason = (
+            self.drawdown_controller.check_trading_allowed()
+        )
         drawdown_status = self.drawdown_controller.get_current_status()
 
         loss_allowed, loss_reason = self.loss_tracker.check_trading_allowed()
         loss_status = self.loss_tracker.get_current_status()
 
-        volatility_allowed, volatility_reason = self.volatility_filter.check_trading_allowed(trade_request.symbol)
-        volatility_status = self.volatility_filter.get_volatility_status(trade_request.symbol)
+        volatility_allowed, volatility_reason = (
+            self.volatility_filter.check_trading_allowed(trade_request.symbol)
+        )
+        volatility_status = self.volatility_filter.get_volatility_status(
+            trade_request.symbol
+        )
 
         # Calculate risk score
         risk_score = self._calculate_risk_score(
@@ -190,7 +226,7 @@ class RiskManager(BaseComponent):
             (drawdown_allowed, drawdown_reason),
             (loss_allowed, loss_reason),
             (volatility_allowed, volatility_reason),
-            risk_score
+            risk_score,
         )
 
         # Calculate confidence based on agreement between components
@@ -209,7 +245,7 @@ class RiskManager(BaseComponent):
             loss_tracker_status=loss_status,
             volatility_status=volatility_status,
             risk_score=risk_score,
-            timestamp=assessment_time
+            timestamp=assessment_time,
         )
 
         # Store assessment
@@ -242,12 +278,14 @@ class RiskManager(BaseComponent):
         position_result: PositionSizeResult,
         drawdown_status: Dict[str, Any],
         loss_status: Dict[str, Any],
-        volatility_status: Dict[str, Any]
+        volatility_status: Dict[str, Any],
     ) -> float:
         """Calculate overall risk score from component status."""
 
         # Position risk (0-1 based on risk percentage)
-        position_risk = min(position_result.risk_percentage_actual / 0.05, 1.0)  # Normalize to 5% max
+        position_risk = min(
+            position_result.risk_percentage_actual / 0.05, 1.0
+        )  # Normalize to 5% max
 
         # Drawdown risk
         drawdown_risk = 0.0
@@ -263,8 +301,13 @@ class RiskManager(BaseComponent):
 
         # Consecutive loss risk
         loss_risk = 0.0
-        if loss_status.get("current_consecutive_losses") and loss_status.get("max_consecutive_losses"):
-            loss_risk = loss_status["current_consecutive_losses"] / loss_status["max_consecutive_losses"]
+        if loss_status.get("current_consecutive_losses") and loss_status.get(
+            "max_consecutive_losses"
+        ):
+            loss_risk = (
+                loss_status["current_consecutive_losses"]
+                / loss_status["max_consecutive_losses"]
+            )
 
         # Volatility risk
         volatility_risk = 0.0
@@ -275,10 +318,10 @@ class RiskManager(BaseComponent):
 
         # Calculate weighted risk score
         total_risk = (
-            self.risk_weights["drawdown"] * drawdown_risk +
-            self.risk_weights["consecutive_losses"] * loss_risk +
-            self.risk_weights["volatility"] * volatility_risk +
-            self.risk_weights["position_risk"] * position_risk
+            self.risk_weights["drawdown"] * drawdown_risk
+            + self.risk_weights["consecutive_losses"] * loss_risk
+            + self.risk_weights["volatility"] * volatility_risk
+            + self.risk_weights["position_risk"] * position_risk
         )
 
         return min(total_risk, 1.0)
@@ -289,7 +332,7 @@ class RiskManager(BaseComponent):
         drawdown_check: Tuple[bool, Optional[str]],
         loss_check: Tuple[bool, Optional[str]],
         volatility_check: Tuple[bool, Optional[str]],
-        risk_score: float
+        risk_score: float,
     ) -> Tuple[RiskDecision, List[str], List[str]]:
         """Determine overall trading decision."""
 
@@ -315,7 +358,9 @@ class RiskManager(BaseComponent):
 
         # Check risk score
         if risk_score > self.max_risk_score:
-            reasons.append(f"Risk score too high: {risk_score:.1%} > {self.max_risk_score:.1%}")
+            reasons.append(
+                f"Risk score too high: {risk_score:.1%} > {self.max_risk_score:.1%}"
+            )
             restrictions.append("risk_score_exceeded")
 
         # Determine decision
@@ -333,12 +378,11 @@ class RiskManager(BaseComponent):
         drawdown_allowed: bool,
         loss_allowed: bool,
         volatility_allowed: bool,
-        risk_score: float
+        risk_score: float,
     ) -> float:
         """Calculate confidence in risk assessment."""
 
         # Count agreeing components
-        components_agree = 0
         total_components = 3
 
         # Simple agreement: if multiple components agree on restriction
@@ -378,7 +422,9 @@ class RiskManager(BaseComponent):
                     f"{violation.drawdown_percentage:.1%} (limit: {violation.limit_percentage:.1%})"
                 )
 
-    def update_volatility(self, symbol: str, atr_value: Decimal, price: Decimal) -> None:
+    def update_volatility(
+        self, symbol: str, atr_value: Decimal, price: Decimal
+    ) -> None:
         """Update volatility information."""
         volatility_state = self.volatility_filter.update_atr(symbol, atr_value, price)
 
@@ -391,7 +437,9 @@ class RiskManager(BaseComponent):
         # Record trade for volatility filter daily limits
         self.volatility_filter.record_trade(trade.symbol)
 
-        self.logger.debug(f"Recorded trade result: {trade.trade_id} - {trade.result.value}")
+        self.logger.debug(
+            f"Recorded trade result: {trade.trade_id} - {trade.result.value}"
+        )
 
     def get_system_status(self) -> Dict[str, Any]:
         """Get comprehensive system status."""
@@ -401,14 +449,18 @@ class RiskManager(BaseComponent):
                 "allowed_trades": self.allowed_trades,
                 "blocked_trades": self.blocked_trades,
                 "block_rate": self.blocked_trades / max(self.total_assessments, 1),
-                "last_assessment": self.last_assessment_time.isoformat() if self.last_assessment_time else None,
+                "last_assessment": (
+                    self.last_assessment_time.isoformat()
+                    if self.last_assessment_time
+                    else None
+                ),
                 "active_restrictions": self.active_restrictions,
-                "max_risk_score": self.max_risk_score
+                "max_risk_score": self.max_risk_score,
             },
             "drawdown_controller": self.drawdown_controller.get_current_status(),
             "loss_tracker": self.loss_tracker.get_current_status(),
             "volatility_filter": self.volatility_filter.get_volatility_status(),
-            "risk_weights": self.risk_weights
+            "risk_weights": self.risk_weights,
         }
 
     def get_recent_assessments(self, limit: int = 10) -> List[Dict[str, Any]]:
@@ -421,7 +473,7 @@ class RiskManager(BaseComponent):
                 "confidence": assessment.confidence,
                 "risk_score": assessment.risk_score,
                 "reasons": assessment.reasons,
-                "restrictions": assessment.restrictions
+                "restrictions": assessment.restrictions,
             }
             for assessment in recent
         ]
@@ -440,7 +492,7 @@ class RiskManager(BaseComponent):
     def update_risk_settings(
         self,
         max_risk_score: Optional[float] = None,
-        risk_weights: Optional[Dict[str, float]] = None
+        risk_weights: Optional[Dict[str, float]] = None,
     ) -> None:
         """Update risk manager settings."""
         if max_risk_score is not None:

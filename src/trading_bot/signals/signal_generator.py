@@ -137,9 +137,7 @@ class SignalGenerator:
         # Pattern priority matrix
         self.pattern_priority_matrix = self._initialize_priority_matrix()
 
-    def generate_signals(
-        self, pattern_input: PatternInput
-    ) -> List[GeneratedSignal]:
+    def generate_signals(self, pattern_input: PatternInput) -> List[GeneratedSignal]:
         """
         Generate trading signals from ICT pattern inputs
 
@@ -169,9 +167,7 @@ class SignalGenerator:
                 return []
 
             # Analyze pattern combinations
-            pattern_combinations = self._analyze_pattern_combinations(
-                pattern_input
-            )
+            pattern_combinations = self._analyze_pattern_combinations(pattern_input)
 
             # Generate signals for each valid combination
             generated_signals = []
@@ -179,11 +175,7 @@ class SignalGenerator:
                 signal = self._generate_signal_from_combination(
                     combination, pattern_input
                 )
-                if (
-                    signal
-                    and signal.confidence_score
-                    >= self.min_confidence_threshold
-                ):
+                if signal and signal.confidence_score >= self.min_confidence_threshold:
                     generated_signals.append(signal)
 
             # Filter and rank signals
@@ -213,9 +205,7 @@ class SignalGenerator:
             )
 
             if total_patterns == 0:
-                self.logger.warning(
-                    "No patterns provided for signal generation"
-                )
+                self.logger.warning("No patterns provided for signal generation")
                 return False
 
             # Validate current price
@@ -250,12 +240,8 @@ class SignalGenerator:
 
         try:
             # Get recent and valid patterns
-            recent_obs = self._filter_recent_patterns(
-                pattern_input.order_blocks
-            )
-            recent_fvgs = self._filter_recent_patterns(
-                pattern_input.fair_value_gaps
-            )
+            recent_obs = self._filter_recent_patterns(pattern_input.order_blocks)
+            recent_fvgs = self._filter_recent_patterns(pattern_input.fair_value_gaps)
             recent_structures = self._filter_recent_patterns(
                 pattern_input.market_structures
             )
@@ -276,9 +262,7 @@ class SignalGenerator:
                         {
                             "type": PatternCombination.FVG_ONLY,
                             "patterns": {"fair_value_gap": fvg},
-                            "confidence_base": self._calculate_fvg_confidence(
-                                fvg
-                            ),
+                            "confidence_base": self._calculate_fvg_confidence(fvg),
                         }
                     )
 
@@ -303,8 +287,7 @@ class SignalGenerator:
                                     "fair_value_gap": fvg,
                                 },
                                 "confidence_base": (
-                                    ob.confidence
-                                    + self._calculate_fvg_confidence(fvg)
+                                    ob.confidence + self._calculate_fvg_confidence(fvg)
                                 )
                                 / 2,
                             }
@@ -328,9 +311,7 @@ class SignalGenerator:
 
             for fvg in recent_fvgs:
                 for structure in recent_structures:
-                    if not fvg.is_filled and self._patterns_align(
-                        fvg, structure
-                    ):
+                    if not fvg.is_filled and self._patterns_align(fvg, structure):
                         combinations.append(
                             {
                                 "type": PatternCombination.FVG_STRUCTURE,
@@ -401,10 +382,8 @@ class SignalGenerator:
                 return None
 
             # Calculate entry price and levels
-            entry_price, stop_loss, take_profit = (
-                self._calculate_signal_levels(
-                    combination, pattern_input, signal_direction
-                )
+            entry_price, stop_loss, take_profit = self._calculate_signal_levels(
+                combination, pattern_input, signal_direction
             )
 
             # Calculate confidence score
@@ -428,14 +407,10 @@ class SignalGenerator:
             )
 
             # Generate reasoning
-            reasoning = self._generate_signal_reasoning(
-                combination, pattern_input
-            )
+            reasoning = self._generate_signal_reasoning(combination, pattern_input)
 
             # Set validity duration based on pattern combination
-            validity_duration = self._get_validity_duration(
-                combination["type"]
-            )
+            validity_duration = self._get_validity_duration(combination["type"])
 
             return GeneratedSignal(
                 signal_id=signal_id,
@@ -545,9 +520,7 @@ class SignalGenerator:
                     stop_loss = entry_price + Decimal(str(atr * 0.5))
 
             # Calculate take profit using R:R ratio
-            target_ratio = self.risk_reward_ratios.get(
-                combination["type"], 2.0
-            )
+            target_ratio = self.risk_reward_ratios.get(combination["type"], 2.0)
             if stop_loss:
                 risk_amount = abs(entry_price - stop_loss)
                 if direction == SignalDirection.LONG:
@@ -582,9 +555,7 @@ class SignalGenerator:
             )
 
             # Pattern alignment bonus
-            alignment_bonus = self._calculate_pattern_alignment_bonus(
-                combination
-            )
+            alignment_bonus = self._calculate_pattern_alignment_bonus(combination)
 
             # Calculate final confidence
             final_confidence = (
@@ -637,9 +608,7 @@ class SignalGenerator:
                     f"{structure.structure_type} ({structure.direction.value}) at {structure.break_level:.5f}"
                 )
 
-            reasoning_parts.append(
-                f"Confidence: {combination['confidence_base']:.1%}"
-            )
+            reasoning_parts.append(f"Confidence: {combination['confidence_base']:.1%}")
 
             return " | ".join(reasoning_parts)
 
@@ -648,9 +617,7 @@ class SignalGenerator:
             return f"ICT signal from {combination['type'].value}"
 
     # Helper methods
-    def _filter_recent_patterns(
-        self, patterns: List, max_age_hours: int = 24
-    ) -> List:
+    def _filter_recent_patterns(self, patterns: List, max_age_hours: int = 24) -> List:
         """Filter patterns by recency"""
         try:
             cutoff_time = datetime.now() - timedelta(hours=max_age_hours)
@@ -682,9 +649,7 @@ class SignalGenerator:
         """Calculate confidence score for Fair Value Gap"""
         try:
             # Base confidence from gap size
-            base_confidence = min(
-                fvg.gap_size / 0.001, 1.0
-            )  # Normalize gap size
+            base_confidence = min(fvg.gap_size / 0.001, 1.0)  # Normalize gap size
 
             # Bonus for unfilled gaps
             if not fvg.is_filled:
@@ -711,9 +676,7 @@ class SignalGenerator:
 
             for pattern in patterns.values():
                 pattern_time = getattr(pattern, "timestamp", current_time)
-                age_hours = (
-                    current_time - pattern_time
-                ).total_seconds() / 3600
+                age_hours = (current_time - pattern_time).total_seconds() / 3600
                 total_age += age_hours
                 pattern_count += 1
 
@@ -735,9 +698,7 @@ class SignalGenerator:
         except Exception:
             return 0.0
 
-    def _calculate_pattern_alignment_bonus(
-        self, combination: Dict[str, any]
-    ) -> float:
+    def _calculate_pattern_alignment_bonus(self, combination: Dict[str, any]) -> float:
         """Calculate bonus for well-aligned patterns"""
         try:
             patterns = combination["patterns"]
@@ -749,9 +710,7 @@ class SignalGenerator:
             # Check directional alignment
             directions = []
             for pattern in patterns.values():
-                direction = getattr(
-                    pattern, "direction", TrendDirection.NEUTRAL
-                )
+                direction = getattr(pattern, "direction", TrendDirection.NEUTRAL)
                 if direction != TrendDirection.NEUTRAL:
                     directions.append(direction)
 
@@ -767,16 +726,12 @@ class SignalGenerator:
         except Exception:
             return 0.0
 
-    def _estimate_atr(
-        self, pattern_input: PatternInput, period: int = 14
-    ) -> float:
+    def _estimate_atr(self, pattern_input: PatternInput, period: int = 14) -> float:
         """Estimate ATR for level calculations"""
         try:
             # Simple ATR estimation based on current price
             # In a real implementation, this would use historical data
-            return (
-                float(pattern_input.current_price) * 0.02
-            )  # 2% of current price
+            return float(pattern_input.current_price) * 0.02  # 2% of current price
         except Exception:
             return 0.001
 
@@ -812,9 +767,7 @@ class SignalGenerator:
         except Exception:
             return f"signal_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
 
-    def _get_validity_duration(
-        self, combination_type: PatternCombination
-    ) -> timedelta:
+    def _get_validity_duration(self, combination_type: PatternCombination) -> timedelta:
         """Get signal validity duration based on pattern combination"""
         duration_map = {
             PatternCombination.ORDER_BLOCK_ONLY: timedelta(hours=4),
@@ -840,9 +793,7 @@ class SignalGenerator:
             ]
 
             # Rank by confidence score
-            qualified_signals.sort(
-                key=lambda x: x.confidence_score, reverse=True
-            )
+            qualified_signals.sort(key=lambda x: x.confidence_score, reverse=True)
 
             # Limit by max signals per timeframe
             return qualified_signals[: self.max_signals_per_timeframe]
@@ -855,9 +806,7 @@ class SignalGenerator:
         """Check if we can generate more signals for timeframe"""
         try:
             current_signals = [
-                s
-                for s in self.active_signals.values()
-                if s.timeframe == timeframe
+                s for s in self.active_signals.values() if s.timeframe == timeframe
             ]
             return len(current_signals) < self.max_signals_per_timeframe
         except Exception:
@@ -878,9 +827,7 @@ class SignalGenerator:
                 del self.active_signals[signal_id]
 
             if expired_ids:
-                self.logger.info(
-                    f"Cleaned up {len(expired_ids)} expired signals"
-                )
+                self.logger.info(f"Cleaned up {len(expired_ids)} expired signals")
 
         except Exception as e:
             self.logger.error(f"Error cleaning up expired signals: {e}")
@@ -904,9 +851,7 @@ class SignalGenerator:
         try:
             if timeframe:
                 return [
-                    s
-                    for s in self.active_signals.values()
-                    if s.timeframe == timeframe
+                    s for s in self.active_signals.values() if s.timeframe == timeframe
                 ]
             else:
                 return list(self.active_signals.values())

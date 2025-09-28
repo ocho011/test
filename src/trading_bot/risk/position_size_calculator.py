@@ -7,8 +7,8 @@ Kelly Criterion optimization, and stop-loss considerations for optimal capital a
 
 import logging
 from decimal import Decimal
-from typing import Optional, Dict, Any
 from enum import Enum
+from typing import Any, Dict, Optional
 
 from pydantic import BaseModel, Field, validator
 
@@ -57,7 +57,9 @@ class PositionSizeRequest(BaseModel):
         if "entry_price" in values and values["entry_price"] is not None:
             entry_price = values["entry_price"]
             # Stop loss should be different from entry price
-            if abs(v - entry_price) < entry_price * Decimal("0.001"):  # 0.1% minimum difference
+            if abs(v - entry_price) < entry_price * Decimal(
+                "0.001"
+            ):  # 0.1% minimum difference
                 raise ValueError("Stop loss too close to entry price")
         return v
 
@@ -71,14 +73,20 @@ class PositionSizeResult(BaseModel):
     risk_percentage_actual: float = Field(..., description="Actual risk percentage")
     stop_loss_distance: Decimal = Field(..., description="Distance to stop loss")
     stop_loss_percentage: float = Field(..., description="Stop loss as percentage")
-    method_used: PositionSizeMethod = Field(..., description="Method used for calculation")
+    method_used: PositionSizeMethod = Field(
+        ..., description="Method used for calculation"
+    )
 
     # Kelly Criterion specific results
-    kelly_percentage: Optional[float] = Field(None, description="Kelly optimal percentage")
+    kelly_percentage: Optional[float] = Field(
+        None, description="Kelly optimal percentage"
+    )
     kelly_adjusted: Optional[bool] = Field(None, description="Whether Kelly was capped")
 
     # Additional metadata
-    metadata: Dict[str, Any] = Field(default_factory=dict, description="Additional calculation data")
+    metadata: Dict[str, Any] = Field(
+        default_factory=dict, description="Additional calculation data"
+    )
 
 
 class PositionSizeCalculator:
@@ -95,7 +103,7 @@ class PositionSizeCalculator:
         self,
         max_position_risk: float = 0.02,
         kelly_max_percentage: float = 0.25,
-        volatility_multiplier: float = 1.0
+        volatility_multiplier: float = 1.0,
     ):
         """
         Initialize position size calculator.
@@ -110,7 +118,9 @@ class PositionSizeCalculator:
         self.volatility_multiplier = volatility_multiplier
         self.logger = logging.getLogger("trading_bot.risk.position_size_calculator")
 
-    def calculate_position_size(self, request: PositionSizeRequest) -> PositionSizeResult:
+    def calculate_position_size(
+        self, request: PositionSizeRequest
+    ) -> PositionSizeResult:
         """
         Calculate position size based on the specified method.
 
@@ -123,7 +133,9 @@ class PositionSizeCalculator:
         Raises:
             ValueError: If calculation parameters are invalid
         """
-        self.logger.debug(f"Calculating position size for {request.symbol} using {request.method}")
+        self.logger.debug(
+            f"Calculating position size for {request.symbol} using {request.method}"
+        )
 
         # Calculate base stop loss metrics
         stop_loss_distance = abs(request.entry_price - request.stop_loss_price)
@@ -131,11 +143,17 @@ class PositionSizeCalculator:
 
         # Route to appropriate calculation method
         if request.method == PositionSizeMethod.FIXED_RISK:
-            result = self._calculate_fixed_risk(request, stop_loss_distance, stop_loss_percentage)
+            result = self._calculate_fixed_risk(
+                request, stop_loss_distance, stop_loss_percentage
+            )
         elif request.method == PositionSizeMethod.KELLY_CRITERION:
-            result = self._calculate_kelly_criterion(request, stop_loss_distance, stop_loss_percentage)
+            result = self._calculate_kelly_criterion(
+                request, stop_loss_distance, stop_loss_percentage
+            )
         elif request.method == PositionSizeMethod.VOLATILITY_ADJUSTED:
-            result = self._calculate_volatility_adjusted(request, stop_loss_distance, stop_loss_percentage)
+            result = self._calculate_volatility_adjusted(
+                request, stop_loss_distance, stop_loss_percentage
+            )
         else:
             raise ValueError(f"Unknown position sizing method: {request.method}")
 
@@ -159,7 +177,7 @@ class PositionSizeCalculator:
         self,
         request: PositionSizeRequest,
         stop_loss_distance: Decimal,
-        stop_loss_percentage: float
+        stop_loss_percentage: float,
     ) -> PositionSizeResult:
         """Calculate position size using fixed risk percentage."""
         risk_amount = request.account_balance * Decimal(str(request.risk_percentage))
@@ -176,20 +194,24 @@ class PositionSizeCalculator:
             method_used=PositionSizeMethod.FIXED_RISK,
             metadata={
                 "fixed_risk_percentage": request.risk_percentage,
-                "calculation_method": "risk_amount / stop_loss_distance"
-            }
+                "calculation_method": "risk_amount / stop_loss_distance",
+            },
         )
 
     def _calculate_kelly_criterion(
         self,
         request: PositionSizeRequest,
         stop_loss_distance: Decimal,
-        stop_loss_percentage: float
+        stop_loss_percentage: float,
     ) -> PositionSizeResult:
         """Calculate position size using Kelly Criterion optimization."""
         if request.win_rate is None or request.avg_win_loss_ratio is None:
-            self.logger.warning("Kelly Criterion requires win_rate and avg_win_loss_ratio, falling back to fixed risk")
-            return self._calculate_fixed_risk(request, stop_loss_distance, stop_loss_percentage)
+            self.logger.warning(
+                "Kelly Criterion requires win_rate and avg_win_loss_ratio, falling back to fixed risk"
+            )
+            return self._calculate_fixed_risk(
+                request, stop_loss_distance, stop_loss_percentage
+            )
 
         # Kelly Formula: f* = (bp - q) / b
         # where: f* = fraction of capital to wager
@@ -198,7 +220,7 @@ class PositionSizeCalculator:
         #        q = probability of losing (1 - p)
 
         p = request.win_rate  # Probability of winning
-        q = 1.0 - p          # Probability of losing
+        q = 1.0 - p  # Probability of losing
         b = request.avg_win_loss_ratio  # Odds (average win / average loss)
 
         kelly_percentage = (b * p - q) / b
@@ -209,7 +231,9 @@ class PositionSizeCalculator:
         if kelly_percentage > self.kelly_max_percentage:
             kelly_percentage = self.kelly_max_percentage
             kelly_adjusted = True
-            self.logger.info(f"Kelly percentage capped at {self.kelly_max_percentage:.1%}")
+            self.logger.info(
+                f"Kelly percentage capped at {self.kelly_max_percentage:.1%}"
+            )
 
         # Calculate position size based on Kelly percentage
         risk_amount = request.account_balance * Decimal(str(kelly_percentage))
@@ -230,20 +254,24 @@ class PositionSizeCalculator:
                 "win_rate": request.win_rate,
                 "avg_win_loss_ratio": request.avg_win_loss_ratio,
                 "kelly_raw": (b * p - q) / b,
-                "kelly_formula": f"({b} * {p} - {q}) / {b}"
-            }
+                "kelly_formula": f"({b} * {p} - {q}) / {b}",
+            },
         )
 
     def _calculate_volatility_adjusted(
         self,
         request: PositionSizeRequest,
         stop_loss_distance: Decimal,
-        stop_loss_percentage: float
+        stop_loss_percentage: float,
     ) -> PositionSizeResult:
         """Calculate position size with volatility adjustment."""
         if request.current_atr is None or request.avg_atr is None:
-            self.logger.warning("Volatility adjustment requires current_atr and avg_atr, falling back to fixed risk")
-            return self._calculate_fixed_risk(request, stop_loss_distance, stop_loss_percentage)
+            self.logger.warning(
+                "Volatility adjustment requires current_atr and avg_atr, falling back to fixed risk"
+            )
+            return self._calculate_fixed_risk(
+                request, stop_loss_distance, stop_loss_percentage
+            )
 
         # Calculate volatility ratio
         volatility_ratio = float(request.current_atr / request.avg_atr)
@@ -274,11 +302,13 @@ class PositionSizeCalculator:
                 "volatility_adjustment": volatility_adjustment,
                 "current_atr": float(request.current_atr),
                 "avg_atr": float(request.avg_atr),
-                "volatility_multiplier": self.volatility_multiplier
-            }
+                "volatility_multiplier": self.volatility_multiplier,
+            },
         )
 
-    def _cap_position_size(self, result: PositionSizeResult, account_balance: Decimal) -> PositionSizeResult:
+    def _cap_position_size(
+        self, result: PositionSizeResult, account_balance: Decimal
+    ) -> PositionSizeResult:
         """Cap position size to maximum allowed risk."""
         max_risk_amount = account_balance * Decimal(str(self.max_position_risk))
         adjustment_factor = max_risk_amount / result.risk_amount
@@ -297,11 +327,13 @@ class PositionSizeCalculator:
                 **result.metadata,
                 "position_capped": True,
                 "original_risk_percentage": result.risk_percentage_actual,
-                "adjustment_factor": float(adjustment_factor)
-            }
+                "adjustment_factor": float(adjustment_factor),
+            },
         )
 
-    def validate_position_size(self, result: PositionSizeResult, min_position_value: Decimal = Decimal("10")) -> bool:
+    def validate_position_size(
+        self, result: PositionSizeResult, min_position_value: Decimal = Decimal("10")
+    ) -> bool:
         """
         Validate that calculated position size meets minimum requirements.
 
@@ -313,7 +345,9 @@ class PositionSizeCalculator:
             True if position size is valid, False otherwise
         """
         if result.position_value < min_position_value:
-            self.logger.warning(f"Position value ${result.position_value} below minimum ${min_position_value}")
+            self.logger.warning(
+                f"Position value ${result.position_value} below minimum ${min_position_value}"
+            )
             return False
 
         if result.position_size <= 0:
@@ -321,7 +355,9 @@ class PositionSizeCalculator:
             return False
 
         if result.risk_percentage_actual > self.max_position_risk:
-            self.logger.error(f"Risk percentage {result.risk_percentage_actual:.1%} exceeds maximum {self.max_position_risk:.1%}")
+            self.logger.error(
+                f"Risk percentage {result.risk_percentage_actual:.1%} exceeds maximum {self.max_position_risk:.1%}"
+            )
             return False
 
         return True
@@ -344,9 +380,17 @@ class PositionSizeCalculator:
             "stop_loss_distance": f"${result.stop_loss_distance:.8f}",
             "stop_loss_percentage": f"{result.stop_loss_percentage:.2%}",
             "method": result.method_used.value,
-            "kelly_info": {
-                "kelly_percentage": f"{result.kelly_percentage:.2%}" if result.kelly_percentage else None,
-                "kelly_adjusted": result.kelly_adjusted
-            } if result.kelly_percentage else None,
-            "metadata": result.metadata
+            "kelly_info": (
+                {
+                    "kelly_percentage": (
+                        f"{result.kelly_percentage:.2%}"
+                        if result.kelly_percentage
+                        else None
+                    ),
+                    "kelly_adjusted": result.kelly_adjusted,
+                }
+                if result.kelly_percentage
+                else None
+            ),
+            "metadata": result.metadata,
         }

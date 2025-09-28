@@ -5,13 +5,18 @@ Test cases cover rate limiting, token consumption, request queuing,
 priority handling, and performance monitoring.
 """
 
-import pytest
 import asyncio
 import time
-from unittest.mock import Mock, AsyncMock
+from unittest.mock import AsyncMock
+
+import pytest
 
 from trading_bot.data.rate_limiter import (
-    RateLimiter, RateLimit, TokenBucket, RequestQueue, Priority
+    Priority,
+    RateLimit,
+    RateLimiter,
+    RequestQueue,
+    TokenBucket,
 )
 
 
@@ -89,7 +94,7 @@ class TestTokenBucket:
             consume_tokens(30),
             consume_tokens(30),
             consume_tokens(30),
-            consume_tokens(30)
+            consume_tokens(30),
         )
 
         # Only 3 out of 4 should succeed (90 tokens consumed)
@@ -170,10 +175,7 @@ class TestRateLimit:
 
     def test_rate_limit_creation(self):
         """Test rate limit configuration creation."""
-        rate_limit = RateLimit(
-            requests_per_minute=1200,
-            burst_capacity=50
-        )
+        rate_limit = RateLimit(requests_per_minute=1200, burst_capacity=50)
 
         assert rate_limit.requests_per_minute == 1200
         assert rate_limit.burst_capacity == 50
@@ -182,17 +184,11 @@ class TestRateLimit:
     def test_rate_limit_validation(self):
         """Test rate limit validation."""
         # Valid configuration
-        rate_limit = RateLimit(
-            requests_per_minute=600,
-            burst_capacity=25
-        )
+        rate_limit = RateLimit(requests_per_minute=600, burst_capacity=25)
         assert rate_limit.requests_per_minute == 600
 
         # Invalid configuration should still work but may not be optimal
-        rate_limit = RateLimit(
-            requests_per_minute=0,
-            burst_capacity=0
-        )
+        rate_limit = RateLimit(requests_per_minute=0, burst_capacity=0)
         assert rate_limit.requests_per_minute == 0
 
 
@@ -205,7 +201,7 @@ class TestRateLimiter:
         return RateLimiter(
             requests_per_minute=600,  # 10 requests per second
             burst_capacity=20,
-            queue_size=100
+            queue_size=100,
         )
 
     @pytest.mark.asyncio
@@ -234,7 +230,9 @@ class TestRateLimiter:
         mock_func = AsyncMock(return_value="success")
 
         # Should process request successfully
-        result = await rate_limiter.request(mock_func, "test_arg", priority=Priority.MEDIUM)
+        result = await rate_limiter.request(
+            mock_func, "test_arg", priority=Priority.MEDIUM
+        )
 
         assert result == "success"
         mock_func.assert_called_once_with("test_arg")
@@ -287,7 +285,7 @@ class TestRateLimiter:
             rate_limiter.request(mock_func, "low", priority=Priority.LOW),
             rate_limiter.request(mock_func, "high", priority=Priority.HIGH),
             rate_limiter.request(mock_func, "critical", priority=Priority.CRITICAL),
-            rate_limiter.request(mock_func, "medium", priority=Priority.MEDIUM)
+            rate_limiter.request(mock_func, "medium", priority=Priority.MEDIUM),
         ]
 
         await asyncio.gather(*tasks)
@@ -313,8 +311,7 @@ class TestRateLimiter:
         # Should timeout waiting for tokens
         with pytest.raises(asyncio.TimeoutError):
             await asyncio.wait_for(
-                rate_limiter.request(mock_func, priority=Priority.LOW),
-                timeout=0.1
+                rate_limiter.request(mock_func, priority=Priority.LOW), timeout=0.1
             )
 
         await rate_limiter.stop()
@@ -346,11 +343,11 @@ class TestRateLimiter:
 
         stats = rate_limiter.get_stats()
 
-        assert stats['total_requests'] == 5
-        assert stats['successful_requests'] == 5
-        assert stats['failed_requests'] == 0
-        assert stats['current_queue_size'] == 0
-        assert 'average_wait_time' in stats
+        assert stats["total_requests"] == 5
+        assert stats["successful_requests"] == 5
+        assert stats["failed_requests"] == 0
+        assert stats["current_queue_size"] == 0
+        assert "average_wait_time" in stats
 
         await rate_limiter.stop()
 
@@ -380,9 +377,7 @@ class TestRateLimiter:
         """Test handling when request queue overflows."""
         # Create small queue
         small_limiter = RateLimiter(
-            requests_per_minute=60,
-            burst_capacity=1,
-            queue_size=2
+            requests_per_minute=60, burst_capacity=1, queue_size=2
         )
 
         # Block all tokens
@@ -452,8 +447,7 @@ class TestRateLimiter:
         # Heavy load
         start_time = time.time()
         tasks = [
-            rate_limiter.request(mock_func, priority=Priority.MEDIUM)
-            for _ in range(20)
+            rate_limiter.request(mock_func, priority=Priority.MEDIUM) for _ in range(20)
         ]
         await asyncio.gather(*tasks)
 
@@ -479,7 +473,7 @@ class TestRateLimiter:
         rate_limiter.reset_stats()
 
         stats = rate_limiter.get_stats()
-        assert stats['total_requests'] == 0
-        assert stats['successful_requests'] == 0
+        assert stats["total_requests"] == 0
+        assert stats["successful_requests"] == 0
 
         await rate_limiter.stop()

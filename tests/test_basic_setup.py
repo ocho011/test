@@ -1,10 +1,10 @@
 """
 Basic setup verification tests for ICT Trading Bot
 """
-import sys
-import os
-import pytest
+
 from pathlib import Path
+
+import pytest
 
 
 class TestProjectStructure:
@@ -36,7 +36,7 @@ class TestProjectStructure:
             "execution",
             "notifications",
             "config",
-            "utils"
+            "utils",
         ]
 
         for module in required_modules:
@@ -54,37 +54,38 @@ class TestDependencyImports:
     def test_core_dependencies(self):
         """Test core dependencies import correctly"""
         try:
-            import asyncio
-            import aiohttp
-            import pydantic
-            import pandas
-            import numpy
-            import yaml
-            from dotenv import load_dotenv
+            import asyncio  # noqa: F401
+
+            import aiohttp  # noqa: F401
+            import numpy  # noqa: F401
+            import pandas  # noqa: F401
+            import pydantic  # noqa: F401
+            import yaml  # noqa: F401
+            from dotenv import load_dotenv  # noqa: F401
         except ImportError as e:
             pytest.fail(f"Failed to import core dependency: {e}")
 
     def test_trading_dependencies(self):
         """Test trading-specific dependencies"""
         try:
-            import binance
-            import ta
-            import plotly
+            import binance  # noqa: F401
+            import plotly  # noqa: F401
+            import ta  # noqa: F401
         except ImportError as e:
             pytest.fail(f"Failed to import trading dependency: {e}")
 
     def test_notification_dependencies(self):
         """Test notification dependencies"""
         try:
-            import discord
+            import discord  # noqa: F401
         except ImportError as e:
             pytest.fail(f"Failed to import notification dependency: {e}")
 
     def test_web_dependencies(self):
         """Test web interface dependencies"""
         try:
-            import fastapi
-            import uvicorn
+            import fastapi  # noqa: F401
+            import uvicorn  # noqa: F401
         except ImportError as e:
             pytest.fail(f"Failed to import web dependency: {e}")
 
@@ -110,7 +111,7 @@ class TestEnvironmentConfiguration:
             "DEFAULT_SYMBOL",
             "MAX_RISK_PER_TRADE",
             "LOG_LEVEL",
-            "DATABASE_URL"
+            "DATABASE_URL",
         ]
 
         for var in required_vars:
@@ -137,12 +138,14 @@ class TestProjectConfiguration:
         """Test that pyproject.toml contains project information"""
         try:
             import tomllib
+
             pyproject_path = Path("pyproject.toml")
             with open(pyproject_path, "rb") as f:
                 config = tomllib.load(f)
         except ImportError:
             # Fallback for Python < 3.11
             import toml
+
             pyproject_path = Path("pyproject.toml")
             with open(pyproject_path, "r") as f:
                 config = toml.load(f)

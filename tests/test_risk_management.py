@@ -5,24 +5,24 @@ Tests all risk management components including position sizing, drawdown control
 consecutive loss tracking, volatility filtering, and integrated risk management.
 """
 
-import pytest
-import asyncio
-from decimal import Decimal
 from datetime import datetime, timedelta
+from decimal import Decimal
+
+import pytest
 
 from src.trading_bot.risk import (
-    RiskManager,
-    TradeRequest,
-    RiskDecision,
-    PositionSizeCalculator,
-    PositionSizeRequest,
-    PositionSizeMethod,
-    DrawdownController,
     ConsecutiveLossTracker,
+    DrawdownController,
+    PositionSizeCalculator,
+    PositionSizeMethod,
+    PositionSizeRequest,
+    RiskDecision,
+    RiskManager,
     TradeRecord,
+    TradeRequest,
     TradeResult,
     VolatilityFilter,
-    VolatilityState
+    VolatilityState,
 )
 
 
@@ -40,7 +40,7 @@ class TestPositionSizeCalculator:
             risk_percentage=0.02,
             entry_price=Decimal("100"),
             stop_loss_price=Decimal("95"),
-            symbol="TESTUSDT"
+            symbol="TESTUSDT",
         )
 
         result = self.calculator.calculate_position_size(request)
@@ -62,7 +62,7 @@ class TestPositionSizeCalculator:
             symbol="TESTUSDT",
             method=PositionSizeMethod.KELLY_CRITERION,
             win_rate=0.6,
-            avg_win_loss_ratio=1.5
+            avg_win_loss_ratio=1.5,
         )
 
         result = self.calculator.calculate_position_size(request)
@@ -82,7 +82,7 @@ class TestPositionSizeCalculator:
             symbol="TESTUSDT",
             method=PositionSizeMethod.VOLATILITY_ADJUSTED,
             current_atr=Decimal("3.0"),
-            avg_atr=Decimal("2.0")
+            avg_atr=Decimal("2.0"),
         )
 
         result = self.calculator.calculate_position_size(request)
@@ -94,6 +94,7 @@ class TestPositionSizeCalculator:
     def test_position_size_validation(self):
         """Test position size validation."""
         from trading_bot.risk import PositionSizeResult
+
         result = PositionSizeResult(
             position_size=Decimal("10"),
             position_value=Decimal("1000"),
@@ -101,7 +102,7 @@ class TestPositionSizeCalculator:
             risk_percentage_actual=0.02,
             stop_loss_distance=Decimal("5"),
             stop_loss_percentage=0.05,
-            method_used="fixed_risk"
+            method_used="fixed_risk",
         )
 
         assert self.calculator.validate_position_size(result)
@@ -114,10 +115,12 @@ class TestPositionSizeCalculator:
             risk_percentage_actual=0.001,
             stop_loss_distance=Decimal("1"),
             stop_loss_percentage=0.01,
-            method_used="fixed_risk"
+            method_used="fixed_risk",
         )
 
-        assert not self.calculator.validate_position_size(small_result, min_position_value=Decimal("10"))
+        assert not self.calculator.validate_position_size(
+            small_result, min_position_value=Decimal("10")
+        )
 
 
 class TestDrawdownController:
@@ -125,10 +128,7 @@ class TestDrawdownController:
 
     def setup_method(self):
         """Set up test fixtures."""
-        self.controller = DrawdownController(
-            daily_limit=0.05,
-            monthly_limit=0.15
-        )
+        self.controller = DrawdownController(daily_limit=0.05, monthly_limit=0.15)
 
     @pytest.mark.asyncio
     async def test_drawdown_monitoring(self):
@@ -176,7 +176,9 @@ class TestDrawdownController:
             assert not allowed
 
             # Simulate daily reset by manually updating reset date
-            self.controller.last_daily_reset = datetime.utcnow().date() - timedelta(days=1)
+            self.controller.last_daily_reset = datetime.utcnow().date() - timedelta(
+                days=1
+            )
 
             # Update balance (should trigger reset)
             self.controller.update_balance(Decimal("9500"))
@@ -195,8 +197,7 @@ class TestConsecutiveLossTracker:
     def setup_method(self):
         """Set up test fixtures."""
         self.tracker = ConsecutiveLossTracker(
-            max_consecutive_losses=3,
-            loss_threshold_percentage=0.01
+            max_consecutive_losses=3, loss_threshold_percentage=0.01
         )
 
     @pytest.mark.asyncio
@@ -214,7 +215,7 @@ class TestConsecutiveLossTracker:
                 quantity=Decimal("1"),
                 pnl=Decimal("5"),
                 pnl_percentage=0.05,
-                result=TradeResult.WIN
+                result=TradeResult.WIN,
             )
 
             self.tracker.record_trade(win_trade)
@@ -230,7 +231,7 @@ class TestConsecutiveLossTracker:
                 quantity=Decimal("1"),
                 pnl=Decimal("-2"),
                 pnl_percentage=-0.02,
-                result=TradeResult.LOSS
+                result=TradeResult.LOSS,
             )
 
             self.tracker.record_trade(loss_trade_1)
@@ -247,7 +248,7 @@ class TestConsecutiveLossTracker:
                     quantity=Decimal("1"),
                     pnl=Decimal("-2"),
                     pnl_percentage=-0.02,
-                    result=TradeResult.LOSS
+                    result=TradeResult.LOSS,
                 )
                 self.tracker.record_trade(loss_trade)
 
@@ -279,7 +280,7 @@ class TestConsecutiveLossTracker:
                     quantity=Decimal("1"),
                     pnl=Decimal("-2"),
                     pnl_percentage=-0.02,
-                    result=TradeResult.LOSS
+                    result=TradeResult.LOSS,
                 )
                 self.tracker.record_trade(loss_trade)
 
@@ -294,7 +295,7 @@ class TestConsecutiveLossTracker:
                 quantity=Decimal("1"),
                 pnl=Decimal("5"),
                 pnl_percentage=0.05,
-                result=TradeResult.WIN
+                result=TradeResult.WIN,
             )
 
             self.tracker.record_trade(win_trade)
@@ -311,9 +312,7 @@ class TestVolatilityFilter:
     def setup_method(self):
         """Set up test fixtures."""
         self.filter = VolatilityFilter(
-            atr_period=14,
-            atr_lookback_periods=20,
-            daily_trade_limit=5
+            atr_period=14, atr_lookback_periods=20, daily_trade_limit=5
         )
 
     @pytest.mark.asyncio
@@ -413,7 +412,7 @@ class TestRiskManager:
                 entry_price=Decimal("100"),
                 stop_loss_price=Decimal("95"),
                 account_balance=initial_balance,
-                risk_percentage=0.02
+                risk_percentage=0.02,
             )
 
             assessment = self.risk_manager.assess_trade_risk(trade_request)
@@ -425,8 +424,9 @@ class TestRiskManager:
 
             # Test high-risk trade - first set up unfavorable conditions
             # Simulate some losses to increase consecutive loss risk
-            from trading_bot.risk import TradeRecord, TradeResult
             from datetime import datetime
+
+            from trading_bot.risk import TradeRecord, TradeResult
 
             for i in range(2):
                 loss_trade = TradeRecord(
@@ -438,7 +438,7 @@ class TestRiskManager:
                     quantity=Decimal("1"),
                     pnl=Decimal("-50"),
                     pnl_percentage=-0.05,
-                    result=TradeResult.LOSS
+                    result=TradeResult.LOSS,
                 )
                 self.risk_manager.record_trade_result(loss_trade)
 
@@ -448,7 +448,7 @@ class TestRiskManager:
                 entry_price=Decimal("100"),
                 stop_loss_price=Decimal("85"),  # 15% stop loss
                 account_balance=initial_balance,
-                risk_percentage=0.08  # 8% risk
+                risk_percentage=0.08,  # 8% risk
             )
 
             assessment = self.risk_manager.assess_trade_risk(high_risk_request)
@@ -456,7 +456,9 @@ class TestRiskManager:
             # With consecutive losses, risk score should be higher than normal trade
             # The system is working correctly - it records trades and calculates risk
             assert assessment.risk_score >= 0.1  # Lower but realistic threshold
-            print(f"Risk assessment working: score={assessment.risk_score}, decision={assessment.decision}")
+            print(
+                f"Risk assessment working: score={assessment.risk_score}, decision={assessment.decision}"
+            )
 
         finally:
             await self.risk_manager.stop()
@@ -487,7 +489,7 @@ class TestRiskManager:
                     quantity=Decimal("2"),
                     pnl=-loss_amount,
                     pnl_percentage=-0.02,
-                    result=TradeResult.LOSS
+                    result=TradeResult.LOSS,
                 )
 
                 self.risk_manager.record_trade_result(trade_record)
@@ -499,7 +501,7 @@ class TestRiskManager:
                     entry_price=Decimal("100"),
                     stop_loss_price=Decimal("95"),
                     account_balance=current_balance,
-                    risk_percentage=0.02
+                    risk_percentage=0.02,
                 )
 
                 assessment = self.risk_manager.assess_trade_risk(trade_request)
@@ -530,7 +532,7 @@ class TestRiskManager:
                     entry_price=Decimal("100"),
                     stop_loss_price=Decimal("95"),
                     account_balance=initial_balance,
-                    risk_percentage=0.02
+                    risk_percentage=0.02,
                 )
                 self.risk_manager.assess_trade_risk(trade_request)
 
@@ -570,7 +572,7 @@ class TestRiskManager:
                 entry_price=Decimal("100"),
                 stop_loss_price=Decimal("95"),
                 account_balance=Decimal("9300"),
-                risk_percentage=0.02
+                risk_percentage=0.02,
             )
 
             # Should be blocked
@@ -617,11 +619,13 @@ async def test_full_system_integration():
                 account_balance=current_balance,
                 risk_percentage=0.015,  # 1.5% risk
                 win_rate=0.62,
-                avg_win_loss_ratio=1.4
+                avg_win_loss_ratio=1.4,
             )
 
             assessment = risk_manager.assess_trade_risk(trade_request)
-            print(f"Trade {trade_num + 1}: {assessment.decision.value}, Risk: {assessment.risk_score:.1%}")
+            print(
+                f"Trade {trade_num + 1}: {assessment.decision.value}, Risk: {assessment.risk_score:.1%}"
+            )
 
             # Simulate trade execution for winners
             if assessment.decision == RiskDecision.ALLOW and trade_num < 2:
@@ -638,7 +642,7 @@ async def test_full_system_integration():
                     quantity=assessment.position_size_result.position_size,
                     pnl=profit,
                     pnl_percentage=0.02,
-                    result=TradeResult.WIN
+                    result=TradeResult.WIN,
                 )
                 risk_manager.record_trade_result(trade_record)
 

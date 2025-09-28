@@ -245,40 +245,25 @@ class SignalEventPublisher:
                 validation_errors.append(f"Missing required field: {field}")
 
         # Check confluence validation requirement
-        if (
-            self.config.require_confluence_validation
-            and confluence_result is None
-        ):
-            validation_errors.append(
-                "Confluence validation required but not provided"
-            )
+        if self.config.require_confluence_validation and confluence_result is None:
+            validation_errors.append("Confluence validation required but not provided")
 
         if confluence_result and not confluence_result.is_valid:
             validation_errors.append("Signal failed confluence validation")
 
         # Check strength calculation requirement
-        if (
-            self.config.require_strength_calculation
-            and strength_result is None
-        ):
-            validation_errors.append(
-                "Strength calculation required but not provided"
-            )
+        if self.config.require_strength_calculation and strength_result is None:
+            validation_errors.append("Strength calculation required but not provided")
 
         if strength_result:
-            if (
-                strength_result.weighted_score
-                < self.config.minimum_strength_score
-            ):
+            if strength_result.weighted_score < self.config.minimum_strength_score:
                 validation_errors.append(
                     f"Signal strength {strength_result.weighted_score:.2f} below minimum {self.config.minimum_strength_score}"
                 )
 
         # Check bias filtering requirement
         if self.config.require_bias_filtering and filter_result is None:
-            validation_errors.append(
-                "Bias filtering required but not provided"
-            )
+            validation_errors.append("Bias filtering required but not provided")
 
         if filter_result and not filter_result.is_allowed:
             validation_errors.append("Signal failed bias filtering")
@@ -323,13 +308,9 @@ class SignalEventPublisher:
 
         # Extract scores
         confidence_score = signal_data.get("confidence_score", 0.0)
-        strength_score = (
-            strength_result.weighted_score if strength_result else 0.0
-        )
+        strength_score = strength_result.weighted_score if strength_result else 0.0
         confluence_level = (
-            confluence_result.confluence_level.value
-            if confluence_result
-            else "unknown"
+            confluence_result.confluence_level.value if confluence_result else "unknown"
         )
         filter_passed = filter_result.is_allowed if filter_result else False
 
@@ -353,9 +334,7 @@ class SignalEventPublisher:
             "confluence_details": (
                 asdict(confluence_result) if confluence_result else None
             ),
-            "strength_details": (
-                asdict(strength_result) if strength_result else None
-            ),
+            "strength_details": (asdict(strength_result) if strength_result else None),
             "filter_details": asdict(filter_result) if filter_result else None,
             "original_signal_data": signal_data,
         }

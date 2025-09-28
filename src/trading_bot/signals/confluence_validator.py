@@ -132,9 +132,7 @@ class ConfluenceValidator:
                     signal_data, market_data
                 )
                 validation_results["structural"] = structural_result
-                confidence_scores["structural"] = structural_result[
-                    "confidence"
-                ]
+                confidence_scores["structural"] = structural_result["confidence"]
 
                 if structural_result["valid"]:
                     met_criteria.append(ConfluenceType.STRUCTURAL)
@@ -207,9 +205,7 @@ class ConfluenceValidator:
                     failed_criteria.append(ConfluenceType.SENTIMENT)
 
             # Calculate overall confidence score
-            overall_confidence = self._calculate_overall_confidence(
-                confidence_scores
-            )
+            overall_confidence = self._calculate_overall_confidence(confidence_scores)
 
             # Determine confluence level
             confluence_level = self._determine_confluence_level(
@@ -255,9 +251,7 @@ class ConfluenceValidator:
                 data = market_data[timeframe]
 
                 # Analyze market structure
-                structure_analysis = self.structure_analyzer.analyze_structure(
-                    data
-                )
+                structure_analysis = self.structure_analyzer.analyze_structure(data)
 
                 if not structure_analysis:
                     continue
@@ -270,9 +264,7 @@ class ConfluenceValidator:
                 alignment_score = 0.0
                 if signal_direction == "long" and structure_bias == "bullish":
                     alignment_score = 1.0
-                elif (
-                    signal_direction == "short" and structure_bias == "bearish"
-                ):
+                elif signal_direction == "short" and structure_bias == "bearish":
                     alignment_score = 1.0
                 elif structure_bias == "neutral":
                     alignment_score = 0.5
@@ -308,9 +300,7 @@ class ConfluenceValidator:
             }
 
         except Exception as e:
-            self.logger.error(
-                f"Error in structural confluence validation: {e}"
-            )
+            self.logger.error(f"Error in structural confluence validation: {e}")
             return {
                 "valid": False,
                 "confidence": 0.0,
@@ -336,9 +326,7 @@ class ConfluenceValidator:
 
             for timeframe, data in market_data.items():
                 # Check Order Block patterns
-                order_blocks = self.order_block_detector.detect_order_blocks(
-                    data
-                )
+                order_blocks = self.order_block_detector.detect_order_blocks(data)
                 if order_blocks:
                     ob_confirmation = self._check_order_block_confluence(
                         order_blocks, signal_data, timeframe
@@ -395,9 +383,7 @@ class ConfluenceValidator:
             temporal_factors.append(session_alignment)
 
             # Check market hours
-            market_hours_alignment = self._check_market_hours_alignment(
-                signal_time
-            )
+            market_hours_alignment = self._check_market_hours_alignment(signal_time)
             temporal_factors.append(market_hours_alignment)
 
             # Check news time avoidance
@@ -444,9 +430,7 @@ class ConfluenceValidator:
                 recent_volume = data["volume"].tail(20).mean()
                 volume_sma = data["volume"].rolling(50).mean().iloc[-1]
 
-                volume_ratio = (
-                    recent_volume / volume_sma if volume_sma > 0 else 0
-                )
+                volume_ratio = recent_volume / volume_sma if volume_sma > 0 else 0
 
                 # Check volume confirmation
                 volume_confirmation = {
@@ -459,9 +443,7 @@ class ConfluenceValidator:
 
             # Calculate volume confidence
             valid_volumes = [v for v in volume_confirmations if v["valid"]]
-            volume_confidence = len(valid_volumes) / max(
-                1, len(volume_confirmations)
-            )
+            volume_confidence = len(valid_volumes) / max(1, len(volume_confirmations))
 
             is_valid = volume_confidence >= 0.5
 
@@ -514,16 +496,13 @@ class ConfluenceValidator:
                     {
                         "timeframe": timeframe,
                         "rsi": rsi.iloc[-1],
-                        "macd_bullish": macd_line.iloc[-1]
-                        > macd_signal.iloc[-1],
+                        "macd_bullish": macd_line.iloc[-1] > macd_signal.iloc[-1],
                         "aligned": momentum_aligned,
                     }
                 )
 
             # Calculate momentum confidence
-            aligned_momentum = [
-                m for m in momentum_confirmations if m["aligned"]
-            ]
+            aligned_momentum = [m for m in momentum_confirmations if m["aligned"]]
             momentum_confidence = len(aligned_momentum) / max(
                 1, len(momentum_confirmations)
             )
@@ -584,17 +563,11 @@ class ConfluenceValidator:
 
             for factor in sentiment_factors:
                 if (
-                    signal_direction == "long"
-                    and factor["sentiment"] == "bullish"
-                ) or (
-                    signal_direction == "short"
-                    and factor["sentiment"] == "bearish"
-                ):
+                    signal_direction == "long" and factor["sentiment"] == "bullish"
+                ) or (signal_direction == "short" and factor["sentiment"] == "bearish"):
                     aligned_sentiment += 1
 
-            sentiment_confidence = aligned_sentiment / max(
-                1, len(sentiment_factors)
-            )
+            sentiment_confidence = aligned_sentiment / max(1, len(sentiment_factors))
             is_valid = sentiment_confidence >= 0.5
 
             return {
@@ -668,9 +641,7 @@ class ConfluenceValidator:
             "relevant_patterns": len(relevant_fvgs),
         }
 
-    def _check_session_alignment(
-        self, signal_time: datetime
-    ) -> Dict[str, Any]:
+    def _check_session_alignment(self, signal_time: datetime) -> Dict[str, Any]:
         """Check if signal timing aligns with optimal trading sessions"""
         # London session: 8:00-17:00 GMT
         # New York session: 13:00-22:00 GMT
@@ -683,9 +654,7 @@ class ConfluenceValidator:
         in_london = 8 <= hour_utc <= 17
         in_newyork = 13 <= hour_utc <= 22
 
-        session_score = (
-            1.0 if in_overlap else 0.7 if (in_london or in_newyork) else 0.3
-        )
+        session_score = 1.0 if in_overlap else 0.7 if (in_london or in_newyork) else 0.3
 
         return {
             "valid": session_score >= 0.7,
@@ -698,9 +667,7 @@ class ConfluenceValidator:
             },
         }
 
-    def _check_market_hours_alignment(
-        self, signal_time: datetime
-    ) -> Dict[str, Any]:
+    def _check_market_hours_alignment(self, signal_time: datetime) -> Dict[str, Any]:
         """Check if signal is during active market hours"""
         # Avoid weekends and major holidays
         weekday = signal_time.weekday()  # 0=Monday, 6=Sunday
@@ -713,9 +680,7 @@ class ConfluenceValidator:
             "details": {"weekday": weekday, "is_weekend": not is_weekday},
         }
 
-    def _check_news_time_alignment(
-        self, signal_time: datetime
-    ) -> Dict[str, Any]:
+    def _check_news_time_alignment(self, signal_time: datetime) -> Dict[str, Any]:
         """Check if signal avoids high-impact news times"""
         # Simplified: avoid first and last 30 minutes of major sessions
         hour_utc = signal_time.hour
@@ -811,9 +776,7 @@ class ConfluenceValidator:
         self, met_criteria: List[ConfluenceType], confidence_score: float
     ) -> bool:
         """Determine if signal meets validation requirements"""
-        criteria_met = (
-            len(met_criteria) >= self.config.minimum_confluence_count
-        )
+        criteria_met = len(met_criteria) >= self.config.minimum_confluence_count
         confidence_met = confidence_score >= self.config.confidence_threshold
 
         if self.config.strict_mode:

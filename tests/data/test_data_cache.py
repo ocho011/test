@@ -5,17 +5,16 @@ Test cases cover cache storage, retrieval, compression,
 data integrity, cache management, and performance optimization.
 """
 
-import pytest
 import asyncio
-import json
 import gzip
-import time
-import tempfile
 import shutil
+import tempfile
+import time
 from pathlib import Path
-from unittest.mock import Mock, patch
 
-from trading_bot.data.data_cache import DataCache, CacheEntry, CacheStats
+import pytest
+
+from trading_bot.data.data_cache import DataCache
 
 
 class TestDataCache:
@@ -35,16 +34,16 @@ class TestDataCache:
             cache_dir=temp_cache_dir,
             max_cache_size_gb=0.1,  # 100MB for testing
             max_age_days=1,
-            compression_enabled=True
+            compression_enabled=True,
         )
 
     @pytest.fixture
     def sample_kline_data(self):
         """Sample kline data for testing."""
         return [
-            ['1640995200000', '50000.00', '50100.00', '49900.00', '50050.00', '100.0'],
-            ['1640995500000', '50050.00', '50150.00', '49950.00', '50100.00', '95.5'],
-            ['1640995800000', '50100.00', '50200.00', '50000.00', '50150.00', '110.2']
+            ["1640995200000", "50000.00", "50100.00", "49900.00", "50050.00", "100.0"],
+            ["1640995500000", "50050.00", "50150.00", "49950.00", "50100.00", "95.5"],
+            ["1640995800000", "50100.00", "50200.00", "50000.00", "50150.00", "110.2"],
         ]
 
     @pytest.mark.asyncio
@@ -124,7 +123,9 @@ class TestDataCache:
     async def test_cache_miss(self, cache):
         """Test cache miss behavior."""
         # Try to get non-existent data
-        data = await cache.get_kline_data("ETHUSDT", "15m", 1640995200000, 1640995800000)
+        data = await cache.get_kline_data(
+            "ETHUSDT", "15m", 1640995200000, 1640995800000
+        )
 
         assert data is None
 
@@ -151,7 +152,7 @@ class TestDataCache:
         entry = cache._entries[cache_key]
 
         # Write corrupted data
-        with gzip.open(entry.file_path, 'wt') as f:
+        with gzip.open(entry.file_path, "wt") as f:
             f.write('{"corrupted": "data"}')
 
         # Try to retrieve - should detect corruption and return None
@@ -188,10 +189,7 @@ class TestDataCache:
     @pytest.mark.asyncio
     async def test_compression_toggle(self, temp_cache_dir, sample_kline_data):
         """Test cache with compression disabled."""
-        cache = DataCache(
-            cache_dir=temp_cache_dir,
-            compression_enabled=False
-        )
+        cache = DataCache(cache_dir=temp_cache_dir, compression_enabled=False)
 
         symbol = "BTCUSDT"
         interval = "5m"
@@ -224,7 +222,11 @@ class TestDataCache:
         # Store multiple entries to exceed limit
         for i in range(10):
             await cache.store_kline_data(
-                f"SYMBOL{i}", "5m", 1640995200000 + i, 1640995800000 + i, sample_kline_data
+                f"SYMBOL{i}",
+                "5m",
+                1640995200000 + i,
+                1640995800000 + i,
+                sample_kline_data,
             )
 
         # Cache should have evicted older entries
@@ -236,9 +238,15 @@ class TestDataCache:
     async def test_clear_symbol(self, cache, sample_kline_data):
         """Test clearing cache entries for specific symbol."""
         # Store data for multiple symbols
-        await cache.store_kline_data("BTCUSDT", "5m", 1640995200000, 1640995800000, sample_kline_data)
-        await cache.store_kline_data("ETHUSDT", "5m", 1640995200000, 1640995800000, sample_kline_data)
-        await cache.store_kline_data("BTCUSDT", "15m", 1640995200000, 1640995800000, sample_kline_data)
+        await cache.store_kline_data(
+            "BTCUSDT", "5m", 1640995200000, 1640995800000, sample_kline_data
+        )
+        await cache.store_kline_data(
+            "ETHUSDT", "5m", 1640995200000, 1640995800000, sample_kline_data
+        )
+        await cache.store_kline_data(
+            "BTCUSDT", "15m", 1640995200000, 1640995800000, sample_kline_data
+        )
 
         initial_count = len(cache._entries)
         assert initial_count == 3
@@ -257,8 +265,12 @@ class TestDataCache:
     async def test_clear_all(self, cache, sample_kline_data):
         """Test clearing all cache entries."""
         # Store multiple entries
-        await cache.store_kline_data("BTCUSDT", "5m", 1640995200000, 1640995800000, sample_kline_data)
-        await cache.store_kline_data("ETHUSDT", "15m", 1640995200000, 1640995800000, sample_kline_data)
+        await cache.store_kline_data(
+            "BTCUSDT", "5m", 1640995200000, 1640995800000, sample_kline_data
+        )
+        await cache.store_kline_data(
+            "ETHUSDT", "15m", 1640995200000, 1640995800000, sample_kline_data
+        )
 
         assert len(cache._entries) == 2
 
@@ -277,7 +289,9 @@ class TestDataCache:
     async def test_cleanup_expired(self, cache, sample_kline_data):
         """Test cleanup of expired entries."""
         # Store data
-        await cache.store_kline_data("BTCUSDT", "5m", 1640995200000, 1640995800000, sample_kline_data)
+        await cache.store_kline_data(
+            "BTCUSDT", "5m", 1640995200000, 1640995800000, sample_kline_data
+        )
 
         # Manually expire entry
         entry = list(cache._entries.values())[0]
@@ -293,29 +307,37 @@ class TestDataCache:
     async def test_cache_info(self, cache, sample_kline_data):
         """Test cache information reporting."""
         # Store some data
-        await cache.store_kline_data("BTCUSDT", "5m", 1640995200000, 1640995800000, sample_kline_data)
+        await cache.store_kline_data(
+            "BTCUSDT", "5m", 1640995200000, 1640995800000, sample_kline_data
+        )
 
         cache_info = cache.get_cache_info()
 
-        assert 'cache_dir' in cache_info
-        assert 'max_size_gb' in cache_info
-        assert 'current_size_gb' in cache_info
-        assert 'compression_enabled' in cache_info
-        assert 'total_entries' in cache_info
-        assert 'hit_count' in cache_info
-        assert 'miss_count' in cache_info
-        assert 'hit_rate' in cache_info
+        assert "cache_dir" in cache_info
+        assert "max_size_gb" in cache_info
+        assert "current_size_gb" in cache_info
+        assert "compression_enabled" in cache_info
+        assert "total_entries" in cache_info
+        assert "hit_count" in cache_info
+        assert "miss_count" in cache_info
+        assert "hit_rate" in cache_info
 
-        assert cache_info['total_entries'] == 1
-        assert cache_info['compression_enabled'] is True
+        assert cache_info["total_entries"] == 1
+        assert cache_info["compression_enabled"] is True
 
     @pytest.mark.asyncio
     async def test_list_cached_symbols(self, cache, sample_kline_data):
         """Test listing cached symbols and intervals."""
         # Store data for different symbols and intervals
-        await cache.store_kline_data("BTCUSDT", "5m", 1640995200000, 1640995800000, sample_kline_data)
-        await cache.store_kline_data("BTCUSDT", "15m", 1640995200000, 1640995800000, sample_kline_data)
-        await cache.store_kline_data("ETHUSDT", "5m", 1640995200000, 1640995800000, sample_kline_data)
+        await cache.store_kline_data(
+            "BTCUSDT", "5m", 1640995200000, 1640995800000, sample_kline_data
+        )
+        await cache.store_kline_data(
+            "BTCUSDT", "15m", 1640995200000, 1640995800000, sample_kline_data
+        )
+        await cache.store_kline_data(
+            "ETHUSDT", "5m", 1640995200000, 1640995800000, sample_kline_data
+        )
 
         symbols = cache.list_cached_symbols()
 
@@ -329,7 +351,9 @@ class TestDataCache:
     async def test_optimize_cache(self, cache, sample_kline_data):
         """Test cache optimization."""
         # Store some data with an expired entry
-        await cache.store_kline_data("BTCUSDT", "5m", 1640995200000, 1640995800000, sample_kline_data)
+        await cache.store_kline_data(
+            "BTCUSDT", "5m", 1640995200000, 1640995800000, sample_kline_data
+        )
 
         # Expire one entry
         entry = list(cache._entries.values())[0]
@@ -338,10 +362,10 @@ class TestDataCache:
         # Run optimization
         results = await cache.optimize_cache()
 
-        assert 'expired_removed' in results
-        assert 'total_entries' in results
-        assert 'total_size_mb' in results
-        assert results['expired_removed'] == 1
+        assert "expired_removed" in results
+        assert "total_entries" in results
+        assert "total_size_mb" in results
+        assert results["expired_removed"] == 1
 
     @pytest.mark.asyncio
     async def test_concurrent_access(self, cache, sample_kline_data):
@@ -352,7 +376,9 @@ class TestDataCache:
         end_time = 1640995800000
 
         # Store data first
-        await cache.store_kline_data(symbol, interval, start_time, end_time, sample_kline_data)
+        await cache.store_kline_data(
+            symbol, interval, start_time, end_time, sample_kline_data
+        )
 
         async def read_cache():
             return await cache.get_kline_data(symbol, interval, start_time, end_time)
@@ -367,7 +393,7 @@ class TestDataCache:
             read_cache(),
             read_cache(),
             write_cache(sample_kline_data),
-            read_cache()
+            read_cache(),
         ]
 
         results = await asyncio.gather(*tasks)
@@ -382,7 +408,9 @@ class TestDataCache:
     async def test_empty_data_handling(self, cache):
         """Test handling of empty data."""
         # Try to store empty data
-        success = await cache.store_kline_data("BTCUSDT", "5m", 1640995200000, 1640995800000, [])
+        success = await cache.store_kline_data(
+            "BTCUSDT", "5m", 1640995200000, 1640995800000, []
+        )
 
         assert success is False
         assert len(cache._entries) == 0
@@ -396,14 +424,16 @@ class TestDataCache:
         end_time = 1640995800000
 
         # Store data
-        await cache.store_kline_data(symbol, interval, start_time, end_time, sample_kline_data)
+        await cache.store_kline_data(
+            symbol, interval, start_time, end_time, sample_kline_data
+        )
 
         cache_key = cache._generate_cache_key(symbol, interval, start_time, end_time)
         entry = cache._entries[cache_key]
 
         # Corrupt file by making it unreadable
-        with open(entry.file_path, 'wb') as f:
-            f.write(b'corrupted binary data')
+        with open(entry.file_path, "wb") as f:
+            f.write(b"corrupted binary data")
 
         # Try to read - should handle corruption gracefully
         data = await cache.get_kline_data(symbol, interval, start_time, end_time)
@@ -416,7 +446,9 @@ class TestDataCache:
         """Test cache metadata persistence across restarts."""
         # Create cache and store data
         cache1 = DataCache(cache_dir=temp_cache_dir)
-        await cache1.store_kline_data("BTCUSDT", "5m", 1640995200000, 1640995800000, sample_kline_data)
+        await cache1.store_kline_data(
+            "BTCUSDT", "5m", 1640995200000, 1640995800000, sample_kline_data
+        )
 
         assert len(cache1._entries) == 1
 
@@ -427,16 +459,22 @@ class TestDataCache:
         assert len(cache2._entries) == 1
 
         # Should be able to retrieve data
-        data = await cache2.get_kline_data("BTCUSDT", "5m", 1640995200000, 1640995800000)
+        data = await cache2.get_kline_data(
+            "BTCUSDT", "5m", 1640995200000, 1640995800000
+        )
         assert data == sample_kline_data
 
     @pytest.mark.asyncio
     async def test_missing_file_handling(self, cache, sample_kline_data):
         """Test handling when cache file is missing."""
         # Store data
-        await cache.store_kline_data("BTCUSDT", "5m", 1640995200000, 1640995800000, sample_kline_data)
+        await cache.store_kline_data(
+            "BTCUSDT", "5m", 1640995200000, 1640995800000, sample_kline_data
+        )
 
-        cache_key = cache._generate_cache_key("BTCUSDT", "5m", 1640995200000, 1640995800000)
+        cache_key = cache._generate_cache_key(
+            "BTCUSDT", "5m", 1640995200000, 1640995800000
+        )
         entry = cache._entries[cache_key]
 
         # Delete the cache file
@@ -458,7 +496,9 @@ class TestDataCache:
         assert stats.total_entries == 0
 
         # Store data
-        await cache.store_kline_data("BTCUSDT", "5m", 1640995200000, 1640995800000, sample_kline_data)
+        await cache.store_kline_data(
+            "BTCUSDT", "5m", 1640995200000, 1640995800000, sample_kline_data
+        )
 
         stats = cache.get_stats()
         assert stats.total_entries == 1

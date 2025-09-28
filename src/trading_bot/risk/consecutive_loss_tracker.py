@@ -5,11 +5,10 @@ This module tracks consecutive losing trades and implements automatic trading ha
 when the configured threshold is reached, with pattern analysis and recovery conditions.
 """
 
-import logging
 from datetime import datetime, timedelta
 from decimal import Decimal
-from typing import Dict, List, Optional, Tuple
 from enum import Enum
+from typing import Dict, List, Optional, Tuple
 
 from pydantic import BaseModel, Field
 
@@ -64,7 +63,7 @@ class ConsecutiveLossTracker(BaseComponent):
         max_consecutive_losses: int = 3,
         loss_threshold_percentage: float = 0.01,  # 1% minimum loss to count
         cooldown_period_hours: int = 24,  # Hours to wait before allowing trading
-        streak_reset_hours: int = 48  # Hours without trading to reset streak
+        streak_reset_hours: int = 48,  # Hours without trading to reset streak
     ):
         """
         Initialize consecutive loss tracker.
@@ -119,7 +118,9 @@ class ConsecutiveLossTracker(BaseComponent):
         Args:
             trade: Completed trade record
         """
-        self.logger.debug(f"Recording trade {trade.trade_id}: {trade.result.value}, P&L: {trade.pnl}")
+        self.logger.debug(
+            f"Recording trade {trade.trade_id}: {trade.result.value}, P&L: {trade.pnl}"
+        )
 
         # Add to history
         self.trade_history.append(trade)
@@ -150,7 +151,10 @@ class ConsecutiveLossTracker(BaseComponent):
 
     def _update_consecutive_loss_tracking(self, trade: TradeRecord) -> None:
         """Update consecutive loss tracking based on trade result."""
-        if trade.result == TradeResult.LOSS and abs(trade.pnl_percentage) >= self.loss_threshold_percentage:
+        if (
+            trade.result == TradeResult.LOSS
+            and abs(trade.pnl_percentage) >= self.loss_threshold_percentage
+        ):
             # Consecutive loss detected
             self.current_consecutive_losses += 1
 
@@ -160,7 +164,7 @@ class ConsecutiveLossTracker(BaseComponent):
                     start_timestamp=trade.timestamp,
                     trade_count=1,
                     total_loss=abs(trade.pnl),
-                    total_loss_percentage=abs(trade.pnl_percentage)
+                    total_loss_percentage=abs(trade.pnl_percentage),
                 )
             else:
                 # Continue existing streak
@@ -196,8 +200,10 @@ class ConsecutiveLossTracker(BaseComponent):
 
     def _check_halt_conditions(self) -> None:
         """Check if trading should be halted due to consecutive losses."""
-        if (self.current_consecutive_losses >= self.max_consecutive_losses and
-            not self.trading_halted):
+        if (
+            self.current_consecutive_losses >= self.max_consecutive_losses
+            and not self.trading_halted
+        ):
 
             reason = (
                 f"Maximum consecutive losses reached: {self.current_consecutive_losses} "
@@ -252,7 +258,10 @@ class ConsecutiveLossTracker(BaseComponent):
 
         # Check if we're too close to the limit
         if self.current_consecutive_losses >= self.max_consecutive_losses - 1:
-            return False, f"Near consecutive loss limit ({self.current_consecutive_losses}/{self.max_consecutive_losses})"
+            return (
+                False,
+                f"Near consecutive loss limit ({self.current_consecutive_losses}/{self.max_consecutive_losses})",
+            )
 
         return True, None
 
@@ -263,23 +272,47 @@ class ConsecutiveLossTracker(BaseComponent):
             "max_consecutive_losses": self.max_consecutive_losses,
             "trading_halted": self.trading_halted,
             "halt_reason": self.halt_reason,
-            "halt_timestamp": self.halt_timestamp.isoformat() if self.halt_timestamp else None,
-            "current_streak": {
-                "start_timestamp": self.current_streak.start_timestamp.isoformat() if self.current_streak else None,
-                "trade_count": self.current_streak.trade_count if self.current_streak else 0,
-                "total_loss": float(self.current_streak.total_loss) if self.current_streak else 0.0,
-                "total_loss_percentage": self.current_streak.total_loss_percentage if self.current_streak else 0.0
-            } if self.current_streak else None,
+            "halt_timestamp": (
+                self.halt_timestamp.isoformat() if self.halt_timestamp else None
+            ),
+            "current_streak": (
+                {
+                    "start_timestamp": (
+                        self.current_streak.start_timestamp.isoformat()
+                        if self.current_streak
+                        else None
+                    ),
+                    "trade_count": (
+                        self.current_streak.trade_count if self.current_streak else 0
+                    ),
+                    "total_loss": (
+                        float(self.current_streak.total_loss)
+                        if self.current_streak
+                        else 0.0
+                    ),
+                    "total_loss_percentage": (
+                        self.current_streak.total_loss_percentage
+                        if self.current_streak
+                        else 0.0
+                    ),
+                }
+                if self.current_streak
+                else None
+            ),
             "statistics": {
                 "total_trades": self.total_trades,
                 "total_wins": self.total_wins,
                 "total_losses": self.total_losses,
                 "total_breakevens": self.total_breakevens,
-                "win_rate": self.total_wins / self.total_trades if self.total_trades > 0 else 0.0,
-                "longest_loss_streak": self.longest_loss_streak
+                "win_rate": (
+                    self.total_wins / self.total_trades
+                    if self.total_trades > 0
+                    else 0.0
+                ),
+                "longest_loss_streak": self.longest_loss_streak,
             },
             "recent_trades": len(self.trade_history),
-            "loss_streaks_count": len(self.loss_streaks)
+            "loss_streaks_count": len(self.loss_streaks),
         }
 
     def get_loss_pattern_analysis(self) -> Dict[str, any]:
@@ -301,11 +334,21 @@ class ConsecutiveLossTracker(BaseComponent):
         # Time between streaks
         time_between_streaks = []
         for i in range(1, len(completed_streaks)):
-            if completed_streaks[i-1].end_timestamp and completed_streaks[i].start_timestamp:
-                time_diff = completed_streaks[i].start_timestamp - completed_streaks[i-1].end_timestamp
+            if (
+                completed_streaks[i - 1].end_timestamp
+                and completed_streaks[i].start_timestamp
+            ):
+                time_diff = (
+                    completed_streaks[i].start_timestamp
+                    - completed_streaks[i - 1].end_timestamp
+                )
                 time_between_streaks.append(time_diff.total_seconds() / 3600)  # Hours
 
-        avg_time_between = sum(time_between_streaks) / len(time_between_streaks) if time_between_streaks else 0
+        avg_time_between = (
+            sum(time_between_streaks) / len(time_between_streaks)
+            if time_between_streaks
+            else 0
+        )
 
         return {
             "total_streaks": len(completed_streaks),
@@ -321,10 +364,10 @@ class ConsecutiveLossTracker(BaseComponent):
                     "end": s.end_timestamp.isoformat() if s.end_timestamp else None,
                     "trade_count": s.trade_count,
                     "total_loss": float(s.total_loss),
-                    "total_loss_percentage": s.total_loss_percentage
+                    "total_loss_percentage": s.total_loss_percentage,
                 }
                 for s in completed_streaks[-5:]  # Last 5 streaks
-            ]
+            ],
         }
 
     def reset_streak(self, reason: str = "Manual reset") -> None:
@@ -355,20 +398,26 @@ class ConsecutiveLossTracker(BaseComponent):
         self,
         max_consecutive_losses: Optional[int] = None,
         loss_threshold_percentage: Optional[float] = None,
-        cooldown_period_hours: Optional[int] = None
+        cooldown_period_hours: Optional[int] = None,
     ) -> None:
         """Update tracker settings."""
         if max_consecutive_losses is not None:
             self.max_consecutive_losses = max_consecutive_losses
-            self.logger.info(f"Updated max consecutive losses to {max_consecutive_losses}")
+            self.logger.info(
+                f"Updated max consecutive losses to {max_consecutive_losses}"
+            )
 
         if loss_threshold_percentage is not None:
             self.loss_threshold_percentage = loss_threshold_percentage
-            self.logger.info(f"Updated loss threshold to {loss_threshold_percentage:.1%}")
+            self.logger.info(
+                f"Updated loss threshold to {loss_threshold_percentage:.1%}"
+            )
 
         if cooldown_period_hours is not None:
             self.cooldown_period = timedelta(hours=cooldown_period_hours)
-            self.logger.info(f"Updated cooldown period to {cooldown_period_hours} hours")
+            self.logger.info(
+                f"Updated cooldown period to {cooldown_period_hours} hours"
+            )
 
     def get_recent_trades(self, limit: int = 20) -> List[Dict[str, any]]:
         """Get recent trade history."""
@@ -384,7 +433,7 @@ class ConsecutiveLossTracker(BaseComponent):
                 "pnl": float(trade.pnl),
                 "pnl_percentage": trade.pnl_percentage,
                 "result": trade.result.value,
-                "commission": float(trade.commission)
+                "commission": float(trade.commission),
             }
             for trade in recent_trades
         ]

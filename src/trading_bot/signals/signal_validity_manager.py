@@ -128,9 +128,7 @@ class SignalValidityManager:
             self._cleanup_task = loop.create_task(self._cleanup_loop())
         except RuntimeError:
             # No running loop, cleanup will be called manually
-            logger.warning(
-                "No asyncio loop running, cleanup must be called manually"
-            )
+            logger.warning("No asyncio loop running, cleanup must be called manually")
 
     def stop(self):
         """Stop the validity manager and cleanup resources"""
@@ -175,9 +173,7 @@ class SignalValidityManager:
                 self._force_cleanup_oldest()
 
             # Calculate timeout
-            base_timeout = (
-                custom_timeout_minutes or self.config.default_timeout_minutes
-            )
+            base_timeout = custom_timeout_minutes or self.config.default_timeout_minutes
             adjusted_timeout = self._calculate_adjusted_timeout(
                 base_timeout, signal_data
             )
@@ -238,9 +234,7 @@ class SignalValidityManager:
             new_total_minutes = (
                 validity_info.adjusted_timeout_minutes + additional_minutes
             )
-            new_total_minutes = min(
-                new_total_minutes, self.config.max_timeout_minutes
-            )
+            new_total_minutes = min(new_total_minutes, self.config.max_timeout_minutes)
 
             # Update expiry
             validity_info.expires_at = validity_info.created_at + timedelta(
@@ -250,9 +244,7 @@ class SignalValidityManager:
             validity_info.metadata["extension_reason"] = reason
             validity_info.metadata["extended_at"] = datetime.now().isoformat()
 
-            logger.debug(
-                f"Extended signal {signal_id} by {additional_minutes} minutes"
-            )
+            logger.debug(f"Extended signal {signal_id} by {additional_minutes} minutes")
             return True
 
     def mark_signal_executed(
@@ -314,13 +306,9 @@ class SignalValidityManager:
             if signal_id not in self._active_signals:
                 return False
 
-            return self._expire_signal(
-                signal_id, ValidityReason.MANUAL_CANCELLATION
-            )
+            return self._expire_signal(signal_id, ValidityReason.MANUAL_CANCELLATION)
 
-    def get_signal_validity(
-        self, signal_id: str
-    ) -> Optional[SignalValidityInfo]:
+    def get_signal_validity(self, signal_id: str) -> Optional[SignalValidityInfo]:
         """Get current validity information for a signal"""
         with self._lock:
             # Check active signals first
@@ -349,10 +337,7 @@ class SignalValidityManager:
         with self._lock:
             signals = []
             for validity_info in self._expired_signals.values():
-                if (
-                    validity_info.state == SignalState.EXECUTED
-                    and not include_executed
-                ):
+                if validity_info.state == SignalState.EXECUTED and not include_executed:
                     continue
                 if (
                     validity_info.state == SignalState.CANCELLED
@@ -386,7 +371,7 @@ class SignalValidityManager:
                 return {}
 
             recent_signals = self._performance_history[
-                -self.config.performance_lookback_signals:
+                -self.config.performance_lookback_signals :
             ]
 
             total_signals = len(recent_signals)
@@ -406,9 +391,7 @@ class SignalValidityManager:
                     for s in recent_signals
                     if s.get("executed", False)
                 ]
-                avg_time_to_execution = sum(execution_times) / len(
-                    execution_times
-                )
+                avg_time_to_execution = sum(execution_times) / len(execution_times)
 
             return {
                 "total_signals": total_signals,
@@ -419,8 +402,7 @@ class SignalValidityManager:
                 "performance_adjustment_active": (
                     (
                         execution_rate < self.config.poor_performance_threshold
-                        or execution_rate
-                        > self.config.good_performance_threshold
+                        or execution_rate > self.config.good_performance_threshold
                     )
                     if self.config.enable_performance_adjustment
                     else False
@@ -455,18 +437,12 @@ class SignalValidityManager:
             adjusted_timeout *= self.config.low_liquidity_timeout_multiplier
 
         # Apply limits
-        adjusted_timeout = max(
-            self.config.min_timeout_minutes, adjusted_timeout
-        )
-        adjusted_timeout = min(
-            self.config.max_timeout_minutes, adjusted_timeout
-        )
+        adjusted_timeout = max(self.config.min_timeout_minutes, adjusted_timeout)
+        adjusted_timeout = min(self.config.max_timeout_minutes, adjusted_timeout)
 
         return int(adjusted_timeout)
 
-    def _extract_market_conditions(
-        self, signal_data: Dict[str, Any]
-    ) -> Dict[str, Any]:
+    def _extract_market_conditions(self, signal_data: Dict[str, Any]) -> Dict[str, Any]:
         """Extract relevant market conditions from signal data"""
         return {
             "volatility": signal_data.get("volatility"),
@@ -521,13 +497,9 @@ class SignalValidityManager:
         # Keep only recent history
         max_history = self.config.performance_lookback_signals * 2
         if len(self._performance_history) > max_history:
-            self._performance_history = self._performance_history[
-                -max_history:
-            ]
+            self._performance_history = self._performance_history[-max_history:]
 
-    def _trigger_callbacks(
-        self, state: SignalState, validity_info: SignalValidityInfo
-    ):
+    def _trigger_callbacks(self, state: SignalState, validity_info: SignalValidityInfo):
         """Trigger registered callbacks for state changes"""
         for callback in self._callbacks[state]:
             try:
@@ -585,9 +557,7 @@ class SignalValidityManager:
             key=lambda x: self._active_signals[x].created_at,
         )
 
-        logger.warning(
-            f"Force expiring oldest signal {oldest_id} due to limit"
-        )
+        logger.warning(f"Force expiring oldest signal {oldest_id} due to limit")
         self._expire_signal(oldest_id, ValidityReason.TIMEOUT)
 
     async def _cleanup_loop(self):
