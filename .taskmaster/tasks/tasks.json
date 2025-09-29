@@ -518,7 +518,7 @@
         "dependencies": [
           7
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -526,7 +526,7 @@
             "description": "discord.py 라이브러리를 사용하여 Discord 봇을 생성하고 서버에 연결하는 기본 기능 구현",
             "dependencies": [],
             "details": "Discord 애플리케이션 생성, 봇 토큰 설정, discord.py 클라이언트 초기화, 봇 권한 설정, 기본 연결 및 상태 확인 기능 구현",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -537,7 +537,7 @@
               "8.1"
             ],
             "details": "알림 종류별 메시지 템플릿 정의, 알림 우선순위 시스템, 스팸 방지 로직, 알림 큐 관리, 실패 시 재시도 메커니즘 구현",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -548,7 +548,7 @@
               "8.2"
             ],
             "details": "거래 알림용 임베드 템플릿, 색상 코딩 시스템, 차트 이미지 첨부 기능, 메시지 길이 제한 처리, 이모지 및 포맷팅 규칙 구현",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -559,7 +559,7 @@
               "8.3"
             ],
             "details": "API 연결 상태 모니터링, 메모리 사용량 체크, 시스템 헬스 체크, 일일/주간/월간 성과 리포트 자동 생성, 알림 실패 시 로그 백업 시스템 구현",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           }
         ]
@@ -731,7 +731,7 @@
     ],
     "metadata": {
       "created": "2025-09-27T09:52:28.484Z",
-      "updated": "2025-09-29T10:34:05.110Z",
+      "updated": "2025-09-29T16:11:36.542Z",
       "description": "Tasks for master context"
     }
   }
