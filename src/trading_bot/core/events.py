@@ -22,6 +22,10 @@ class EventType(Enum):
     SIGNAL = "signal"
     ORDER = "order"
     RISK = "risk"
+    POSITION = "position"
+    TAKE_PROFIT = "take_profit"
+    TRAILING_STOP = "trailing_stop"
+    SLIPPAGE = "slippage"
 
 
 class EventPriority(Enum):
@@ -247,12 +251,126 @@ class RiskEvent(BaseEvent):
     )
 
 
+class PositionStatus(Enum):
+    """Position status enumeration."""
+
+    OPENING = "opening"
+    OPEN = "open"
+    PARTIAL_CLOSE = "partial_close"
+    CLOSING = "closing"
+    CLOSED = "closed"
+
+
+class PositionSide(Enum):
+    """Position side enumeration."""
+
+    LONG = "long"
+    SHORT = "short"
+
+
+class PositionEvent(BaseEvent):
+    """
+    Position event for tracking position lifecycle and P&L updates.
+
+    Handles position state changes, size modifications, and real-time
+    profit/loss calculations for active trading positions.
+    """
+
+    event_type: Literal[EventType.POSITION] = Field(default=EventType.POSITION)
+    position_id: str = Field(..., description="Unique position identifier")
+    symbol: str = Field(..., description="Trading symbol")
+    side: PositionSide = Field(..., description="Position side (long/short)")
+    status: PositionStatus = Field(..., description="Current position status")
+    size: Decimal = Field(..., description="Position size")
+    entry_price: Decimal = Field(..., description="Average entry price")
+    current_price: Optional[Decimal] = Field(None, description="Current market price")
+    unrealized_pnl: Optional[Decimal] = Field(None, description="Unrealized P&L")
+    realized_pnl: Decimal = Field(default=Decimal("0"), description="Realized P&L")
+    stop_loss: Optional[Decimal] = Field(None, description="Stop loss price")
+    take_profit: Optional[Decimal] = Field(None, description="Take profit price")
+    risk_reward_ratio: Optional[float] = Field(None, description="Current RR ratio")
+
+    @validator("size", "entry_price")
+    def validate_positive_values(cls, v):
+        if v <= 0:
+            raise ValueError("Size and entry price must be positive")
+        return v
+
+
+class TakeProfitType(Enum):
+    """Take profit trigger types."""
+
+    PARTIAL_1_1_RR = "partial_1_1_rr"  # 50% at 1:1 RR
+    FULL_1_2_RR = "full_1_2_rr"       # Remaining at 1:2 RR
+    MANUAL = "manual"                  # Manual trigger
+
+
+class TakeProfitEvent(BaseEvent):
+    """
+    Take profit event for partial and full profit taking triggers.
+
+    Manages the 1:1 RR 50% profit taking and 1:2 RR full exit logic
+    for systematic profit optimization.
+    """
+
+    event_type: Literal[EventType.TAKE_PROFIT] = Field(default=EventType.TAKE_PROFIT)
+    position_id: str = Field(..., description="Related position identifier")
+    symbol: str = Field(..., description="Trading symbol")
+    trigger_type: TakeProfitType = Field(..., description="Type of profit taking")
+    trigger_price: Decimal = Field(..., description="Price that triggered profit taking")
+    target_quantity: Decimal = Field(..., description="Quantity to close")
+    current_rr_ratio: float = Field(..., description="Current risk-reward ratio")
+    expected_profit: Decimal = Field(..., description="Expected profit amount")
+
+
+class TrailingStopEvent(BaseEvent):
+    """
+    Trailing stop event for dynamic stop loss adjustments.
+
+    Manages trailing stop logic to protect profits while allowing
+    for continued upside participation.
+    """
+
+    event_type: Literal[EventType.TRAILING_STOP] = Field(default=EventType.TRAILING_STOP)
+    position_id: str = Field(..., description="Related position identifier")
+    symbol: str = Field(..., description="Trading symbol")
+    new_stop_price: Decimal = Field(..., description="New trailing stop price")
+    previous_stop_price: Optional[Decimal] = Field(None, description="Previous stop price")
+    current_price: Decimal = Field(..., description="Current market price")
+    trail_distance: Decimal = Field(..., description="Trailing distance")
+    is_active: bool = Field(default=True, description="Whether trailing is active")
+
+
+class SlippageEvent(BaseEvent):
+    """
+    Slippage event for monitoring execution price differences.
+
+    Tracks differences between expected and actual execution prices
+    for order execution quality monitoring and limits.
+    """
+
+    event_type: Literal[EventType.SLIPPAGE] = Field(default=EventType.SLIPPAGE)
+    order_id: str = Field(..., description="Related order identifier")
+    symbol: str = Field(..., description="Trading symbol")
+    expected_price: Decimal = Field(..., description="Expected execution price")
+    actual_price: Decimal = Field(..., description="Actual execution price")
+    slippage_amount: Decimal = Field(..., description="Slippage amount")
+    slippage_percentage: float = Field(..., description="Slippage as percentage")
+    quantity: Decimal = Field(..., description="Order quantity")
+    slippage_cost: Decimal = Field(..., description="Cost of slippage")
+    is_limit_exceeded: bool = Field(default=False, description="Whether slippage limit exceeded")
+
+
 # Event type mapping for deserialization
 EVENT_TYPE_MAPPING = {
     EventType.MARKET_DATA: MarketDataEvent,
     EventType.SIGNAL: SignalEvent,
     EventType.ORDER: OrderEvent,
     EventType.RISK: RiskEvent,
+    EventType.POSITION: PositionEvent,
+    EventType.TAKE_PROFIT: TakeProfitEvent,
+    EventType.TRAILING_STOP: TrailingStopEvent,
+    EventType.SLIPPAGE: SlippageEvent,
 }
 
 

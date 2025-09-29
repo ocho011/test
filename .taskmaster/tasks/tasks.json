@@ -440,7 +440,7 @@
         "dependencies": [
           6
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -448,7 +448,7 @@
             "description": "비동기 주문 실행 엔진과 기본 주문 실행 인터페이스 구현",
             "dependencies": [],
             "details": "OrderExecutor 클래스 구현으로 주문 실행의 핵심 로직 제공. 비동기 주문 처리, 주문 상태 추적, 주문 검증 로직 포함. 바이낸스 API와의 안전한 통신 인터페이스 구현",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -459,7 +459,7 @@
               "7.1"
             ],
             "details": "MarketOrderManager로 시장가 주문의 즉시 실행 처리. LimitOrderManager로 지정가 주문의 체결 대기 및 모니터링. 각 주문 타입별 특화된 로직과 검증 규칙 적용",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -470,7 +470,7 @@
               "7.2"
             ],
             "details": "실시간 가격 데이터를 기반으로 포지션별 미실현 손익 계산. 포지션 상태(진입, 부분익절, 손절) 추적. 포지션 크기 및 평균 진입가 관리",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -481,7 +481,7 @@
               "7.3"
             ],
             "details": "포지션 크기의 50%를 1:1 리스크 리워드 비율에서 자동 익절. 나머지 50%는 1:2 RR까지 유지하여 수익 극대화. 부분 익절 후 손절가 조정 로직 포함",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -492,7 +492,7 @@
               "7.4"
             ],
             "details": "부분 익절 후 남은 포지션에 대한 트레일링 스탑 적용. 가격 움직임에 따른 동적 손절가 조정. 최대 수익 보호를 위한 스탑 레벨 관리",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -503,7 +503,7 @@
               "7.5"
             ],
             "details": "SlippageController로 실제 체결가와 예상가의 차이 모니터링 및 허용 범위 제한. OrderRetryHandler로 주문 실패 시 최대 3회까지 자동 재시도. 네트워크 오류 및 API 제한 대응 로직",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           }
         ]
@@ -731,7 +731,7 @@
     ],
     "metadata": {
       "created": "2025-09-27T09:52:28.484Z",
-      "updated": "2025-09-28T05:32:15.042Z",
+      "updated": "2025-09-29T10:34:05.110Z",
       "description": "Tasks for master context"
     }
   }
