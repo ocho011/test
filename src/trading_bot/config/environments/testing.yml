@@ -1,0 +1,59 @@
+# Testing Environment Configuration
+# For automated testing and CI/CD
+
+system:
+  environment: testing
+  debug: true
+  async_workers: 1
+  health_check_interval: 900  # 15 minutes (less frequent for tests)
+  memory_threshold_mb: 256
+
+binance:
+  api_key: test_api_key_12345
+  api_secret: test_api_secret_67890
+  testnet: true
+  base_url: https://testnet.binance.vision
+
+discord:
+  bot_token: test_discord_token
+  channel_id: 123456789
+  enable_notifications: false  # Disable in tests
+  spam_protection_seconds: 10
+
+logging:
+  level: WARNING  # Less verbose for tests
+  format: json
+  output_dir: test_logs
+  
+  # Rotation settings (minimal for tests)
+  max_bytes: 1048576  # 1MB
+  backup_count: 2
+  rotation_time: midnight
+  
+  # Trade logs
+  trade_log_enabled: false  # Disable in tests
+  trade_log_file: trades.log
+  
+  # Performance logs
+  performance_log_enabled: false  # Disable in tests
+  performance_log_file: performance.log
+  
+  # Sensitive data masking
+  mask_sensitive_data: true
+  debug_unmask: false
+
+trading:
+  symbol: BTCUSDT
+  timeframe: 1h
+  max_position_size: 0.001  # Minimal for tests
+  leverage: 1
+  
+  # Risk management
+  max_risk_per_trade: 0.01  # 1% max risk
+  daily_loss_limit: 0.02  # 2% daily limit
+
+custom:
+  # Testing-specific settings
+  mock_api: true
+  enable_backtesting: true
+  fast_mode: true

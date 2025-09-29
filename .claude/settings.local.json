@@ -30,7 +30,9 @@
       "mcp__serena__read_file",
       "mcp__smithery-ai-server-sequential-thinking__sequentialthinking",
       "mcp__serena__replace_regex",
-      "mcp__serena__create_text_file"
+      "mcp__serena__create_text_file",
+      "mcp__serena__find_file",
+      "mcp__serena__get_symbols_overview"
     ]
   },
   "enableAllProjectMcpServers": true,

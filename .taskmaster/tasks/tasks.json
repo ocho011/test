@@ -574,7 +574,7 @@
         "dependencies": [
           8
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -582,7 +582,7 @@
             "description": "YAML 기반 설정 관리 시스템과 환경별 설정 파일 구조 구현",
             "dependencies": [],
             "details": "ConfigManager 클래스 구현으로 YAML 설정 파일 로딩 및 관리. 환경별 설정 파일 생성: development.yml, production.yml, testing.yml. pydantic 모델을 사용한 설정 검증 및 타입 체크. 환경 변수를 통한 설정 파일 자동 선택 기능. 설정 값 캐싱 및 런타임 설정 변경 지원.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -593,7 +593,7 @@
               "9.1"
             ],
             "details": "LogManager 클래스로 구조화된 로깅 구현. JSON 포맷으로 로그 출력 및 구조화. 로그 레벨 관리: DEBUG, INFO, WARNING, ERROR, CRITICAL. 컨텍스트 정보 포함한 로그 메시지 생성. 비동기 로깅 지원으로 성능 최적화. 로그 필터링 및 조건부 로깅 기능.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -604,7 +604,7 @@
               "9.2"
             ],
             "details": "시간/크기 기반 로그 로테이션 구현. 오래된 로그 파일 자동 압축 기능. 로그 보관 정책 설정 (보관 기간, 최대 파일 수). 디스크 공간 모니터링 및 자동 정리. 거래 이벤트 전용 트레이드 로그 분리 관리. 시스템 성능 메트릭 전용 로그 생성.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -615,7 +615,7 @@
               "9.2"
             ],
             "details": "민감 정보 자동 탐지 및 마스킹 기능 구현. API 키, 계정 번호, 개인정보 등 패턴 기반 마스킹. 로그 출력 전 민감 정보 스크러빙. 보안 감사를 위한 별도 보안 로그 생성. 마스킹 규칙 설정 파일 관리. 디버깅 모드에서의 선택적 마스킹 해제 기능.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           }
         ]
@@ -731,7 +731,7 @@
     ],
     "metadata": {
       "created": "2025-09-27T09:52:28.484Z",
-      "updated": "2025-09-29T16:11:36.542Z",
+      "updated": "2025-09-29T21:31:11.888Z",
       "description": "Tasks for master context"
     }
   }
