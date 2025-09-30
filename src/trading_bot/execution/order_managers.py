@@ -54,12 +54,12 @@ class MarketOrderManager(BaseComponent):
             max_slippage: Maximum allowed slippage percentage
             execution_timeout: Maximum time to wait for execution
         """
-        super().__init__(event_bus=event_bus)
+        super().__init__(name=self.__class__.__name__)
+        self.event_bus = event_bus
         self.binance_client = binance_client
         self.max_slippage = max_slippage
         self.execution_timeout = execution_timeout
 
-        self.logger = logging.getLogger(self.__class__.__name__)
 
         # Execution tracking
         self.execution_stats = {
@@ -263,7 +263,8 @@ class LimitOrderManager(BaseComponent):
             monitor_interval: Interval for monitoring order status
             max_age: Maximum age for orders in seconds
         """
-        super().__init__(event_bus=event_bus)
+        super().__init__(name=self.__class__.__name__)
+        self.event_bus = event_bus
         self.binance_client = binance_client
         self.monitor_interval = monitor_interval
         self.max_age = max_age
@@ -272,18 +273,16 @@ class LimitOrderManager(BaseComponent):
         self.active_orders: Dict[str, OrderEvent] = {}
         self.monitoring_task: Optional[asyncio.Task] = None
 
-        self.logger = logging.getLogger(self.__class__.__name__)
 
-    async def start(self):
+    async def _start(self):
         """Start the limit order manager."""
-        await super().start()
 
         # Start monitoring task
         self.monitoring_task = asyncio.create_task(self._monitor_orders())
 
         self.logger.info("LimitOrderManager started")
 
-    async def stop(self):
+    async def _stop(self):
         """Stop the limit order manager."""
         # Cancel monitoring task
         if self.monitoring_task:
@@ -296,7 +295,6 @@ class LimitOrderManager(BaseComponent):
         # Cancel active orders
         await self._cancel_all_orders()
 
-        await super().stop()
         self.logger.info("LimitOrderManager stopped")
 
     async def execute_limit_order(self, order_request: OrderRequest) -> OrderEvent:

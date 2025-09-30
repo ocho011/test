@@ -156,7 +156,8 @@ class TrailingStopManager(BaseComponent):
             event_bus: Event bus for communication
             config: Configuration for trailing stop behavior
         """
-        super().__init__(event_bus=event_bus)
+        super().__init__(name=self.__class__.__name__)
+        self.event_bus = event_bus
         self.order_executor = order_executor
         self.config = config or TrailingStopConfig()
 
@@ -164,7 +165,6 @@ class TrailingStopManager(BaseComponent):
         self.trailing_stops: Dict[str, TrailingStopData] = {}
         self.stop_orders: Dict[str, str] = {}  # position_id -> stop_order_id
 
-        self.logger = logging.getLogger(self.__class__.__name__)
 
         # Register event handlers
         self._register_event_handlers()
@@ -175,17 +175,15 @@ class TrailingStopManager(BaseComponent):
             self.event_bus.subscribe("PositionEvent", self._handle_position_event)
             self.event_bus.subscribe("TakeProfitEvent", self._handle_take_profit_event)
 
-    async def start(self):
+    async def _start(self):
         """Start the trailing stop manager."""
-        await super().start()
         self.logger.info("TrailingStopManager started")
 
-    async def stop(self):
+    async def _stop(self):
         """Stop the trailing stop manager."""
         # Cancel all active trailing stops
         await self._cancel_all_trailing_stops()
-        
-        await super().stop()
+
         self.logger.info("TrailingStopManager stopped")
 
     async def _handle_position_event(self, position_event: PositionEvent):

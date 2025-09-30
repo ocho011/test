@@ -64,7 +64,8 @@ class PartialTakeProfitManager(BaseComponent):
             event_bus: Event bus for communication
             config: Configuration for profit taking strategy
         """
-        super().__init__(event_bus=event_bus)
+        super().__init__(name=self.__class__.__name__)
+        self.event_bus = event_bus
         self.order_executor = order_executor
         self.config = config or PartialTakeProfitConfig()
 
@@ -72,7 +73,6 @@ class PartialTakeProfitManager(BaseComponent):
         self.active_targets: Dict[str, Dict] = {}  # position_id -> target_data
         self.positions_with_partial_taken: Set[str] = set()
 
-        self.logger = logging.getLogger(self.__class__.__name__)
 
         # Register event handlers
         self._register_event_handlers()
@@ -82,14 +82,13 @@ class PartialTakeProfitManager(BaseComponent):
         if self.event_bus:
             self.event_bus.subscribe("PositionEvent", self._handle_position_event)
 
-    async def start(self):
+    async def _start(self):
         """Start the partial take profit manager."""
-        await super().start()
         self.logger.info("PartialTakeProfitManager started")
 
-    async def stop(self):
+    async def _stop(self):
         """Stop the partial take profit manager."""
-        await super().stop()
+
         self.logger.info("PartialTakeProfitManager stopped")
 
     async def _handle_position_event(self, position_event: PositionEvent):

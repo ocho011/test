@@ -88,7 +88,8 @@ class OrderExecutor(BaseComponent):
             retry_delay: Base delay between retries (exponential backoff)
             slippage_limit: Maximum allowed slippage percentage
         """
-        super().__init__(event_bus=event_bus)
+        super().__init__(name=self.__class__.__name__)
+        self.event_bus = event_bus
         self.binance_client = binance_client
         self.max_retries = max_retries
         self.retry_delay = retry_delay
@@ -107,22 +108,22 @@ class OrderExecutor(BaseComponent):
             "total_slippage": Decimal("0"),
         }
 
-        self.logger = logging.getLogger(self.__class__.__name__)
-
-    async def start(self):
+    async def _start(self):
         """Start the order executor."""
-        await super().start()
         self.logger.info("OrderExecutor started")
 
-    async def stop(self):
+    async def _stop(self):
         """Stop the order executor."""
         # Cancel any pending orders
         if self.pending_orders:
             self.logger.warning(f"Cancelling {len(self.pending_orders)} pending orders")
             await self._cancel_pending_orders()
-
-        await super().stop()
         self.logger.info("OrderExecutor stopped")
+
+    async def _emit_event(self, event):
+        """Emit an event to the event bus if available."""
+        if self.event_bus:
+            await self.event_bus.emit(event)
 
     async def execute_order(self, order_request: OrderRequest) -> OrderEvent:
         """

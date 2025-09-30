@@ -96,22 +96,19 @@ class OrderRetryData:
 
 class SlippageController(BaseComponent):
     """슬리피지 제어기"""
-    
+
     def __init__(self, config: SlippageConfig):
-        super().__init__()
+        super().__init__(name=self.__class__.__name__)
         self.config = config
         self.slippage_history: List[SlippageData] = []
         self.symbol_slippage_stats: Dict[str, Dict[str, Any]] = {}
-        self.logger = logging.getLogger(__name__)
-        
-    async def start(self) -> None:
+
+    async def _start(self) -> None:
         """컴포넌트 시작"""
-        await super().start()
         self.logger.info("SlippageController started")
-        
-    async def stop(self) -> None:
+
+    async def _stop(self) -> None:
         """컴포넌트 중지"""
-        await super().stop()
         self.logger.info("SlippageController stopped")
         
     def calculate_slippage(
@@ -262,19 +259,16 @@ class OrderRetryHandler(BaseComponent):
     """주문 재시도 핸들러"""
     
     def __init__(self, config: RetryConfig):
-        super().__init__()
+        super().__init__(name=self.__class__.__name__)
         self.config = config
         self.retry_queue: Dict[str, OrderRetryData] = {}
-        self.logger = logging.getLogger(__name__)
-        
-    async def start(self) -> None:
+
+    async def _start(self) -> None:
         """컴포넌트 시작"""
-        await super().start()
         self.logger.info("OrderRetryHandler started")
-        
-    async def stop(self) -> None:
+
+    async def _stop(self) -> None:
         """컴포넌트 중지"""
-        await super().stop()
         # 대기 중인 재시도 취소
         for retry_data in self.retry_queue.values():
             retry_data.cancel()

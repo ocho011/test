@@ -170,7 +170,8 @@ class PositionTracker(BaseComponent):
             event_bus: Event bus for communication
             update_interval: Interval for P&L updates in seconds
         """
-        super().__init__(event_bus=event_bus)
+        super().__init__(name=self.__class__.__name__)
+        self.event_bus = event_bus
         self.binance_client = binance_client
         self.update_interval = update_interval
 
@@ -184,8 +185,6 @@ class PositionTracker(BaseComponent):
         # Background tasks
         self.update_task: Optional[asyncio.Task] = None
 
-        self.logger = logging.getLogger(self.__class__.__name__)
-
         # Register event handlers
         self._register_event_handlers()
 
@@ -195,16 +194,13 @@ class PositionTracker(BaseComponent):
             self.event_bus.subscribe("OrderEvent", self._handle_order_event)
             self.event_bus.subscribe("MarketDataEvent", self._handle_market_data_event)
 
-    async def start(self):
+    async def _start(self):
         """Start the position tracker."""
-        await super().start()
-
         # Start P&L update task
         self.update_task = asyncio.create_task(self._update_positions_loop())
-
         self.logger.info("PositionTracker started")
 
-    async def stop(self):
+    async def _stop(self):
         """Stop the position tracker."""
         # Cancel update task
         if self.update_task:
@@ -213,9 +209,12 @@ class PositionTracker(BaseComponent):
                 await self.update_task
             except asyncio.CancelledError:
                 pass
-
-        await super().stop()
         self.logger.info("PositionTracker stopped")
+
+    async def _emit_event(self, event):
+        """Emit an event to the event bus if available."""
+        if self.event_bus:
+            await self.event_bus.emit(event)
 
     async def _handle_order_event(self, order_event: OrderEvent):
         """Handle order events to track position changes."""
