@@ -8,7 +8,7 @@ This module implements the 1:1 RR 50% profit taking strategy with
 import asyncio
 import logging
 from decimal import Decimal
-from typing import Dict, Set
+from typing import Dict, Optional, Set
 from uuid import uuid4
 
 from ..core.base_component import BaseComponent

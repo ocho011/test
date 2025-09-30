@@ -630,7 +630,7 @@
         "dependencies": [
           9
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -638,7 +638,7 @@
             "description": "히스토리컬 데이터 기반 백테스트 실행을 위한 핵심 엔진 클래스 개발",
             "dependencies": [],
             "details": "BacktestEngine 클래스 구현으로 히스토리컬 데이터 로딩, 시뮬레이션 실행, 거래 실행 로직 포함. 최소 6개월 데이터 검증 로직, 시간 기반 이벤트 처리, 포지션 추적 기능 구현. pandas DataFrame 기반 데이터 처리 및 메모리 최적화.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -649,7 +649,7 @@
               "10.1"
             ],
             "details": "PerformanceAnalyzer 클래스로 샤프 비율, 최대 드로우다운, 승률, 평균 손익비, 연간 수익률, 변동성 계산. 벤치마크 대비 성과 비교 기능. 일별/월별/연도별 성과 분석 및 통계적 유의성 검증.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -660,7 +660,7 @@
               "10.1"
             ],
             "details": "TradeAnalyzer 클래스로 거래별 손익 분석, 보유 기간 분석, 진입/청산 패턴 인식. 연속 손실/이익 분석, 시간대별 거래 성과, 거래 빈도 최적화 분석. 거래 품질 스코어링 시스템 구현.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -672,7 +672,7 @@
               "10.3"
             ],
             "details": "WalkForwardOptimizer 클래스로 롤링 윈도우 기반 파라미터 최적화. 인샘플/아웃샘플 성과 비교, 과최적화 방지 로직. 다차원 파라미터 그리드 서치 및 유전 알고리즘 기반 최적화. 최적화 결과 안정성 검증.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -683,7 +683,7 @@
               "10.2"
             ],
             "details": "MonteCarloSimulator 클래스로 확률적 수익률 시뮬레이션 실행. VaR(Value at Risk), CVaR 계산, 최대 손실 확률 분석. 부트스트랩 리샘플링 기반 성과 분포 생성. 위험 시나리오별 포트폴리오 스트레스 테스트.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -697,7 +697,7 @@
               "10.5"
             ],
             "details": "matplotlib 기반 수익률 곡선, 드로우다운 차트, 거래 분포 시각화. 대화형 차트를 위한 plotly 연동. CSV/JSON/Excel 형식 결과 내보내기. 성과 리포트 자동 생성 및 PDF 출력 기능. 웹 대시보드용 API 엔드포인트 제공.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           }
         ]
@@ -731,7 +731,7 @@
     ],
     "metadata": {
       "created": "2025-09-27T09:52:28.484Z",
-      "updated": "2025-09-29T21:31:11.888Z",
+      "updated": "2025-09-30T10:36:09.034Z",
       "description": "Tasks for master context"
     }
   }
