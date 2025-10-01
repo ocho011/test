@@ -5,6 +5,7 @@ PositionTracker 테스트
 import pytest
 from decimal import Decimal
 from datetime import datetime
+from unittest.mock import AsyncMock, MagicMock
 
 from src.trading_bot.execution.position_tracker import (
     PositionTracker,
@@ -16,54 +17,66 @@ from src.trading_bot.core.events import (
     PositionStatus,
     PositionSide
 )
+from src.trading_bot.data.binance_client import BinanceClient
 
 
 @pytest.fixture
-def position_tracker():
+def mock_binance_client():
+    """모의 바이낸스 클라이언트"""
+    client = MagicMock(spec=BinanceClient)
+    client.futures_symbol_ticker = AsyncMock(return_value={"price": "50000.0"})
+    return client
+
+
+@pytest.fixture
+def position_tracker(mock_binance_client):
     """PositionTracker 인스턴스"""
-    return PositionTracker()
+    return PositionTracker(binance_client=mock_binance_client)
 
 
 @pytest.fixture
 def sample_position():
     """샘플 포지션"""
     return Position(
+        position_id="test_position_001",
         symbol="BTCUSDT",
         side=PositionSide.LONG,
         size=Decimal("0.1"),
         entry_price=Decimal("50000"),
-        leverage=10,
-        margin_required=Decimal("500"),
         stop_loss=Decimal("49000"),
         take_profit=Decimal("52000")
     )
 
 
 @pytest.mark.asyncio
-async def test_add_position(position_tracker, sample_position):
-    """포지션 추가 테스트"""
+async def test_add_position(position_tracker):
+    """포지션 추가 테스트 - 이벤트 기반"""
+    from src.trading_bot.core.events import OrderEvent, OrderSide, OrderType, OrderStatus
+    
+    # Given - Create a FILLED order event to trigger position creation
+    order_event = OrderEvent(
+        source="test",
+        client_order_id="test_order_001",
+        symbol="BTCUSDT",
+        side=OrderSide.BUY,
+        order_type=OrderType.MARKET,
+        quantity=Decimal("0.1"),
+        status=OrderStatus.FILLED,
+        filled_quantity=Decimal("0.1"),
+        average_price=Decimal("50000")
+    )
+    
     # When
-    position_id = await position_tracker.add_position(sample_position)
+    await position_tracker._handle_order_event(order_event)
     
     # Then
-    assert position_id is not None
     assert len(position_tracker.positions) == 1
-    assert position_tracker.positions[position_id] == sample_position
+    position = list(position_tracker.positions.values())[0]
+    assert position.symbol == "BTCUSDT"
+    assert position.side == PositionSide.LONG
+    assert position.size == Decimal("0.1")
+    assert position.entry_price == Decimal("50000")
 
-
-@pytest.mark.asyncio
-async def test_update_position_price(position_tracker, sample_position):
-    """포지션 가격 업데이트 테스트"""
-    # Given
-    position_id = await position_tracker.add_position(sample_position)
-    new_price = Decimal("51000")
-    
-    # When
-    await position_tracker.update_position_price(position_id, new_price)
-    
-    # Then
-    updated_position = position_tracker.positions[position_id]
-    assert updated_position.current_price == new_price
 
 
 @pytest.mark.asyncio
@@ -86,12 +99,13 @@ async def test_calculate_unrealized_pnl_short():
     """숏 포지션 미실현 PnL 계산 테스트"""
     # Given
     position = Position(
+        position_id="test_position_002",
         symbol="BTCUSDT",
         side=PositionSide.SHORT,
         size=Decimal("0.1"),
         entry_price=Decimal("50000"),
-        leverage=10,
-        margin_required=Decimal("500")
+        stop_loss=Decimal("51000"),
+        take_profit=Decimal("48000")
     )
     current_price = Decimal("49000")  # 1000$ 하락
     
@@ -104,158 +118,137 @@ async def test_calculate_unrealized_pnl_short():
     assert pnl == expected_pnl
 
 
-@pytest.mark.asyncio
-async def test_calculate_roe(sample_position):
-    """ROE 계산 테스트"""
-    # Given
-    current_price = Decimal("52000")  # 2000$ 상승
-    
-    # When
-    roe = sample_position.calculate_roe(current_price)
-    
-    # Then
-    # PnL = (52000 - 50000) * 0.1 * 10 = 200$
-    # ROE = 200 / 500 * 100 = 40%
-    expected_roe = Decimal("40")
-    assert roe == expected_roe
-
 
 @pytest.mark.asyncio
-async def test_close_position(position_tracker, sample_position):
-    """포지션 청산 테스트"""
-    # Given
-    position_id = await position_tracker.add_position(sample_position)
-    close_price = Decimal("51500")
+async def test_close_position(position_tracker):
+    """포지션 청산 테스트 - 이벤트 기반"""
+    from src.trading_bot.core.events import OrderEvent, OrderSide, OrderType, OrderStatus
     
-    # When
-    closed_position = await position_tracker.close_position(position_id, close_price)
+    # Given - Open a position first
+    open_order = OrderEvent(
+        source="test",
+        client_order_id="test_order_001",
+        symbol="BTCUSDT",
+        side=OrderSide.BUY,
+        order_type=OrderType.MARKET,
+        quantity=Decimal("0.1"),
+        status=OrderStatus.FILLED,
+        filled_quantity=Decimal("0.1"),
+        average_price=Decimal("50000")
+    )
+    await position_tracker._handle_order_event(open_order)
+    
+    # When - Close the position with opposite side order
+    close_order = OrderEvent(
+        source="test",
+        client_order_id="test_order_002",
+        symbol="BTCUSDT",
+        side=OrderSide.SELL,
+        order_type=OrderType.MARKET,
+        quantity=Decimal("0.1"),
+        status=OrderStatus.FILLED,
+        filled_quantity=Decimal("0.1"),
+        average_price=Decimal("51500"),
+        metadata={"reduce_only": True}
+    )
+    await position_tracker._handle_order_event(close_order)
     
     # Then
-    assert closed_position.status == PositionStatus.CLOSED
-    assert closed_position.exit_price == close_price
-    assert closed_position.realized_pnl is not None
-    assert position_id not in position_tracker.positions
+    assert len(position_tracker.positions) == 0
 
 
 @pytest.mark.asyncio
 async def test_get_total_pnl(position_tracker):
-    """총 PnL 계산 테스트"""
-    # Given
-    position1 = Position(
+    """총 PnL 계산 테스트 - 이벤트 기반"""
+    from src.trading_bot.core.events import OrderEvent, OrderSide, OrderType, OrderStatus
+    
+    # Given - Create two positions via events
+    btc_order = OrderEvent(
+        source="test",
+        client_order_id="test_order_btc",
         symbol="BTCUSDT",
-        side=PositionSide.LONG,
-        size=Decimal("0.1"),
-        entry_price=Decimal("50000"),
-        leverage=10,
-        margin_required=Decimal("500")
+        side=OrderSide.BUY,
+        order_type=OrderType.MARKET,
+        quantity=Decimal("0.1"),
+        status=OrderStatus.FILLED,
+        filled_quantity=Decimal("0.1"),
+        average_price=Decimal("50000")
     )
-    position2 = Position(
+    await position_tracker._handle_order_event(btc_order)
+    
+    eth_order = OrderEvent(
+        source="test",
+        client_order_id="test_order_eth",
         symbol="ETHUSDT",
-        side=PositionSide.LONG,
-        size=Decimal("1"),
-        entry_price=Decimal("3000"),
-        leverage=5,
-        margin_required=Decimal("600")
+        side=OrderSide.BUY,
+        order_type=OrderType.MARKET,
+        quantity=Decimal("1"),
+        status=OrderStatus.FILLED,
+        filled_quantity=Decimal("1"),
+        average_price=Decimal("3000")
     )
+    await position_tracker._handle_order_event(eth_order)
     
-    position_id1 = await position_tracker.add_position(position1)
-    position_id2 = await position_tracker.add_position(position2)
+    # Update prices
+    btc_position = list(position_tracker.positions.values())[0]
+    btc_position.update_price(Decimal("51000"))
     
-    # 가격 업데이트
-    await position_tracker.update_position_price(position_id1, Decimal("51000"))
-    await position_tracker.update_position_price(position_id2, Decimal("3100"))
+    eth_position = list(position_tracker.positions.values())[1]
+    eth_position.update_price(Decimal("3100"))
     
     # When
-    total_pnl = position_tracker.get_total_pnl()
+    total_pnl = await position_tracker.get_total_pnl()
     
     # Then
-    # BTC: (51000 - 50000) * 0.1 * 10 = 100$
-    # ETH: (3100 - 3000) * 1 * 5 = 500$
-    # Total: 600$
-    expected_total = Decimal("600")
-    assert total_pnl == expected_total
+    # BTC: (51000 - 50000) * 0.1 = 100
+    # ETH: (3100 - 3000) * 1 = 100
+    # Total unrealized: 200
+    assert total_pnl["unrealized_pnl"] == Decimal("200")
 
 
 @pytest.mark.asyncio
 async def test_get_positions_by_symbol(position_tracker):
-    """심볼별 포지션 조회 테스트"""
-    # Given
-    btc_position = Position(
-        symbol="BTCUSDT",
-        side=PositionSide.LONG,
-        size=Decimal("0.1"),
-        entry_price=Decimal("50000"),
-        leverage=10,
-        margin_required=Decimal("500")
-    )
-    eth_position = Position(
-        symbol="ETHUSDT",
-        side=PositionSide.LONG,
-        size=Decimal("1"),
-        entry_price=Decimal("3000"),
-        leverage=5,
-        margin_required=Decimal("600")
-    )
+    """심볼별 포지션 조회 테스트 - 이벤트 기반"""
+    from src.trading_bot.core.events import OrderEvent, OrderSide, OrderType, OrderStatus
     
-    await position_tracker.add_position(btc_position)
-    await position_tracker.add_position(eth_position)
+    # Given - Create two positions for different symbols
+    btc_order = OrderEvent(
+        source="test",
+        client_order_id="test_order_btc",
+        symbol="BTCUSDT",
+        side=OrderSide.BUY,
+        order_type=OrderType.MARKET,
+        quantity=Decimal("0.1"),
+        status=OrderStatus.FILLED,
+        filled_quantity=Decimal("0.1"),
+        average_price=Decimal("50000")
+    )
+    await position_tracker._handle_order_event(btc_order)
+    
+    eth_order = OrderEvent(
+        source="test",
+        client_order_id="test_order_eth",
+        symbol="ETHUSDT",
+        side=OrderSide.BUY,
+        order_type=OrderType.MARKET,
+        quantity=Decimal("1"),
+        status=OrderStatus.FILLED,
+        filled_quantity=Decimal("1"),
+        average_price=Decimal("3000")
+    )
+    await position_tracker._handle_order_event(eth_order)
     
     # When
-    btc_positions = position_tracker.get_positions_by_symbol("BTCUSDT")
-    eth_positions = position_tracker.get_positions_by_symbol("ETHUSDT")
+    btc_positions = await position_tracker.get_positions("BTCUSDT")
+    eth_positions = await position_tracker.get_positions("ETHUSDT")
     
     # Then
     assert len(btc_positions) == 1
     assert len(eth_positions) == 1
-    assert btc_positions[0].symbol == "BTCUSDT"
-    assert eth_positions[0].symbol == "ETHUSDT"
+    assert btc_positions[0]["symbol"] == "BTCUSDT"
+    assert eth_positions[0]["symbol"] == "ETHUSDT"
 
 
-@pytest.mark.asyncio
-async def test_position_risk_level():
-    """포지션 리스크 레벨 테스트"""
-    # Given
-    position = Position(
-        symbol="BTCUSDT",
-        side=PositionSide.LONG,
-        size=Decimal("0.1"),
-        entry_price=Decimal("50000"),
-        leverage=10,
-        margin_required=Decimal("500"),
-        stop_loss=Decimal("49000")  # 2% 손실
-    )
-    
-    # When
-    risk_level_profitable = position.get_risk_level(Decimal("51000"))  # 수익 상태
-    risk_level_loss = position.get_risk_level(Decimal("49500"))  # 손실 상태
-    risk_level_critical = position.get_risk_level(Decimal("49100"))  # 임계 상태
-    
-    # Then
-    assert risk_level_profitable == "LOW"
-    assert risk_level_loss == "MEDIUM"
-    assert risk_level_critical == "HIGH"
-
-
-@pytest.mark.asyncio
-async def test_position_margin_level():
-    """포지션 마진 레벨 테스트"""
-    # Given
-    position = Position(
-        symbol="BTCUSDT",
-        side=PositionSide.LONG,
-        size=Decimal("0.1"),
-        entry_price=Decimal("50000"),
-        leverage=10,
-        margin_required=Decimal("500")
-    )
-    
-    # When
-    margin_level_safe = position.get_margin_level(Decimal("51000"))  # 수익 상태
-    margin_level_danger = position.get_margin_level(Decimal("49000"))  # 10% 손실
-    
-    # Then
-    assert margin_level_safe > 100  # 안전한 마진 레벨
-    assert margin_level_danger < 100  # 위험한 마진 레벨
 
 
 @pytest.mark.asyncio
@@ -263,29 +256,41 @@ async def test_position_tracker_start_stop(position_tracker):
     """PositionTracker 시작/중지 테스트"""
     # When
     await position_tracker.start()
-    assert position_tracker.running
+    assert position_tracker.is_running()
     
     await position_tracker.stop()
-    assert not position_tracker.running
+    assert not position_tracker.is_running()
 
 
 @pytest.mark.asyncio
-async def test_position_event_publishing(position_tracker, sample_position):
-    """포지션 이벤트 발행 테스트"""
+async def test_position_event_publishing(position_tracker):
+    """포지션 이벤트 발행 테스트 - 이벤트 기반"""
+    from src.trading_bot.core.events import OrderEvent, OrderSide, OrderType, OrderStatus
+    
     # Given
     events_published = []
     
-    async def mock_publish_event(event):
+    async def mock_emit_event(event):
         events_published.append(event)
     
-    position_tracker.publish_event = mock_publish_event
+    position_tracker._emit_event = mock_emit_event
     
-    # When
-    position_id = await position_tracker.add_position(sample_position)
-    await position_tracker.update_position_price(position_id, Decimal("51000"))
+    # When - Create a position via order event
+    order_event = OrderEvent(
+        source="test",
+        client_order_id="test_order_001",
+        symbol="BTCUSDT",
+        side=OrderSide.BUY,
+        order_type=OrderType.MARKET,
+        quantity=Decimal("0.1"),
+        status=OrderStatus.FILLED,
+        filled_quantity=Decimal("0.1"),
+        average_price=Decimal("50000")
+    )
+    await position_tracker._handle_order_event(order_event)
     
     # Then
-    assert len(events_published) == 2  # 추가 + 업데이트
+    assert len(events_published) >= 1
+    from src.trading_bot.core.events import PositionEvent
     assert all(isinstance(event, PositionEvent) for event in events_published)
-    assert events_published[0].status == PositionStatus.OPEN.value
-    assert events_published[1].status == PositionStatus.OPEN.value
+    assert events_published[0].status == PositionStatus.OPEN

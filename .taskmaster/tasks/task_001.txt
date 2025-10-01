@@ -1,0 +1,37 @@
+# Task ID: 1
+# Title: 프로젝트 초기 설정 및 환경 구성
+# Status: done
+# Dependencies: None
+# Priority: high
+# Description: Python 기반 자동매매 시스템의 기본 프로젝트 구조 설정 및 의존성 관리
+# Details:
+Python 3.9+ 환경에서 poetry 또는 pip-tools를 사용한 의존성 관리 설정. 주요 라이브러리: python-binance>=1.0.19 (공식 바이낸스 API), asyncio, aiohttp>=3.9.0, pydantic>=2.0 (설정 관리), discord.py>=2.3.0 (알림), pandas>=2.1.0 (데이터 처리), numpy>=1.24.0, pytest>=7.4.0 (테스팅). 프로젝트 디렉토리 구조: src/trading_bot (메인 소스), tests/ (테스트), config/ (설정 파일), logs/ (로그), data/ (히스토리컬 데이터). .env 파일로 API 키 관리, pyproject.toml로 의존성 정의.
+
+# Test Strategy:
+의존성 설치 확인, 기본 프로젝트 구조 검증, 환경변수 로딩 테스트
+
+# Subtasks:
+## 1. Python 프로젝트 기본 구조 생성 [done]
+### Dependencies: None
+### Description: pyproject.toml 설정 및 기본 디렉토리 구조 생성
+### Details:
+Poetry를 사용한 프로젝트 초기화, pyproject.toml 작성으로 프로젝트 메타데이터 및 기본 설정 구성. src/trading_bot (메인 소스코드), tests/ (테스트 코드), config/ (설정 파일), logs/ (로그 파일), data/ (히스토리컬 데이터) 디렉토리 구조 생성. __init__.py 파일들을 적절한 위치에 배치하여 Python 패키지 구조 완성.
+
+## 2. 의존성 라이브러리 정의 및 설치 [done]
+### Dependencies: None
+### Description: 자동매매 시스템에 필요한 핵심 라이브러리들 pyproject.toml에 정의
+### Details:
+python-binance>=1.0.19, asyncio, aiohttp>=3.9.0, pydantic>=2.0, discord.py>=2.3.0, pandas>=2.1.0, numpy>=1.24.0, pytest>=7.4.0 등 핵심 라이브러리를 pyproject.toml의 dependencies 섹션에 정의. 개발용 의존성 (black, flake8, mypy 등)도 dev-dependencies에 추가. poetry install 명령으로 가상환경 생성 및 의존성 설치 확인.
+
+## 3. 환경 설정 파일 템플릿 작성 [done]
+### Dependencies: None
+### Description: .env 파일 템플릿 및 설정 관리 시스템 구축
+### Details:
+.env.example 파일 생성으로 필요한 환경변수 템플릿 제공 (BINANCE_API_KEY, BINANCE_SECRET_KEY, DISCORD_WEBHOOK_URL 등). .env 파일은 .gitignore에 추가하여 보안 유지. pydantic Settings 클래스를 사용한 환경변수 검증 및 타입 안전성 확보. config/settings.py에서 모든 설정을 중앙 집중 관리.
+
+## 4. 프로젝트 초기화 검증 및 기본 테스트 [done]
+### Dependencies: None
+### Description: 설정된 프로젝트 구조와 의존성이 올바르게 작동하는지 검증
+### Details:
+pytest를 사용한 기본 테스트 케이스 작성으로 프로젝트 초기화 상태 검증. 의존성 import 테스트, 환경변수 로딩 테스트, 기본 디렉토리 존재 확인 테스트 구현. poetry run pytest 명령으로 전체 테스트 실행 확인. pre-commit 훅 설정으로 코드 품질 자동 검사 체계 구축.
+

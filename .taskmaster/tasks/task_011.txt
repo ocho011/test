@@ -1,0 +1,73 @@
+# Task ID: 11
+# Title: 전략 추상화 및 확장 프레임워크
+# Status: done
+# Dependencies: 10
+# Priority: medium
+# Description: 다양한 매매 전략을 플러그인 형태로 추가할 수 있는 확장 가능한 프레임워크
+# Details:
+AbstractStrategy 기본 클래스로 전략 인터페이스 정의. ICTStrategy 클래스로 ICT 전략 구현. TraditionalIndicatorStrategy로 RSI, MACD 등 전통 지표 전략. StrategyRegistry로 전략 등록 및 선택. StrategySelector로 실시간 전략 교체. 전략별 파라미터 검증 및 최적화. StrategyPerformanceTracker로 전략별 성과 추적. A/B 테스팅을 위한 StrategyComparator. 전략 변경 시 다른 컴포넌트 영향 최소화.
+
+# Test Strategy:
+전략 교체 테스트, 플러그인 로딩 검증, 전략별 성과 비교 확인
+
+# Subtasks:
+## 1. AbstractStrategy 기본 클래스 구현 [done]
+### Dependencies: None
+### Description: base_strategy.py - 추상 클래스, ComponentState, 생명주기 관리
+### Details:
+
+
+## 2. ICTStrategy 구현 [done]
+### Dependencies: None
+### Description: ict_strategy.py - Order Blocks, Fair Value Gaps, Market Structure 분석
+### Details:
+
+
+## 3. TraditionalIndicatorStrategy 구현 [done]
+### Dependencies: None
+### Description: traditional_strategy.py - RSI, MACD, Bollinger Bands 전통 지표 전략
+### Details:
+
+
+## 4. StrategyRegistry 구현 [done]
+### Dependencies: None
+### Description: strategy_registry.py - 플러그인 시스템, 전략 등록 및 동적 로딩
+### Details:
+
+
+## 5. StrategySelector 구현 [done]
+### Dependencies: None
+### Description: strategy_selector.py - 런타임 전략 교체 및 생명주기 관리
+### Details:
+
+
+## 6. StrategyPerformanceTracker 구현 [done]
+### Dependencies: None
+### Description: performance_tracker.py - 실시간 성과 메트릭 추적 및 분석
+### Details:
+
+
+## 7. StrategyComparator 구현 [done]
+### Dependencies: None
+### Description: comparator.py - A/B 테스팅, 통계적 유의성 검증, Champion/Challenger 패턴
+### Details:
+
+
+## 8. StrategyOptimizer 구현 [done]
+### Dependencies: None
+### Description: strategy_optimizer.py - Walk-forward 최적화, 파라미터 튜닝, 캐싱
+### Details:
+
+
+## 9. IntegratedStrategySystem 구현 [done]
+### Dependencies: None
+### Description: strategy_system_integration.py - 전체 시스템 통합 및 워크플로우
+### Details:
+
+
+## 10. 전략 프레임워크 통합 테스트 [in-progress]
+### Dependencies: None
+### Description: test_strategy_integration.py - 21개 테스트 케이스 (현재 15/21 통과)
+### Details:
+
+

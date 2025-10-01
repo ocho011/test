@@ -40,10 +40,21 @@ class BaseComponent(ABC):
         """
         self.name = name
         self.state = ComponentState.INITIALIZED
+        self.ComponentState = ComponentState  # Make accessible as instance attribute
         self.logger = logging.getLogger(f"trading_bot.{name}")
         self._start_event = asyncio.Event()
         self._stop_event = asyncio.Event()
         self._error: Optional[Exception] = None
+
+    @property
+    def _state(self) -> ComponentState:
+        """Alias for state (for backward compatibility)."""
+        return self.state
+    
+    @_state.setter
+    def _state(self, value: ComponentState) -> None:
+        """Alias for state (for backward compatibility)."""
+        self.state = value
 
     @abstractmethod
     async def _start(self) -> None:

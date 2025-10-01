@@ -129,9 +129,10 @@ class BacktestEngine(BaseComponent):
         initial_capital: Decimal = Decimal("10000"),
         commission_rate: Decimal = Decimal("0.001"),  # 0.1% per trade
         slippage_rate: Decimal = Decimal("0.0005"),  # 0.05% slippage
+        name: str = "BacktestEngine",
         **kwargs
     ):
-        super().__init__(**kwargs)
+        super().__init__(name=name, **kwargs)
         self.binance_client = binance_client
         self.initial_capital = initial_capital
         self.commission_rate = commission_rate

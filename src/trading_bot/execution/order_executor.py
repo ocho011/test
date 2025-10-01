@@ -125,6 +125,38 @@ class OrderExecutor(BaseComponent):
         if self.event_bus:
             await self.event_bus.emit(event)
 
+    def _validate_order_request(self, order_request: OrderRequest):
+        """
+        Validate order request parameters.
+
+        Args:
+            order_request: Order request to validate
+
+        Raises:
+            OrderExecutionError: If validation fails
+        """
+        # Validate symbol format (basic check for valid trading pair format)
+        # Symbol should end with USDT, USDC, BUSD, or BTC and be at least 6 chars
+        if not order_request.symbol or len(order_request.symbol) < 6:
+            raise OrderExecutionError(f"Invalid symbol: {order_request.symbol}")
+
+        # Additional check: must end with a valid quote currency
+        valid_quote_currencies = ['USDT', 'USDC', 'BUSD', 'BTC', 'ETH']
+        if not any(order_request.symbol.endswith(quote) for quote in valid_quote_currencies):
+            raise OrderExecutionError(f"Invalid symbol: {order_request.symbol}")
+
+        # Validate quantity is positive
+        if order_request.quantity <= 0:
+            raise OrderExecutionError(f"Invalid quantity: {order_request.quantity}")
+
+        # Validate side is a valid OrderSide enum value
+        if not isinstance(order_request.side, OrderSide):
+            raise OrderExecutionError(f"Invalid order side: {order_request.side}")
+
+        # Validate order_type is a valid OrderType enum value
+        if not isinstance(order_request.order_type, OrderType):
+            raise OrderExecutionError(f"Invalid order type: {order_request.order_type}")
+
     async def execute_order(self, order_request: OrderRequest) -> OrderEvent:
         """
         Execute an order with retry logic and monitoring.
@@ -138,6 +170,9 @@ class OrderExecutor(BaseComponent):
         Raises:
             OrderExecutionError: If order execution fails after all retries
         """
+        # Validate order request
+        self._validate_order_request(order_request)
+
         self.logger.info(
             f"Executing {order_request.order_type.value} {order_request.side.value} "
             f"order for {order_request.quantity} {order_request.symbol}"

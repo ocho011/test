@@ -1,0 +1,49 @@
+# Task ID: 5
+# Title: 매매 신호 생성 및 검증 시스템
+# Status: done
+# Dependencies: 4
+# Priority: high
+# Description: ICT 패턴 조합을 통한 매매 신호 생성 및 confluence 검증 로직 구현
+# Details:
+SignalGenerator 클래스로 매매 신호 생성. ConfluenceValidator: 최소 2-3개 confluence 요구 (Order Block + FVG + 시장 구조). SignalStrengthCalculator: 신호 강도 점수화 (0-100). 시간대별 바이어스 확인 로직. 거짓 신호 필터링을 위한 백테스트 기반 임계값 설정. SignalEvent 발행 시 진입가, 스탑로스, 익절가 포함. 신호 유효성 시간 제한 (5분 내 미체결 시 취소).
+
+# Test Strategy:
+신호 정확도 백테스트, confluence 검증 로직 테스트, 신호 생성 지연시간 측정
+
+# Subtasks:
+## 1. SignalGenerator 핵심 클래스 구현 [done]
+### Dependencies: None
+### Description: ICT 패턴 조합을 통한 매매 신호 생성 로직의 핵심 클래스 구현
+### Details:
+SignalGenerator 클래스 설계 및 구현. ICT 패턴(Order Block, FVG, 시장 구조) 입력을 받아 매매 신호 생성. 신호 타입(롱/숏) 결정 로직. 기본적인 신호 생성 알고리즘 구현. 패턴 조합 우선순위 정의.
+
+## 2. ConfluenceValidator 다중 조건 검증 시스템 [done]
+### Dependencies: 5.1
+### Description: 최소 2-3개 confluence 요구사항을 검증하는 시스템 구현
+### Details:
+ConfluenceValidator 클래스 구현. Order Block + FVG + 시장 구조 조합 검증. 최소 confluence 개수 확인 로직. 각 패턴의 신뢰도 가중치 적용. 패턴 간 시간적/공간적 일치성 검증.
+
+## 3. SignalStrengthCalculator 점수화 시스템 [done]
+### Dependencies: 5.2
+### Description: 신호 강도를 0-100 점수로 계산하는 시스템 구현
+### Details:
+SignalStrengthCalculator 클래스 구현. confluence 개수, 패턴 신뢰도, 시장 조건을 종합한 점수 계산. 0-100 스케일의 신호 강도 산출. 점수 가중치 조정 가능한 파라미터 시스템. 점수 기반 신호 등급 분류.
+
+## 4. 시간대별 바이어스 확인 및 거짓 신호 필터링 [done]
+### Dependencies: 5.3
+### Description: 시간대별 시장 바이어스 확인과 백테스트 기반 거짓 신호 필터링 로직 구현
+### Details:
+시간대별 바이어스 확인 로직 구현. 아시아/런던/뉴욕 세션별 특성 반영. 백테스트 기반 임계값 설정 시스템. 거짓 신호 패턴 학습 및 필터링. 시장 변동성 기반 신호 조정.
+
+## 5. SignalEvent 발행 및 가격 계산 시스템 [done]
+### Dependencies: 5.4
+### Description: 진입가, 스탑로스, 익절가를 포함한 SignalEvent 발행 시스템 구현
+### Details:
+SignalEvent 클래스 정의 및 발행 로직. 진입가 계산 알고리즘. 리스크 기반 스탑로스 계산. 수익률 목표 기반 익절가 설정. 이벤트 버스를 통한 신호 전파. 신호 메타데이터 포함.
+
+## 6. 신호 유효성 관리 및 타임아웃 시스템 [done]
+### Dependencies: 5.5
+### Description: 신호 유효성 시간 제한과 5분 내 미체결 시 취소하는 관리 시스템 구현
+### Details:
+신호 유효성 타이머 관리 시스템. 5분 유효성 시간 제한 구현. 미체결 신호 자동 취소 로직. 신호 상태 추적 및 업데이트. 만료된 신호 정리 및 알림. 유효성 시간 설정 가능한 파라미터 시스템.
+

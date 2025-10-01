@@ -1,0 +1,49 @@
+# Task ID: 2
+# Title: 이벤트 기반 아키텍처 프레임워크 구축
+# Status: done
+# Dependencies: 1
+# Priority: high
+# Description: 비동기 이벤트 버스 및 메시지 허브를 중심으로 한 느슨한 결합 아키텍처 설계
+# Details:
+EventBus 클래스로 발행-구독 패턴 구현. asyncio.Queue 기반 비동기 메시지 처리. 이벤트 타입: MarketDataEvent, SignalEvent, OrderEvent, RiskEvent. MessageHub가 모든 컴포넌트 간 통신 조율. 이벤트 직렬화/역직렬화를 위한 pydantic 모델 사용. 컴포넌트 간 의존성 주입을 위한 DI 컨테이너 구현. 각 컴포넌트는 BaseComponent 추상 클래스 상속하여 일관된 인터페이스 제공.
+
+# Test Strategy:
+이벤트 발행/구독 테스트, 비동기 메시지 처리 성능 테스트, 컴포넌트 간 통신 검증
+
+# Subtasks:
+## 1. BaseComponent 추상 클래스 설계 및 구현 [done]
+### Dependencies: None
+### Description: 모든 시스템 컴포넌트가 상속받을 기본 인터페이스 클래스 설계
+### Details:
+BaseComponent 추상 클래스 정의. start(), stop(), is_running() 메서드 포함. 컴포넌트 라이프사이클 관리를 위한 상태 관리. 로깅 및 에러 핸들링 기본 기능 제공. 컴포넌트 간 표준화된 인터페이스 보장.
+
+## 2. 이벤트 타입 및 모델 정의 [done]
+### Dependencies: 2.1
+### Description: 시스템에서 사용할 이벤트 타입들과 pydantic 모델 정의
+### Details:
+MarketDataEvent, SignalEvent, OrderEvent, RiskEvent 클래스 정의. pydantic 기반 이벤트 직렬화/역직렬화 모델. 이벤트 메타데이터(타임스탬프, 우선순위 등) 포함. 이벤트 검증 로직 구현.
+
+## 3. EventBus 발행-구독 패턴 구현 [done]
+### Dependencies: 2.2
+### Description: asyncio 기반 비동기 이벤트 발행 및 구독 시스템 구축
+### Details:
+EventBus 클래스 구현. subscribe(), unsubscribe(), publish() 메서드. asyncio.Queue 기반 비동기 메시지 처리. 이벤트 타입별 구독자 관리. 이벤트 필터링 및 라우팅 기능.
+
+## 4. MessageHub 중앙 통신 허브 개발 [done]
+### Dependencies: 2.3
+### Description: 모든 컴포넌트 간 통신을 조율하는 중앙 메시지 허브 구현
+### Details:
+MessageHub 클래스로 컴포넌트 간 통신 중재. 메시지 라우팅 및 변환 기능. 통신 상태 모니터링 및 로깅. 메시지 큐 관리 및 백프레셔 처리. 컴포넌트 등록/해제 관리.
+
+## 5. 의존성 주입(DI) 컨테이너 구현 [done]
+### Dependencies: 2.1
+### Description: 컴포넌트 간 의존성 관리를 위한 DI 컨테이너 시스템 구축
+### Details:
+DIContainer 클래스 구현. 컴포넌트 등록 및 자동 해결. 싱글톤 및 트랜지언트 라이프사이클 지원. 순환 의존성 감지 및 방지. 런타임 의존성 주입 기능.
+
+## 6. 컴포넌트 라이프사이클 관리 시스템 [done]
+### Dependencies: 2.4, 2.5
+### Description: 컴포넌트의 시작, 정지, 재시작을 관리하는 라이프사이클 매니저 구현
+### Details:
+ComponentLifecycleManager 클래스 구현. 컴포넌트 시작 순서 및 의존성 기반 초기화. 우아한 종료(graceful shutdown) 처리. 컴포넌트 헬스체크 및 자동 재시작. 라이프사이클 이벤트 발행 및 모니터링.
+

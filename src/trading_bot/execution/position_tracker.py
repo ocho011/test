@@ -42,6 +42,8 @@ class Position:
         entry_price: Decimal,
         stop_loss: Optional[Decimal] = None,
         take_profit: Optional[Decimal] = None,
+        leverage: Optional[int] = None,
+        margin_required: Optional[Decimal] = None,
     ):
         self.position_id = position_id
         self.symbol = symbol
@@ -50,6 +52,8 @@ class Position:
         self.entry_price = entry_price
         self.stop_loss = stop_loss
         self.take_profit = take_profit
+        self.leverage = leverage
+        self.margin_required = margin_required
 
         # Position state
         self.status = PositionStatus.OPENING
@@ -137,6 +141,8 @@ class Position:
             "realized_pnl": str(self.realized_pnl),
             "stop_loss": str(self.stop_loss) if self.stop_loss else None,
             "take_profit": str(self.take_profit) if self.take_profit else None,
+            "leverage": self.leverage,
+            "margin_required": str(self.margin_required) if self.margin_required else None,
             "risk_reward_ratio": (
                 self.calculate_risk_reward_ratio(self.current_price)
                 if self.current_price
@@ -355,10 +361,11 @@ class PositionTracker(BaseComponent):
                 f"realized P&L: {realized_pnl}"
             )
 
-            # Emit position event
-            await self._emit_position_event(position)
-
             remaining_quantity -= reduction_quantity
+
+            # Emit position event only if position is still open
+            if position.status != PositionStatus.CLOSED:
+                await self._emit_position_event(position)
 
             # Remove from tracking if fully closed
             if position.status == PositionStatus.CLOSED:

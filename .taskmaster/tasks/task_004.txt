@@ -1,0 +1,55 @@
+# Task ID: 4
+# Title: ICT 기술적 분석 엔진 개발
+# Status: done
+# Dependencies: 3
+# Priority: high
+# Description: Order Block, Fair Value Gap 감지 및 다중 시간대 구조 분석 알고리즘 구현
+# Details:
+TechnicalAnalyzer 클래스로 ICT 패턴 분석. OrderBlockDetector: 스윙 하이/로우 기반 주문 블록 식별, 최소 3개 캔들 후 유효성 확인. FairValueGapAnalyzer: 갭 크기 및 방향성 분석, 50% 이상 채워지면 무효화. MarketStructureAnalyzer: BOS(Break of Structure), CHoCH(Change of Character) 감지. 다중 시간대 분석을 위한 TimeFrameManager. pandas를 이용한 기술적 지표 계산. numpy 기반 고성능 수치 연산.
+
+# Test Strategy:
+히스토리컬 데이터 기반 패턴 감지 정확도 테스트, 실시간 분석 성능 측정
+
+# Subtasks:
+## 1. OrderBlockDetector 스윙 하이/로우 분석 모듈 개발 [done]
+### Dependencies: None
+### Description: 스윙 하이/로우를 기반으로 주문 블록을 식별하는 OrderBlockDetector 클래스 구현
+### Details:
+스윙 하이/로우 감지 알고리즘 구현, 최소 3개 캔들 후 유효성 확인 로직, 주문 블록 형성 조건 검증, 히스토리컬 데이터 기반 패턴 매칭, numpy 배열 기반 고성능 계산 최적화
+
+## 2. FairValueGapAnalyzer 갭 감지 및 무효화 로직 구현 [done]
+### Dependencies: None
+### Description: Fair Value Gap의 감지, 크기 분석, 방향성 판단 및 무효화 조건을 처리하는 분석기 개발
+### Details:
+갭 크기 및 방향성 분석 알고리즘, 50% 이상 채워짐 감지 시 무효화 로직, 갭의 품질 평가 지표, 다양한 시간대에서의 갭 유효성 검증, 실시간 갭 상태 모니터링
+
+## 3. MarketStructureAnalyzer BOS/CHoCH 감지 시스템 개발 [done]
+### Dependencies: None
+### Description: Break of Structure와 Change of Character를 감지하여 시장 구조 변화를 분석하는 시스템 구현
+### Details:
+BOS(Break of Structure) 감지 알고리즘, CHoCH(Change of Character) 식별 로직, 시장 구조 변화 패턴 분석, 구조적 레벨 브레이크 확인, 추세 변화 신호 생성
+
+## 4. TimeFrameManager 다중 시간대 처리 엔진 구축 [done]
+### Dependencies: None
+### Description: 여러 시간대의 데이터를 동시에 처리하고 분석할 수 있는 다중 시간대 관리 시스템 개발
+### Details:
+다중 시간대 데이터 동기화, 시간대별 분석 결과 통합, 상위 시간대 바이어스 적용, 시간대 간 confluence 검증, 메모리 효율적인 데이터 저장 구조
+
+## 5. 기술적 지표 계산 및 ICT 패턴 통합 모듈 [done]
+### Dependencies: 4.1, 4.2, 4.3
+### Description: pandas 기반 기술적 지표 계산과 ICT 패턴 분석을 통합하는 계산 엔진 개발
+### Details:
+pandas 기반 기술적 지표 라이브러리 통합, ICT 패턴과 전통 지표의 융합 분석, 지표 계산 파이프라인 최적화, 실시간 지표 업데이트 시스템, 메모리 사용량 최적화
+
+## 6. 패턴 검증 및 신뢰도 평가 시스템 [done]
+### Dependencies: 4.1, 4.2, 4.3, 4.4
+### Description: 감지된 ICT 패턴의 유효성을 검증하고 신뢰도를 평가하는 검증 시스템 구현
+### Details:
+패턴 신뢰도 점수 계산 알고리즘, 히스토리컬 백테스트 기반 검증, 패턴 성공률 통계 분석, 거짓 신호 필터링 로직, 패턴 품질 등급 분류 시스템
+
+## 7. 분석 엔진 성능 최적화 및 TechnicalAnalyzer 통합 [done]
+### Dependencies: 4.1, 4.2, 4.3, 4.4, 4.5, 4.6
+### Description: 모든 분석 모듈을 통합하는 TechnicalAnalyzer 클래스 구현 및 전체적인 성능 최적화
+### Details:
+TechnicalAnalyzer 메인 클래스 구현, 모든 분석 모듈 통합 및 조율, numpy 기반 벡터화 연산 최적화, 메모리 관리 및 가비지 컬렉션 최적화, 실시간 분석 성능 벤치마크
+

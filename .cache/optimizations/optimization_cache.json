@@ -1,0 +1,49 @@
+{
+  "TraditionalIndicatorStrategy_BTCUSDT_8525527922370743239": {
+    "strategy_name": "TraditionalIndicatorStrategy",
+    "parameters": {
+      "rsi_period": 14
+    },
+    "optimization_result": {
+      "in_sample_metrics": {},
+      "out_sample_metrics": {},
+      "stability_score": 0.0
+    },
+    "timestamp": "2025-10-02T04:24:24.777820",
+    "data_hash": "2024-01-01 00:00:00_2024-02-11 15:00:00_1000",
+    "config": {
+      "in_sample_ratio": 0.7,
+      "window_size_days": 180,
+      "step_size_days": 30,
+      "optimization_metric": "sharpe_ratio",
+      "max_iterations": 100,
+      "convergence_threshold": 0.001,
+      "enable_caching": true,
+      "cache_dir": ".cache/optimizations"
+    }
+  },
+  "ICTStrategy_BTCUSDT_6487668087867869149": {
+    "strategy_name": "ICTStrategy",
+    "parameters": {
+      "lookback_period": 50,
+      "min_confidence_threshold": 0.6
+    },
+    "optimization_result": {
+      "in_sample_metrics": {},
+      "out_sample_metrics": {},
+      "stability_score": 0.0
+    },
+    "timestamp": "2025-10-02T04:24:24.780992",
+    "data_hash": "2024-01-01 00:00:00_2024-02-11 15:00:00_1000",
+    "config": {
+      "in_sample_ratio": 0.7,
+      "window_size_days": 180,
+      "step_size_days": 30,
+      "optimization_metric": "sharpe_ratio",
+      "max_iterations": 100,
+      "convergence_threshold": 0.001,
+      "enable_caching": true,
+      "cache_dir": ".cache/optimizations"
+    }
+  }
+}

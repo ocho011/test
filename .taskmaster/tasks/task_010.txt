@@ -1,0 +1,49 @@
+# Task ID: 10
+# Title: 백테스팅 엔진 및 성과 분석 도구
+# Status: done
+# Dependencies: 9
+# Priority: medium
+# Description: 히스토리컬 데이터 기반 전략 검증 및 성과 지표 계산 시스템
+# Details:
+BacktestEngine 클래스로 히스토리컬 백테스트. 최소 6개월 데이터로 검증. PerformanceAnalyzer: 샤프 비율, 최대 드로우다운, 승률, 평균 손익비 계산. TradeAnalyzer: 거래별 상세 분석 및 패턴 인식. WalkForwardOptimizer: 워크 포워드 분석으로 파라미터 최적화. MonteCarloSimulator: 몬테카를로 시뮬레이션으로 위험 분석. 백테스트 결과 시각화를 위한 matplotlib 연동. CSV/JSON 형태 결과 내보내기.
+
+# Test Strategy:
+백테스트 결과 정확성 검증, 성과 지표 계산 확인, 파라미터 최적화 테스트
+
+# Subtasks:
+## 1. BacktestEngine 핵심 클래스 구현 [done]
+### Dependencies: None
+### Description: 히스토리컬 데이터 기반 백테스트 실행을 위한 핵심 엔진 클래스 개발
+### Details:
+BacktestEngine 클래스 구현으로 히스토리컬 데이터 로딩, 시뮬레이션 실행, 거래 실행 로직 포함. 최소 6개월 데이터 검증 로직, 시간 기반 이벤트 처리, 포지션 추적 기능 구현. pandas DataFrame 기반 데이터 처리 및 메모리 최적화.
+
+## 2. PerformanceAnalyzer 성과 지표 계산 모듈 [done]
+### Dependencies: 10.1
+### Description: 샤프 비율, 최대 드로우다운, 승률 등 핵심 성과 지표 계산 시스템 구축
+### Details:
+PerformanceAnalyzer 클래스로 샤프 비율, 최대 드로우다운, 승률, 평균 손익비, 연간 수익률, 변동성 계산. 벤치마크 대비 성과 비교 기능. 일별/월별/연도별 성과 분석 및 통계적 유의성 검증.
+
+## 3. TradeAnalyzer 거래별 상세 분석 시스템 [done]
+### Dependencies: 10.1
+### Description: 개별 거래의 상세 분석 및 패턴 인식을 위한 분석 도구 개발
+### Details:
+TradeAnalyzer 클래스로 거래별 손익 분석, 보유 기간 분석, 진입/청산 패턴 인식. 연속 손실/이익 분석, 시간대별 거래 성과, 거래 빈도 최적화 분석. 거래 품질 스코어링 시스템 구현.
+
+## 4. WalkForwardOptimizer 파라미터 최적화 엔진 [done]
+### Dependencies: 10.2, 10.3
+### Description: 워크 포워드 분석을 통한 전략 파라미터 동적 최적화 시스템 구현
+### Details:
+WalkForwardOptimizer 클래스로 롤링 윈도우 기반 파라미터 최적화. 인샘플/아웃샘플 성과 비교, 과최적화 방지 로직. 다차원 파라미터 그리드 서치 및 유전 알고리즘 기반 최적화. 최적화 결과 안정성 검증.
+
+## 5. MonteCarloSimulator 위험 분석 시뮬레이터 [done]
+### Dependencies: 10.2
+### Description: 몬테카를로 시뮬레이션을 통한 포트폴리오 위험 분석 및 확률적 성과 예측 시스템
+### Details:
+MonteCarloSimulator 클래스로 확률적 수익률 시뮬레이션 실행. VaR(Value at Risk), CVaR 계산, 최대 손실 확률 분석. 부트스트랩 리샘플링 기반 성과 분포 생성. 위험 시나리오별 포트폴리오 스트레스 테스트.
+
+## 6. 백테스트 결과 시각화 및 내보내기 시스템 [done]
+### Dependencies: 10.2, 10.3, 10.4, 10.5
+### Description: 백테스트 결과의 시각적 표현 및 다양한 형식으로 결과 내보내기 기능 구현
+### Details:
+matplotlib 기반 수익률 곡선, 드로우다운 차트, 거래 분포 시각화. 대화형 차트를 위한 plotly 연동. CSV/JSON/Excel 형식 결과 내보내기. 성과 리포트 자동 생성 및 PDF 출력 기능. 웹 대시보드용 API 엔드포인트 제공.
+

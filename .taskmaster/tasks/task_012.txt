@@ -1,0 +1,11 @@
+# Task ID: 12
+# Title: 시스템 통합 및 배포 준비
+# Status: pending
+# Dependencies: 11
+# Priority: high
+# Description: 전체 시스템 통합 테스트, 배포 자동화 및 운영 환경 설정
+# Details:
+SystemIntegrator로 모든 컴포넌트 통합. Docker 컨테이너화로 일관된 배포 환경. docker-compose.yml로 서비스 오케스트레이션. Vultr VM 자동 설정 스크립트. systemd 서비스 등록으로 자동 시작/재시작. 헬스체크 엔드포인트 구현. 로그 집중화를 위한 로그 수집기. 배포 전 통합 테스트 자동화. 프로덕션 환경 모니터링 대시보드. 긴급 정지 및 복구 절차 문서화.
+
+# Test Strategy:
+End-to-End 통합 테스트, 배포 프로세스 검증, 시스템 복구 시나리오 테스트
