@@ -352,40 +352,44 @@ class ComponentLifecycleManager(BaseComponent):
         """Resolve component startup order based on dependencies."""
         # Create dependency graph
         graph = {}
-        in_degree = defaultdict(int)
+        in_degree = {}
 
+        # Initialize graph and in-degree counter
         for name, dependency in self.components.items():
             graph[name] = dependency.dependencies.copy()
-            for dep in dependency.dependencies:
-                in_degree[dep] += 1
-            if name not in in_degree:
-                in_degree[name] = 0
+            in_degree[name] = len(dependency.dependencies)  # Count dependencies (in-degree)
 
-        # Topological sort with priority-based ordering
+        # Topological sort with Kahn's algorithm
         result = []
         queue = deque()
 
-        # Group by startup order priority and add to queue
+        # Start with components that have no dependencies (in_degree == 0)
+        # Process them in startup order priority
         for order in StartupOrder:
             order_index = order.value - 1
             for component_name in self.startup_order[order_index]:
-                if component_name in in_degree and in_degree[component_name] == 0:
+                if component_name in self.components and in_degree.get(component_name, 0) == 0:
                     queue.append(component_name)
 
         while queue:
             current = queue.popleft()
             result.append(current)
 
-            # Reduce in-degree for dependents
+            # Find components that depend on current component
+            # and reduce their in-degree
             for name, dependencies in graph.items():
                 if current in dependencies:
                     in_degree[name] -= 1
                     if in_degree[name] == 0:
+                        # Add to queue, respecting startup order priority
                         queue.append(name)
 
         # Check for circular dependencies
         if len(result) != len(self.components):
-            self.logger.error("Circular dependency detected in component graph")
+            self.logger.error(
+                f"Circular dependency detected in component graph. "
+                f"Resolved {len(result)} of {len(self.components)} components"
+            )
             return []
 
         return result
