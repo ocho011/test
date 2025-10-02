@@ -44,7 +44,39 @@ data/              # 히스토리컬 데이터
 
 ## 설치 및 실행
 
-1. **의존성 설치**:
+### 1. 환경 변수 설정
+
+프로젝트에는 3개의 환경 파일이 있습니다:
+
+- **`.env`** - 실제 사용 파일 (git에 커밋되지 않음)
+- **`.env.example`** - 개발 환경 템플릿
+- **`.env.production`** - 프로덕션 환경 템플릿
+
+**개발 환경 설정:**
+```bash
+# .env.example을 .env로 복사
+cp .env.example .env
+
+# .env 파일을 편집하여 실제 값 입력
+# 필수 항목:
+# - BINANCE_API_KEY
+# - BINANCE_API_SECRET
+# - DISCORD_WEBHOOK_URL (선택)
+```
+
+**프로덕션 배포:**
+```bash
+# .env.production을 .env로 복사
+cp .env.production .env
+
+# 프로덕션 설정 확인:
+# - BINANCE_TESTNET=false
+# - PAPER_TRADING=false (실거래 준비 시)
+# - Discord 알림 설정 확인
+```
+
+### 2. 의존성 설치
+
 ```bash
 pip install -e .
 ```

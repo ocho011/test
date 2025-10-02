@@ -1,0 +1,189 @@
+# Trading Bot Configuration Template
+# This is a template file showing all available configuration options
+# Copy to src/trading_bot/config/environments/{environment}.yml and customize
+
+# ============================================================================
+# SYSTEM CONFIGURATION
+# ============================================================================
+system:
+  # Environment name: development, production, testing, paper
+  environment: development
+  
+  # Enable debug mode for verbose logging
+  debug: false
+  
+  # Number of async worker threads
+  async_workers: 4
+  
+  # Event queue size for event bus
+  event_queue_size: 1000
+  
+  # Health check interval in seconds
+  health_check_interval: 300
+  
+  # Memory usage threshold in MB for warnings
+  memory_threshold_mb: 1024
+
+# ============================================================================
+# BINANCE API CONFIGURATION
+# ============================================================================
+binance:
+  # API credentials (use environment variables for security)
+  api_key: ${TRADING_BINANCE_API_KEY}
+  api_secret: ${TRADING_BINANCE_API_SECRET}
+  
+  # Use testnet for development/paper trading
+  testnet: false
+  
+  # Custom base URL (optional, defaults based on testnet setting)
+  base_url: null
+
+# ============================================================================
+# DISCORD NOTIFICATIONS
+# ============================================================================
+discord:
+  # Discord bot token
+  bot_token: ${TRADING_DISCORD_BOT_TOKEN}
+  
+  # Target channel ID for notifications
+  channel_id: ${TRADING_DISCORD_CHANNEL_ID}
+  
+  # Enable/disable Discord notifications
+  enable_notifications: true
+  
+  # Spam protection interval in seconds
+  spam_protection_seconds: 60
+
+# ============================================================================
+# LOGGING CONFIGURATION
+# ============================================================================
+logging:
+  # Log level: DEBUG, INFO, WARNING, ERROR, CRITICAL
+  level: INFO
+  
+  # Log format: json or text
+  format: json
+  
+  # Log output directory
+  output_dir: logs
+  
+  # File rotation settings
+  max_bytes: 10485760  # 10MB
+  backup_count: 5
+  rotation_time: midnight
+  
+  # Trade-specific logging
+  trade_log_enabled: true
+  trade_log_file: trades.log
+  
+  # Performance logging
+  performance_log_enabled: true
+  performance_log_file: performance.log
+  
+  # Sensitive data masking
+  mask_sensitive_data: true
+  debug_unmask: false
+
+# ============================================================================
+# TRADING PARAMETERS
+# ============================================================================
+trading:
+  # Trading symbol (e.g., BTCUSDT, ETHUSDT)
+  symbol: BTCUSDT
+  
+  # Chart timeframe: 1m, 5m, 15m, 1h, 4h, 1d
+  timeframe: 1h
+  
+  # Maximum position size as decimal (0.1 = 10% of capital)
+  max_position_size: 0.1
+  
+  # Trading leverage multiplier
+  leverage: 1
+  
+  # Maximum risk per trade as decimal (0.02 = 2%)
+  max_risk_per_trade: 0.02
+  
+  # Daily loss limit as decimal (0.05 = 5%)
+  daily_loss_limit: 0.05
+
+# ============================================================================
+# DATA LAYER CONFIGURATION
+# ============================================================================
+data:
+  # Maximum cache size (number of entries)
+  cache_size: 1000
+  
+  # Cache TTL in seconds
+  cache_ttl: 300
+  
+  # Historical data lookback period in days
+  historical_lookback_days: 90
+
+# ============================================================================
+# RISK MANAGEMENT CONFIGURATION
+# ============================================================================
+risk:
+  # Initial trading capital
+  initial_capital: 10000.0
+  
+  # Maximum position size as percentage of capital
+  max_position_size_pct: 0.1
+  
+  # Maximum drawdown percentage before trading stops
+  max_drawdown_pct: 0.2
+  
+  # Maximum consecutive losses before trading pauses
+  max_consecutive_losses: 3
+  
+  # Volatility threshold for filtering trades
+  volatility_threshold: 0.05
+
+# ============================================================================
+# STRATEGY CONFIGURATION
+# ============================================================================
+strategy:
+  # List of enabled strategies
+  enabled_strategies:
+    - ict
+    - traditional
+  
+  # Default strategy to use
+  default_strategy: ict
+  
+  # Strategy selection mode: auto, manual
+  strategy_selection_mode: auto
+
+# ============================================================================
+# EXECUTION CONFIGURATION
+# ============================================================================
+execution:
+  # Slippage tolerance as percentage
+  slippage_tolerance_pct: 0.001
+  
+  # Maximum retry attempts for failed orders
+  max_retry_attempts: 3
+  
+  # Order execution timeout in seconds
+  order_timeout_seconds: 30
+
+# ============================================================================
+# SYSTEM EVENTS CONFIGURATION
+# ============================================================================
+system_events:
+  # Event queue size for the event bus
+  event_queue_size: 1000
+  
+  # Maximum subscribers for message hub
+  message_hub_max_subscribers: 100
+
+# ============================================================================
+# CUSTOM SETTINGS
+# ============================================================================
+custom:
+  # Add any custom application-specific settings here
+  # These can be accessed via config.custom dictionary
+  
+  # Example custom settings:
+  # enable_monitoring: true
+  # enable_alerts: true
+  # custom_feature_flag: false

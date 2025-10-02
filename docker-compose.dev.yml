@@ -1,0 +1,38 @@
+version: '3.8'
+
+# Development environment override
+services:
+  trading-bot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: builder  # Use builder stage for dev with more tools
+    
+    # Override environment for development
+    environment:
+      - TRADING_ENV=development
+      - DEBUG=true
+    
+    # Additional volume mounts for development
+    volumes:
+      - ./logs:/app/logs
+      - ./data:/app/data
+      - ./config:/app/config
+      - ./src:/app/src  # Mount source code for live reload
+      - ./tests:/app/tests  # Mount tests
+      - ./src/trading_bot/config/environments:/app/src/trading_bot/config/environments:ro
+    
+    # Override command for development (with auto-reload)
+    command: python -u -m trading_bot.main
+    
+    # Development ports
+    ports:
+      - "8000:8000"  # API
+      - "5678:5678"  # Debugger port
+    
+    # No resource limits in dev
+    deploy:
+      resources:
+        limits:
+          cpus: '4.0'
+          memory: 2G

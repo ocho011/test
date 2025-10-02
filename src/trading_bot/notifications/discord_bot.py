@@ -13,7 +13,7 @@ from discord.ext import commands
 import os
 from datetime import datetime
 
-from ..config.bot_config import BotConfig
+from ..config.models import TradingBotConfig
 
 
 class TradingBotDiscordClient(discord.Client):
@@ -24,7 +24,7 @@ class TradingBotDiscordClient(discord.Client):
     for sending notifications to Discord channels.
     """
     
-    def __init__(self, config: BotConfig, *args, **kwargs):
+    def __init__(self, config: TradingBotConfig, *args, **kwargs):
         """
         Initialize the Discord client.
         
@@ -162,7 +162,7 @@ class DiscordBotManager:
     a high-level interface for bot operations.
     """
     
-    def __init__(self, config: BotConfig):
+    def __init__(self, config: TradingBotConfig):
         """
         Initialize the Discord bot manager.
         

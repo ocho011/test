@@ -1,0 +1,88 @@
+version: '3.8'
+
+services:
+  trading-bot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ict-trading-bot
+    restart: unless-stopped
+    
+    # Environment variables from .env file
+    env_file:
+      - .env
+    
+    # Volume mounts for persistence
+    volumes:
+      - ./logs:/app/logs
+      - ./data:/app/data
+      - ./config:/app/config
+      - ./src/trading_bot/config/environments:/app/src/trading_bot/config/environments:ro
+    
+    # Port mappings for health check API
+    ports:
+      - "8000:8000"
+    
+    # Network configuration
+    networks:
+      - trading-network
+    
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    
+    # Health check
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    
+    # Logging configuration
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Optional: Monitoring service (Prometheus) - uncomment when needed
+  # prometheus:
+  #   image: prom/prometheus:latest
+  #   container_name: trading-prometheus
+  #   volumes:
+  #     - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+  #     - prometheus-data:/prometheus
+  #   ports:
+  #     - "9090:9090"
+  #   networks:
+  #     - trading-network
+  #   profiles:
+  #     - monitoring
+
+  # Optional: Grafana for visualization - uncomment when needed
+  # grafana:
+  #   image: grafana/grafana:latest
+  #   container_name: trading-grafana
+  #   volumes:
+  #     - grafana-data:/var/lib/grafana
+  #   ports:
+  #     - "3000:3000"
+  #   networks:
+  #     - trading-network
+  #   profiles:
+  #     - monitoring
+
+networks:
+  trading-network:
+    driver: bridge
+
+volumes:
+  prometheus-data:
+  grafana-data:

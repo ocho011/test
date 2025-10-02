@@ -10,7 +10,7 @@ import logging
 from typing import Optional, Dict, Any
 from datetime import datetime
 
-from ..config.bot_config import BotConfig
+from ..config.models import TradingBotConfig
 from .discord_bot import DiscordBotManager, TradingBotDiscordClient
 from .notification_manager import NotificationManager, NotificationConfig, NotificationData
 from .discord_formatter import DiscordFormatter
@@ -26,7 +26,7 @@ class DiscordNotificationSystem:
     performance reporting.
     """
     
-    def __init__(self, bot_config: BotConfig, notification_config: Optional[NotificationConfig] = None):
+    def __init__(self, bot_config: TradingBotConfig, notification_config: Optional[NotificationConfig] = None):
         """
         Initialize the Discord notification system.
         
@@ -412,7 +412,7 @@ class DiscordNotificationSystem:
 
 
 # Convenience function for easy integration
-async def create_discord_system(bot_config: BotConfig, 
+async def create_discord_system(bot_config: TradingBotConfig, 
                               notification_config: Optional[NotificationConfig] = None,
                               start_monitoring: bool = True) -> DiscordNotificationSystem:
     """

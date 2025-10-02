@@ -1,0 +1,53 @@
+# Vultr VM Deployment Configuration Example
+# Copy this file to deploy.config and customize for your environment
+
+# Deployment User Configuration
+export DEPLOYMENT_USER="tradingbot"
+
+# Application Directories
+export APP_DIR="/opt/trading-bot"
+export BACKUP_DIR="/opt/trading-bot-backups"
+export LOG_DIR="/var/log/trading-bot"
+
+# Configuration Files
+export CONFIG_FILE=".env.production"
+
+# SSH Configuration
+export SSH_KEY_PATH="$HOME/.ssh/id_rsa.pub"
+
+# Docker Configuration
+export DOCKER_VERSION="latest"
+
+# System Requirements
+export REQUIRED_DISK_SPACE_GB="10"
+
+# Application Port (for firewall configuration)
+# Uncomment and set if your application exposes a specific port
+# export APP_PORT="8000"
+
+# Deployment Options
+# Set to "true" to skip specific steps during deployment
+# export SKIP_DOCKER_INSTALL="false"
+# export SKIP_FIREWALL_CONFIG="false"
+# export SKIP_SSH_SETUP="false"
+
+# Backup Configuration
+export BACKUP_RETENTION_DAYS="7"
+export MAX_BACKUPS="10"
+
+# Monitoring Configuration
+# export HEALTHCHECK_URL="http://localhost:8000/health"
+# export HEALTHCHECK_INTERVAL="60"
+
+# Notification Configuration (optional)
+# export SLACK_WEBHOOK_URL=""
+# export DISCORD_WEBHOOK_URL=""
+
+# Git Repository (if deploying from git)
+# export GIT_REPO_URL=""
+# export GIT_BRANCH="main"
+
+# Advanced Options
+export ENABLE_AUTO_UPDATES="false"
+export ENABLE_MONITORING="true"
+export ENABLE_AUTOMATIC_BACKUPS="true"

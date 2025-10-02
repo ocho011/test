@@ -1,0 +1,49 @@
+version: '3.8'
+
+# Production environment override
+services:
+  trading-bot:
+    # Override environment for production
+    environment:
+      - TRADING_ENV=production
+      - DEBUG=false
+    
+    # Production-only volume mounts (read-only where possible)
+    volumes:
+      - ./logs:/app/logs
+      - ./data:/app/data
+      - ./config:/app/config:ro
+      - ./src/trading_bot/config/environments:/app/src/trading_bot/config/environments:ro
+    
+    # Stricter resource limits for production
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 1G
+        reservations:
+          cpus: '1.0'
+          memory: 768M
+      
+      # Restart policy
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+    
+    # Production health check (more frequent)
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8000/health')"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+    
+    # Production logging with rotation
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
+        compress: "true"

@@ -5,6 +5,7 @@ system:
   environment: development
   debug: true
   async_workers: 2
+  event_queue_size: 1000
   health_check_interval: 600  # 10 minutes
   memory_threshold_mb: 512
 
@@ -52,7 +53,41 @@ trading:
   max_risk_per_trade: 0.01  # 1% max risk
   daily_loss_limit: 0.03  # 3% daily limit
 
+# Data layer configuration
+data:
+  cache_size: 500
+  cache_ttl: 300  # 5 minutes
+  historical_lookback_days: 30
+
+# Risk management configuration
+risk:
+  initial_capital: 10000.0
+  max_position_size_pct: 0.05
+  max_drawdown_pct: 0.15
+  max_consecutive_losses: 3
+  volatility_threshold: 0.05
+
+# Strategy configuration
+strategy:
+  enabled_strategies:
+    - ict
+    - traditional
+  default_strategy: ict
+  strategy_selection_mode: auto
+
+# Execution configuration
+execution:
+  slippage_tolerance_pct: 0.002  # 0.2%
+  max_retry_attempts: 3
+  order_timeout_seconds: 30
+
+# System events configuration
+system_events:
+  event_queue_size: 1000
+  message_hub_max_subscribers: 100
+
 custom:
   # Add any custom development-specific settings here
   mock_api: false
   enable_backtesting: true
+  dry_run: false

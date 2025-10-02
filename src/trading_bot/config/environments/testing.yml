@@ -5,55 +5,89 @@ system:
   environment: testing
   debug: true
   async_workers: 1
-  health_check_interval: 900  # 15 minutes (less frequent for tests)
+  event_queue_size: 500
+  health_check_interval: 3600  # 1 hour (less frequent)
   memory_threshold_mb: 256
 
 binance:
-  api_key: test_api_key_12345
-  api_secret: test_api_secret_67890
+  api_key: ${TRADING_BINANCE_API_KEY:-test_key}
+  api_secret: ${TRADING_BINANCE_API_SECRET:-test_secret}
   testnet: true
   base_url: https://testnet.binance.vision
 
 discord:
-  bot_token: test_discord_token
-  channel_id: 123456789
-  enable_notifications: false  # Disable in tests
+  bot_token: ${TRADING_DISCORD_BOT_TOKEN:-test_token}
+  channel_id: ${TRADING_DISCORD_CHANNEL_ID:-0}
+  enable_notifications: false  # Disable for testing
   spam_protection_seconds: 10
 
 logging:
   level: WARNING  # Less verbose for tests
-  format: json
+  format: text
   output_dir: test_logs
   
-  # Rotation settings (minimal for tests)
+  # Rotation settings (minimal for testing)
   max_bytes: 1048576  # 1MB
-  backup_count: 2
+  backup_count: 1
   rotation_time: midnight
   
   # Trade logs
-  trade_log_enabled: false  # Disable in tests
-  trade_log_file: trades.log
+  trade_log_enabled: false
+  trade_log_file: test_trades.log
   
   # Performance logs
-  performance_log_enabled: false  # Disable in tests
-  performance_log_file: performance.log
+  performance_log_enabled: false
+  performance_log_file: test_performance.log
   
   # Sensitive data masking
-  mask_sensitive_data: true
-  debug_unmask: false
+  mask_sensitive_data: false  # No need in tests
+  debug_unmask: true
 
 trading:
   symbol: BTCUSDT
   timeframe: 1h
-  max_position_size: 0.001  # Minimal for tests
+  max_position_size: 0.01
   leverage: 1
   
-  # Risk management
-  max_risk_per_trade: 0.01  # 1% max risk
+  # Risk management (very conservative for testing)
+  max_risk_per_trade: 0.005  # 0.5% max risk
   daily_loss_limit: 0.02  # 2% daily limit
+
+# Data layer configuration
+data:
+  cache_size: 100
+  cache_ttl: 60  # 1 minute
+  historical_lookback_days: 7
+
+# Risk management configuration
+risk:
+  initial_capital: 1000.0
+  max_position_size_pct: 0.02
+  max_drawdown_pct: 0.1
+  max_consecutive_losses: 2
+  volatility_threshold: 0.1
+
+# Strategy configuration
+strategy:
+  enabled_strategies:
+    - ict
+  default_strategy: ict
+  strategy_selection_mode: manual
+
+# Execution configuration
+execution:
+  slippage_tolerance_pct: 0.005  # 0.5% (relaxed for testing)
+  max_retry_attempts: 1
+  order_timeout_seconds: 10
+
+# System events configuration
+system_events:
+  event_queue_size: 500
+  message_hub_max_subscribers: 50
 
 custom:
   # Testing-specific settings
   mock_api: true
   enable_backtesting: true
+  dry_run: true
   fast_mode: true

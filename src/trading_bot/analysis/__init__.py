@@ -65,9 +65,13 @@ from .technical_indicators import (
     TechnicalIndicators,
 )
 
+# Create ICTAnalyzer alias for backward compatibility
+ICTAnalyzer = TechnicalAnalyzer
+
 __all__ = [
     # Main analyzer
     "TechnicalAnalyzer",
+    "ICTAnalyzer",
     "AnalysisResult",
     "PerformanceMetrics",
     # ICT analyzers
