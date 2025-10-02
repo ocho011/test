@@ -15,14 +15,11 @@ from typing import Optional
 from .system_integrator import SystemIntegrator
 
 
-# Configure root logger
+# Configure basic logging (will be replaced by LogManager during system init)
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.StreamHandler(sys.stdout),
-        logging.FileHandler('trading_bot.log')
-    ]
+    handlers=[logging.StreamHandler(sys.stdout)]
 )
 
 logger = logging.getLogger(__name__)

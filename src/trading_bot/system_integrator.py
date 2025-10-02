@@ -20,6 +20,7 @@ from .core.lifecycle_manager import ComponentLifecycleManager, StartupOrder
 from .core.message_hub import MessageHub
 from .config.config_manager import ConfigManager
 from .config.models import TradingBotConfig
+from .config import setup_logging
 
 # Data layer
 from .data import (
@@ -185,11 +186,12 @@ class SystemIntegrator(BaseComponent):
             environment=self.environment
         )
         
-        # Apply configuration to logging
-        log_level = self.config.logging.level
-        logging.getLogger("trading_bot").setLevel(log_level.value if hasattr(log_level, 'value') else log_level)
+        # Initialize proper logging system with LogManager
+        setup_logging(self.config.logging)
+        self.logger = logging.getLogger(__name__)
         
         self.logger.info(f"Configuration loaded successfully from {self.environment}")
+        self.logger.info(f"Logs will be written to: {self.config.logging.output_dir}/")
 
     async def _initialize_infrastructure(self) -> None:
         """Initialize core infrastructure components."""

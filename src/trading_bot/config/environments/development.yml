@@ -23,7 +23,7 @@ discord:
 
 logging:
   level: DEBUG
-  format: json
+  format: text
   output_dir: logs
   
   # Rotation settings (smaller for dev)
