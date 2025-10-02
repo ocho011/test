@@ -69,6 +69,14 @@ class MarketOrderManager(BaseComponent):
             "average_execution_time": 0.0,
         }
 
+    async def _start(self):
+        """Start the market order manager (no-op for utility class)."""
+        self.logger.info("MarketOrderManager ready")
+
+    async def _stop(self):
+        """Stop the market order manager (no-op for utility class)."""
+        self.logger.info("MarketOrderManager stopped")
+
     async def execute_market_order(self, order_request: OrderRequest) -> OrderEvent:
         """
         Execute a market order with immediate execution.

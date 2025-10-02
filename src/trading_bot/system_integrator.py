@@ -304,7 +304,7 @@ class SystemIntegrator(BaseComponent):
         self.lifecycle_manager.register_component(
             market_data_provider,
             startup_order=StartupOrder.DATA,
-            dependencies=["binance_client", "data_cache"]
+            dependencies=["BinanceClient"]  # data_cache is not a BaseComponent
         )
 
     async def _register_analysis_components(self) -> None:
@@ -325,68 +325,77 @@ class SystemIntegrator(BaseComponent):
 
     async def _register_signal_components(self) -> None:
         """Register signal generation components."""
-        # Signal generator
+        # Get configuration
+        signals_config = self.config.signals
+        
+        # Get ICTAnalyzer for accessing sub-components
+        ict_analyzer = self.di_container.resolve(ICTAnalyzer)
+        
+        # Signal generator - use config-based initialization
         signal_generator = SignalGenerator(
-            ict_analyzer=self.di_container.resolve(ICTAnalyzer),
-            event_bus=self.event_bus
+            min_confidence_threshold=signals_config.min_confidence,
+            max_signals_per_timeframe=3,  # Could add to config
+            pattern_weights=None,  # Use defaults
+            risk_reward_ratios=None  # Use defaults
         )
         self.di_container.register_instance(SignalGenerator, signal_generator)
         self.components["signal_generator"] = signal_generator
-        self.lifecycle_manager.register_component(
-            signal_generator,
-            startup_order=StartupOrder.ANALYSIS,
-            dependencies=["ict_analyzer"]
-        )
         
-        # Confluence validator
-        confluence_validator = ConfluenceValidator()
+        # Confluence validator - resolve required dependencies from TechnicalAnalyzer
+        confluence_validator = ConfluenceValidator(
+            order_block_detector=ict_analyzer.order_block_detector,
+            fvg_analyzer=ict_analyzer.fvg_analyzer,
+            structure_analyzer=ict_analyzer.market_structure_analyzer,
+            timeframe_manager=ict_analyzer.timeframe_manager,
+            pattern_validator=ict_analyzer.validation_engine,
+            config=None  # Use default ConfluenceConfig
+        )
         self.di_container.register_instance(ConfluenceValidator, confluence_validator)
         self.components["confluence_validator"] = confluence_validator
         
-        # Signal strength calculator
-        signal_strength_calc = SignalStrengthCalculator()
+        # Signal strength calculator - requires pattern validator
+        signal_strength_calc = SignalStrengthCalculator(
+            pattern_validator=ict_analyzer.validation_engine,
+            config=None  # Use default StrengthConfig
+        )
         self.di_container.register_instance(SignalStrengthCalculator, signal_strength_calc)
         self.components["signal_strength_calculator"] = signal_strength_calc
         
-        # Bias filter
-        bias_filter = BiasFilter()
+        # Bias filter - config-based initialization
+        bias_filter = BiasFilter(config=None)  # Use default BiasFilterConfig
         self.di_container.register_instance(BiasFilter, bias_filter)
         self.components["bias_filter"] = bias_filter
         
-        # Signal event publisher
-        signal_publisher = SignalEventPublisher(event_bus=self.event_bus)
+        # Signal event publisher - use config-based initialization
+        signal_publisher = SignalEventPublisher(
+            config=None,  # Will use default PublishingConfig
+            event_handlers=[]  # Add event_bus.publish as handler if needed
+        )
+        # Add event_bus integration as event handler
+        signal_publisher.add_event_handler(lambda event: self.event_bus.publish(event))
         self.di_container.register_instance(SignalEventPublisher, signal_publisher)
         self.components["signal_publisher"] = signal_publisher
-        self.lifecycle_manager.register_component(
-            signal_publisher,
-            startup_order=StartupOrder.ANALYSIS,
-            dependencies=["signal_generator"]
-        )
         
-        # Signal validity manager
-        validity_manager = SignalValidityManager()
+        # Signal validity manager - config-based initialization
+        validity_manager = SignalValidityManager(config=None)  # Use default SignalValidityConfig
         self.di_container.register_instance(SignalValidityManager, validity_manager)
         self.components["signal_validity_manager"] = validity_manager
 
     async def _register_strategy_components(self) -> None:
         """Register strategy layer components."""
         # Strategy registry
-        strategy_registry = StrategyRegistry.get_instance()
+        strategy_registry = StrategyRegistry()
         self.di_container.register_instance(StrategyRegistry, strategy_registry)
         
-        # Register strategies
-        ict_strategy = ICTStrategy(
-            ict_analyzer=self.di_container.resolve(ICTAnalyzer),
-            event_bus=self.event_bus
-        )
-        strategy_registry.register(ict_strategy)
+        # Register strategy classes (not instances)
+        strategy_registry.register(ICTStrategy, name="ICT_Strategy", version="1.0.0")
+        strategy_registry.register(TraditionalIndicatorStrategy, name="Traditional_Strategy", version="1.0.0")
+
+        # Create strategy instances for immediate use
+        ict_strategy = ICTStrategy(name="ICT_Strategy", version="1.0.0", parameters=None)
         self.components["ict_strategy"] = ict_strategy
-        
-        traditional_strategy = TraditionalIndicatorStrategy(
-            indicators=self.di_container.resolve(TechnicalIndicators),
-            event_bus=self.event_bus
-        )
-        strategy_registry.register(traditional_strategy)
+
+        traditional_strategy = TraditionalIndicatorStrategy(name="Traditional_Strategy", version="1.0.0", parameters=None)
         self.components["traditional_strategy"] = traditional_strategy
         
         # Strategy selector
@@ -402,58 +411,43 @@ class SystemIntegrator(BaseComponent):
     async def _register_execution_components(self) -> None:
         """Register execution layer components."""
         # Position tracker
-        position_tracker = PositionTracker(event_bus=self.event_bus)
+        binance_client = self.di_container.resolve(BinanceClient)
+        position_tracker = PositionTracker(
+            binance_client=binance_client,
+            event_bus=self.event_bus
+        )
         self.di_container.register_instance(PositionTracker, position_tracker)
         self.components["position_tracker"] = position_tracker
         self.lifecycle_manager.register_component(
             position_tracker,
             startup_order=StartupOrder.EXECUTION,
-            dependencies=["market_data_provider"]
+            dependencies=["MarketDataProvider"]
         )
         
         # Slippage controller
-        slippage_controller = SlippageController()
+        from trading_bot.execution.slippage_controller import SlippageConfig
+        slippage_config = SlippageConfig()  # Uses default values
+        slippage_controller = SlippageController(config=slippage_config)
         self.di_container.register_instance(SlippageController, slippage_controller)
         self.components["slippage_controller"] = slippage_controller
         
-        # Trailing stop manager
-        trailing_stop_manager = TrailingStopManager(
-            market_data_provider=self.di_container.resolve(MarketDataProvider),
-            event_bus=self.event_bus
-        )
-        self.di_container.register_instance(TrailingStopManager, trailing_stop_manager)
-        self.components["trailing_stop_manager"] = trailing_stop_manager
-        self.lifecycle_manager.register_component(
-            trailing_stop_manager,
-            startup_order=StartupOrder.EXECUTION,
-            dependencies=["market_data_provider", "position_tracker"]
-        )
-        
-        # Partial take profit manager
-        partial_tp_manager = PartialTakeProfitManager(
-            position_tracker=position_tracker,
-            event_bus=self.event_bus
-        )
-        self.di_container.register_instance(PartialTakeProfitManager, partial_tp_manager)
-        self.components["partial_tp_manager"] = partial_tp_manager
-        
         # Order managers
+        binance_client = self.di_container.resolve(BinanceClient)
         market_order_manager = MarketOrderManager(
-            client=self.di_container.resolve(BinanceClient),
-            slippage_controller=slippage_controller
+            binance_client=binance_client,
+            event_bus=self.event_bus
         )
         self.di_container.register_instance(MarketOrderManager, market_order_manager)
-        
+
         limit_order_manager = LimitOrderManager(
-            client=self.di_container.resolve(BinanceClient)
+            binance_client=binance_client,
+            event_bus=self.event_bus
         )
         self.di_container.register_instance(LimitOrderManager, limit_order_manager)
         
         # Order executor
         order_executor = OrderExecutor(
-            market_manager=market_order_manager,
-            limit_manager=limit_order_manager,
-            position_tracker=position_tracker,
+            binance_client=binance_client,
             event_bus=self.event_bus
         )
         self.di_container.register_instance(OrderExecutor, order_executor)
@@ -461,22 +455,41 @@ class SystemIntegrator(BaseComponent):
         self.lifecycle_manager.register_component(
             order_executor,
             startup_order=StartupOrder.EXECUTION,
-            dependencies=["binance_client", "position_tracker"]
+            dependencies=["BinanceClient", "PositionTracker"]
         )
+
+        # Trailing stop manager (registered after OrderExecutor)
+        trailing_stop_manager = TrailingStopManager(
+            order_executor=order_executor,
+            event_bus=self.event_bus,
+            config=None  # Uses default TrailingStopConfig
+        )
+        self.di_container.register_instance(TrailingStopManager, trailing_stop_manager)
+        self.components["trailing_stop_manager"] = trailing_stop_manager
+        self.lifecycle_manager.register_component(
+            trailing_stop_manager,
+            startup_order=StartupOrder.EXECUTION,
+            dependencies=["MarketDataProvider", "PositionTracker", "OrderExecutor"]
+        )
+
+        # Partial take profit manager (registered after OrderExecutor)
+        partial_tp_manager = PartialTakeProfitManager(
+            order_executor=order_executor,
+            event_bus=self.event_bus,
+            config=None  # Uses default PartialTakeProfitConfig
+        )
+        self.di_container.register_instance(PartialTakeProfitManager, partial_tp_manager)
+        self.components["partial_tp_manager"] = partial_tp_manager
 
     async def _register_risk_components(self) -> None:
         """Register risk management components."""
         # Position size calculator
-        position_calc = PositionSizeCalculator(
-            account_balance=self.config.risk.initial_capital
-        )
+        position_calc = PositionSizeCalculator()  # Uses default parameter values
         self.di_container.register_instance(PositionSizeCalculator, position_calc)
         self.components["position_calculator"] = position_calc
         
         # Drawdown controller
-        drawdown_controller = DrawdownController(
-            initial_balance=self.config.risk.initial_capital
-        )
+        drawdown_controller = DrawdownController()  # Uses default parameter values
         self.di_container.register_instance(DrawdownController, drawdown_controller)
         self.components["drawdown_controller"] = drawdown_controller
         
@@ -486,42 +499,35 @@ class SystemIntegrator(BaseComponent):
         self.components["loss_tracker"] = loss_tracker
         
         # Volatility filter
-        volatility_filter = VolatilityFilter(
-            market_data_provider=self.di_container.resolve(MarketDataProvider)
-        )
+        volatility_filter = VolatilityFilter()  # Uses default parameter values
         self.di_container.register_instance(VolatilityFilter, volatility_filter)
         self.components["volatility_filter"] = volatility_filter
         
-        # Risk manager
-        risk_manager = RiskManager(
-            position_calculator=position_calc,
-            drawdown_controller=drawdown_controller,
-            loss_tracker=loss_tracker,
-            volatility_filter=volatility_filter,
-            event_bus=self.event_bus
-        )
+        # Risk manager (creates its own internal risk components)
+        risk_manager = RiskManager(name="RiskManager")  # Use PascalCase name for consistency
         self.di_container.register_instance(RiskManager, risk_manager)
         self.components["risk_manager"] = risk_manager
         self.lifecycle_manager.register_component(
             risk_manager,
             startup_order=StartupOrder.EXECUTION,
-            dependencies=["market_data_provider"]
+            dependencies=["MarketDataProvider"]
         )
 
     async def _register_notification_components(self) -> None:
         """Register notification components."""
-        # Notification manager
+        # Discord bot manager
+        from trading_bot.notifications.discord_bot import DiscordBotManager
+        discord_manager = DiscordBotManager(config=self.config)
+        self.di_container.register_instance(DiscordBotManager, discord_manager)
+        self.components["discord_manager"] = discord_manager
+
+        # Notification manager (not a BaseComponent, no lifecycle registration)
         notification_manager = NotificationManager(
-            event_bus=self.event_bus,
-            discord_enabled=self.config.discord.enabled
+            discord_manager=discord_manager,
+            config=None  # Uses default NotificationConfig
         )
         self.di_container.register_instance(NotificationManager, notification_manager)
         self.components["notification_manager"] = notification_manager
-        self.lifecycle_manager.register_component(
-            notification_manager,
-            startup_order=StartupOrder.NOTIFICATION,
-            dependencies=[]
-        )
 
     async def _register_monitoring_components(self) -> None:
         """Register monitoring components and component health checkers."""

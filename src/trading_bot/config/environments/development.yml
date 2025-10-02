@@ -17,8 +17,8 @@ binance:
 
 discord:
   bot_token: ${TRADING_DISCORD_BOT_TOKEN}
-  channel_id: ${TRADING_DISCORD_CHANNEL_ID}
-  enable_notifications: true
+  channel_id: 0  # Disabled for local development
+  enable_notifications: false
   spam_protection_seconds: 30
 
 logging:
