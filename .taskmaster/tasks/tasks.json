@@ -1000,7 +1000,7 @@
             "title": "Dry-run 모드 구현",
             "description": "실제 주문 없이 전체 워크플로우 검증할 수 있는 dry-run 모드",
             "details": "수정 파일: \n- src/trading_bot/execution/order_executor.py\n- src/trading_bot/config/settings.py\n\n기능:\n1. Config에 dry_run 플래그 추가\n2. OrderExecutor._handle_risk_approved_order()에서:\n   - dry_run=True: 로그만 출력, 주문 미실행\n   - dry_run=False: 실제 주문 실행\n3. 시뮬레이션 주문 이벤트 발행 (테스트용)\n\n로그 포맷:\n[DRY-RUN] Order would be executed: BUY 0.01 BTCUSDT @ MARKET\n[DRY-RUN] Stop Loss: 95000, Take Profit: 105000",
-            "status": "pending",
+            "status": "done",
             "dependencies": [],
             "parentTaskId": 13
           },
@@ -1009,7 +1009,7 @@
             "title": "통합 테스트 및 검증",
             "description": "전체 이벤트 체인 통합 테스트",
             "details": "테스트 파일: tests/integration/test_trading_workflow.py\n\n테스트 시나리오:\n1. MarketData 주입 테스트:\n   - 가짜 MarketDataEvent 발행\n   - CandleClosedEvent 생성 확인\n   - ICT 분석 실행 확인\n   - SignalEvent 생성 확인\n\n2. 리스크 체크 테스트:\n   - SignalEvent 발행\n   - RiskApprovedOrderEvent 생성 확인\n   - 리스크 초과 시 거부 확인\n\n3. 주문 실행 테스트 (dry-run):\n   - RiskApprovedOrderEvent 발행\n   - 주문 로그 출력 확인\n   - 실제 API 호출 없음 확인\n\n4. 전체 체인 테스트:\n   - MarketData → Candle → Analysis → Signal → Risk → Order\n   - 각 단계의 이벤트 발행 확인\n   - 타이밍 및 순서 검증",
-            "status": "pending",
+            "status": "in-progress",
             "dependencies": [],
             "parentTaskId": 13
           }
@@ -1018,7 +1018,7 @@
     ],
     "metadata": {
       "created": "2025-09-27T09:52:28.484Z",
-      "updated": "2025-10-03T09:09:05.154Z",
+      "updated": "2025-10-03T13:27:48.875Z",
       "description": "Tasks for master context"
     }
   }

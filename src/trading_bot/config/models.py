@@ -117,6 +117,7 @@ class ExecutionConfig(BaseModel):
     max_retries: int = Field(default=3, description="Max retry attempts")
     retry_delay_ms: int = Field(default=1000, description="Retry delay in milliseconds")
     order_timeout_seconds: int = Field(default=30, description="Order timeout in seconds")
+    dry_run: bool = Field(default=False, description="Dry-run mode: log orders without execution")
 
 
 class SystemConfig(BaseModel):

@@ -79,6 +79,7 @@ class OrderExecutor(BaseComponent):
         max_retries: int = 3,
         retry_delay: float = 1.0,
         slippage_limit: float = 0.005,  # 0.5% default slippage limit
+        dry_run: bool = False,
     ):
         """
         Initialize the order executor.
@@ -89,6 +90,7 @@ class OrderExecutor(BaseComponent):
             max_retries: Maximum retry attempts for failed orders
             retry_delay: Base delay between retries (exponential backoff)
             slippage_limit: Maximum allowed slippage percentage
+            dry_run: Enable dry-run mode (log orders without execution)
         """
         super().__init__(name=self.__class__.__name__)
         self.event_bus = event_bus
@@ -96,6 +98,7 @@ class OrderExecutor(BaseComponent):
         self.max_retries = max_retries
         self.retry_delay = retry_delay
         self.slippage_limit = slippage_limit
+        self.dry_run = dry_run
 
         # Active order tracking
         self.active_orders: Dict[str, OrderEvent] = {}
@@ -144,7 +147,8 @@ class OrderExecutor(BaseComponent):
         This method:
         1. Extracts order parameters from the SignalEvent
         2. Creates OrderRequest with approved quantity
-        3. Executes the order using existing execute_order() method
+        3. In dry-run mode: logs order details without execution
+        4. In live mode: executes the order using existing execute_order() method
         """
         try:
             signal = event.signal
@@ -181,7 +185,41 @@ class OrderExecutor(BaseComponent):
                 # not by the order itself
             )
 
-            # Execute the order
+            # Dry-run mode: log order without execution
+            if self.dry_run:
+                self.logger.info(
+                    f"[DRY-RUN] Order would be executed: "
+                    f"{order_side.value} {event.approved_quantity} {signal.symbol} @ MARKET"
+                )
+
+                # Log stop loss and take profit if available
+                if signal.stop_loss or signal.take_profit:
+                    sl_str = f"{signal.stop_loss}" if signal.stop_loss else "N/A"
+                    tp_str = f"{signal.take_profit}" if signal.take_profit else "N/A"
+                    self.logger.info(
+                        f"[DRY-RUN] Stop Loss: {sl_str}, Take Profit: {tp_str}"
+                    )
+
+                # Emit a simulated order event for testing
+                order_event = OrderEvent(
+                    source=self.__class__.__name__,
+                    client_order_id=order_request.client_order_id,
+                    symbol=order_request.symbol,
+                    side=order_request.side,
+                    order_type=order_request.order_type,
+                    quantity=order_request.quantity,
+                    price=order_request.price,
+                    stop_price=order_request.stop_price,
+                    status=OrderStatus.FILLED,  # Simulate successful execution
+                    filled_quantity=event.approved_quantity,
+                )
+
+                # Emit simulated order event
+                await self._emit_event(order_event)
+
+                return
+
+            # Live mode: execute the order
             order_event = await self.execute_order(order_request)
 
             self.logger.info(
