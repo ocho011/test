@@ -10,6 +10,7 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional, Set
 
 from trading_bot.core.event_bus import EventBus
+from trading_bot.core.events import EventType
 
 
 class EventCapture:
@@ -51,70 +52,78 @@ class EventCapture:
         
         # Subscribe to all events if no filter specified
         if event_types is None:
-            # Subscribe to common event types
+            # Subscribe to common event types using EventType enum
             event_types = {
-                "market_data_updated",
-                "pattern_detected",
-                "signal_generated",
-                "signal_validated",
-                "order_placed",
-                "order_filled",
-                "position_opened",
-                "position_closed",
-                "risk_limit_exceeded",
-                "notification_sent",
+                EventType.MARKET_DATA,
+                EventType.SIGNAL,
+                EventType.ORDER,
+                EventType.RISK,
+                EventType.POSITION,
+                EventType.CANDLE_CLOSED,
+                EventType.RISK_APPROVED_ORDER,
             }
-        
+
         # Subscribe to each event type
         for event_type in event_types:
-            sub_id = await self.event_bus.subscribe(
-                event_type,
-                self._capture_event
+            subscription = await self.event_bus.subscribe(
+                self._capture_event,
+                event_types=event_type
             )
-            self._subscription_ids.append(sub_id)
+            self._subscription_ids.append(subscription)
 
     async def stop(self) -> None:
         """Stop capturing events and unsubscribe."""
         if not self._is_capturing:
             return
-        
+
         # Unsubscribe from all events
-        for sub_id in self._subscription_ids:
-            await self.event_bus.unsubscribe(sub_id)
-        
+        for subscription in self._subscription_ids:
+            await self.event_bus.unsubscribe(subscription)
+
         self._subscription_ids.clear()
         self._is_capturing = False
 
-    async def _capture_event(self, event: Dict[str, Any]) -> None:
+    async def _capture_event(self, event) -> None:
         """
         Capture an event.
-        
+
         Args:
-            event: Event to capture
+            event: Event to capture (BaseEvent instance)
         """
+        # Store event with both EventType enum and string key for compatibility
+        event_type_str = event.event_type.value if hasattr(event.event_type, 'value') else str(event.event_type)
+
         event_record = {
-            "type": event.event_type,
-            "data": event.data,
+            "type": event_type_str,
+            "data": event.dict() if hasattr(event, 'dict') else event,
             "timestamp": datetime.now(),
-            "event_id": event.event_id,
-            "source": event.source
+            "event_id": str(event.event_id) if hasattr(event, 'event_id') else None,
+            "source": event.source if hasattr(event, 'source') else None
         }
-        
+
         self.events.append(event_record)
+        self.events_by_type[event_type_str].append(event_record)
         self.events_by_type[event.event_type].append(event_record)
 
     def get_events(self, event_type: Optional[str] = None) -> List[Dict[str, Any]]:
         """
         Get captured events.
-        
+
         Args:
-            event_type: Filter by event type (None for all)
-            
+            event_type: Filter by event type string (e.g., "market_data") or None for all
+
         Returns:
             List of event records
         """
         if event_type:
-            return self.events_by_type.get(event_type, [])
+            # Try both string lookup and EventType enum lookup
+            events = self.events_by_type.get(event_type, [])
+            if not events:
+                # Try finding by EventType enum
+                for key, value in self.events_by_type.items():
+                    if hasattr(key, 'value') and key.value == event_type:
+                        return value
+            return events
         return self.events
 
     def get_event_count(self, event_type: Optional[str] = None) -> int:

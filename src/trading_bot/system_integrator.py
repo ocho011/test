@@ -503,9 +503,12 @@ class SystemIntegrator(BaseComponent):
         self.di_container.register_instance(LimitOrderManager, limit_order_manager)
         
         # Order executor
+        # Get dry_run setting from execution config (default to False if not set)
+        dry_run = getattr(self.config.execution, 'dry_run', False) if hasattr(self.config, 'execution') else False
         order_executor = OrderExecutor(
             binance_client=binance_client,
-            event_bus=self.event_bus
+            event_bus=self.event_bus,
+            dry_run=dry_run
         )
         self.di_container.register_instance(OrderExecutor, order_executor)
         self.components["order_executor"] = order_executor

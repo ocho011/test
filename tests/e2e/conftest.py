@@ -77,6 +77,7 @@ execution:
   slippage_tolerance_pct: 0.001
   max_retries: 3
   retry_delay_ms: 1000
+  dry_run: true
 
 discord:
   enabled: false
@@ -141,21 +142,33 @@ async def event_bus() -> AsyncGenerator[EventBus, None]:
 
 
 @pytest_asyncio.fixture
-async def event_capture(event_bus: EventBus) -> AsyncGenerator[EventCapture, None]:
+async def event_capture(request) -> AsyncGenerator[EventCapture, None]:
     """
     Provide an EventCapture instance for recording events.
-    
-    Args:
-        event_bus: EventBus fixture
-        
+
+    Uses system_integrator's event_bus if available, otherwise creates standalone.
+
     Yields:
         EventCapture instance (already started)
     """
-    capture = EventCapture(event_bus)
+    # Try to get system_integrator's event_bus first
+    bus = None
+    if 'system_integrator' in request.fixturenames:
+        try:
+            system = request.getfixturevalue('system_integrator')
+            bus = system.event_bus
+        except:
+            pass
+
+    # Fall back to standalone event_bus fixture
+    if bus is None:
+        bus = request.getfixturevalue('event_bus')
+
+    capture = EventCapture(bus)
     await capture.start()
-    
+
     yield capture
-    
+
     await capture.stop()
 
 

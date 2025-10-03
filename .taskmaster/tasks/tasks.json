@@ -937,7 +937,7 @@
         "description": "이벤트 기반 워크플로우 연결: MarketData → ICT Analysis → Signal → Strategy → Order 체인 구현",
         "details": "현재 상태: 모든 개별 컴포넌트(ICTAnalyzer, SignalGenerator, Strategies, OrderExecutor)는 구현되어 있으나, 이벤트 핸들러가 없어서 서로 연결되지 않음.\n\n구현 필요사항:\n1. MarketDataEvent → CandleClosedEvent 변환 (MarketDataAggregator)\n2. CandleClosedEvent → ICT 분석 → SignalEvent (StrategyCoordinator)\n3. SignalEvent → 리스크 체크 → RiskApprovedOrderEvent (RiskManager)\n4. RiskApprovedOrderEvent → 주문 실행 (OrderExecutor)\n\n새 이벤트 타입:\n- CandleClosedEvent: 캔들이 종료되고 OHLCV 데이터가 준비됨\n- RiskApprovedOrderEvent: 리스크 체크를 통과한 주문\n\n새 컴포넌트:\n- MarketDataAggregator: 실시간 데이터를 OHLCV DataFrame으로 집계\n- StrategyCoordinator: 멀티 타임프레임 분석 조율 및 전략 실행",
         "testStrategy": "1. Dry-run 모드로 이벤트 체인 검증 (실제 주문 없이)\n2. 각 이벤트 핸들러의 단위 테스트\n3. 통합 테스트: 실제 시장 데이터 → 신호 생성 → 주문 검증\n4. 백테스팅 모드로 과거 데이터 재생 테스트",
-        "status": "pending",
+        "status": "done",
         "dependencies": [],
         "priority": "high",
         "subtasks": [
@@ -1009,7 +1009,7 @@
             "title": "통합 테스트 및 검증",
             "description": "전체 이벤트 체인 통합 테스트",
             "details": "테스트 파일: tests/integration/test_trading_workflow.py\n\n테스트 시나리오:\n1. MarketData 주입 테스트:\n   - 가짜 MarketDataEvent 발행\n   - CandleClosedEvent 생성 확인\n   - ICT 분석 실행 확인\n   - SignalEvent 생성 확인\n\n2. 리스크 체크 테스트:\n   - SignalEvent 발행\n   - RiskApprovedOrderEvent 생성 확인\n   - 리스크 초과 시 거부 확인\n\n3. 주문 실행 테스트 (dry-run):\n   - RiskApprovedOrderEvent 발행\n   - 주문 로그 출력 확인\n   - 실제 API 호출 없음 확인\n\n4. 전체 체인 테스트:\n   - MarketData → Candle → Analysis → Signal → Risk → Order\n   - 각 단계의 이벤트 발행 확인\n   - 타이밍 및 순서 검증",
-            "status": "in-progress",
+            "status": "done",
             "dependencies": [],
             "parentTaskId": 13
           }
@@ -1018,7 +1018,7 @@
     ],
     "metadata": {
       "created": "2025-09-27T09:52:28.484Z",
-      "updated": "2025-10-03T13:27:48.875Z",
+      "updated": "2025-10-03T13:58:33.769Z",
       "description": "Tasks for master context"
     }
   }
