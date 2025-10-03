@@ -1014,11 +1014,113 @@
             "parentTaskId": 13
           }
         ]
+      },
+      {
+        "id": 14,
+        "title": "설정 시스템 종합 리팩토링",
+        "description": "기능적 YAML 환경 변수 치환 구현, 환경/모드 개념 통합, 명확한 4-환경 구조 (production/paper-mainnet/paper-testnet/development) 확립, 중복 제거, 70개 이상의 비작동 환경 변수 수정",
+        "details": "현재 설정 시스템의 근본적인 문제들을 해결하기 위한 종합 리팩토링:\n\n1. **YAML 환경 변수 치환 시스템 구현**\n   - PyYAML SafeLoader 확장으로 ${ENV_VAR} 패턴 지원\n   - 기본값 지원: ${ENV_VAR:default_value}\n   - 중첩 치환 및 순환 참조 방지\n   - 타입 보존 (string, int, float, bool)\n\n2. **환경 구조 표준화**\n   - 4개 환경: production, paper-mainnet, paper-testnet, development\n   - 각 환경별 독립적인 YAML 파일 및 .env 파일\n   - 환경 간 상속 구조: base.yml → environment-specific.yml\n   - ENV 변수로 환경 전환: TRADING_ENV=production\n\n3. **설정 검증 및 타입 안전성**\n   - Pydantic v2 BaseSettings로 전체 설정 모델 재정의\n   - 필수 설정값 검증 및 누락 시 명확한 에러 메시지\n   - 타입 변환 및 검증 (URL, 경로, 포트 번호 등)\n   - 설정값 간 의존성 검증 (예: API 키와 엔드포인트 일치성)\n\n4. **중복 제거 및 정리**\n   - 현재 config/ 디렉토리 전체 분석 및 재구조화\n   - 동일한 설정이 여러 파일에 중복 정의된 것들 통합\n   - 사용하지 않는 설정값 제거\n   - 설정값 네이밍 일관성 확보\n\n5. **환경 변수 문제 해결**\n   - 현재 비작동하는 70개 이상 환경 변수 식별 및 수정\n   - .env.example 파일로 필수 환경 변수 문서화\n   - 환경 변수 검증 스크립트 작성\n   - Docker 환경에서의 환경 변수 주입 최적화\n\n6. **설정 로딩 성능 최적화**\n   - 설정 캐싱 메커니즘 구현\n   - Lazy loading으로 필요한 설정만 로드\n   - 설정 변경 감지 및 Hot reload 지원\n\n7. **마이그레이션 도구**\n   - 기존 설정에서 새 구조로 자동 변환 스크립트\n   - 설정 검증 및 테스트 도구\n   - 환경별 설정 비교 및 차이점 분석 도구",
+        "testStrategy": "1. **단위 테스트**\n   - YAML 파서의 환경 변수 치환 기능 테스트\n   - 각 환경별 설정 로딩 테스트\n   - Pydantic 모델 검증 테스트\n   - 설정값 타입 변환 테스트\n\n2. **통합 테스트**\n   - 4개 환경에서 전체 애플리케이션 시작 테스트\n   - 환경 변수 누락 시 에러 처리 테스트\n   - 설정 파일 손상 시 복구 테스트\n   - Docker 환경에서의 설정 로딩 테스트\n\n3. **마이그레이션 검증**\n   - 기존 설정 → 새 설정 변환 정확성 확인\n   - 모든 컴포넌트가 새 설정 구조로 정상 작동하는지 확인\n   - 성능 비교: 이전 vs 새 설정 시스템 로딩 시간\n\n4. **환경별 E2E 테스트**\n   - 각 환경에서 트레이딩 시스템 전체 워크플로우 테스트\n   - API 연결, 데이터베이스 연결, 로깅 시스템 동작 확인\n   - 환경 간 전환 시 데이터 격리 확인",
+        "status": "pending",
+        "dependencies": [
+          9
+        ],
+        "priority": "medium",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "YAML 환경 변수 치환 시스템 구현",
+            "description": "PyYAML SafeLoader 확장을 통한 ${ENV_VAR} 패턴 지원 구현. 기본값, 중첩 치환, 순환 참조 방지, 타입 보존 기능 포함",
+            "dependencies": [],
+            "details": "yaml.safe_load 호출을 대체하는 CustomYAMLLoader 클래스 구현. ${ENV_VAR:default_value} 형식 지원, 환경 변수 존재 검증, 중첩 치환 방지를 위한 depth 추적, 타입 변환 로직(string, int, float, bool) 구현. config_manager.py 내 _load_yaml_with_env_substitution 메서드 추가",
+            "status": "pending",
+            "testStrategy": "환경 변수 치환 단위 테스트, 기본값 처리 검증, 순환 참조 오류 테스트, 타입 보존 확인"
+          },
+          {
+            "id": 2,
+            "title": "4-환경 구조 표준화 및 명확화",
+            "description": "production(mainnet+live), paper-mainnet(mainnet+simulation), paper-testnet(testnet+simulation), development(testnet+live) 환경 구조 확립",
+            "dependencies": [
+              "14.1"
+            ],
+            "details": "환경별 YAML 설정 파일 생성 (base.yml, production.yml, paper-mainnet.yml, paper-testnet.yml, development.yml), 환경 상속 구조 구현, TRADING_ENV 환경 변수 기반 환경 전환 로직 추가, binance testnet/mainnet + dry_run/live execution 매핑 로직 구현",
+            "status": "pending",
+            "testStrategy": "각 환경별 설정 로딩 테스트, 환경 상속 검증, testnet/mainnet 자동 선택 확인"
+          },
+          {
+            "id": 3,
+            "title": "CLI 통합 및 --mode 제거",
+            "description": "main.py에서 --mode 인자 제거, --env에 paper 선택지 추가, 모드 관련 데드 코드 정리",
+            "dependencies": [
+              "14.2"
+            ],
+            "details": "main.py의 argparse에서 --mode 제거, --env choices에 paper-mainnet, paper-testnet 추가, 기존 paper mode 처리 로직 삭제, environment 기반 단일 실행 경로로 통합, 모드 관련 조건문 및 변수 정리",
+            "status": "pending",
+            "testStrategy": "CLI 인자 파싱 테스트, 각 환경별 시작 프로세스 검증, 모드 관련 코드 잔재 확인"
+          },
+          {
+            "id": 4,
+            "title": "설정 파일 통합 및 중복 제거",
+            "description": "config/ 디렉토리 내 6개 이상 분산된 설정 파일 통합, .env 변수 70개 이상에서 ~15개로 축소",
+            "dependencies": [
+              "14.2"
+            ],
+            "details": "기존 trading_config.yaml 분석, 중복된 설정값 식별 및 통합, 환경별 설정 파일로 재구조화, 사용하지 않는 설정값 제거, .env.example 파일 생성 (필수 환경 변수만 포함), 설정값 네이밍 일관성 확보",
+            "status": "pending",
+            "testStrategy": "설정 파일 로딩 검증, 중복 제거 후 기능성 확인, 환경 변수 필수성 검증"
+          },
+          {
+            "id": 5,
+            "title": "Binance testnet/mainnet + dry_run/live 실행 로직 구현",
+            "description": "환경에 따른 Binance API 엔드포인트 및 실행 모드 자동 결정 로직 구현",
+            "dependencies": [
+              "14.3"
+            ],
+            "details": "BinanceClient에서 환경 기반 testnet/mainnet 자동 선택, OrderExecutor에서 dry_run 모드 처리, production/paper-mainnet → mainnet, paper-testnet/development → testnet 매핑, live/simulation 실행 모드 구분 로직",
+            "status": "pending",
+            "testStrategy": "각 환경별 Binance 연결 테스트, dry_run 모드 주문 시뮬레이션 검증, 실제 API 호출 제한 확인"
+          },
+          {
+            "id": 6,
+            "title": "Pydantic v2 기반 설정 검증 및 타입 안전성",
+            "description": "BaseSettings를 활용한 전체 설정 모델 재정의, 필수값 검증, 타입 변환, 의존성 검증 구현",
+            "dependencies": [
+              "14.4"
+            ],
+            "details": "TradingBotConfig를 BaseSettings로 변경, 환경 변수 자동 바인딩, 필수 설정값 validator 추가, URL/경로/포트 번호 검증, API 키와 엔드포인트 일치성 검증, 누락 시 명확한 에러 메시지 제공",
+            "status": "pending",
+            "testStrategy": "Pydantic 모델 검증 테스트, 필수값 누락 에러 처리, 타입 변환 정확성 확인"
+          },
+          {
+            "id": 7,
+            "title": "마이그레이션 도구 및 문서화",
+            "description": "기존 설정에서 새 구조로 자동 변환 스크립트, 설정 검증 도구, 환경별 비교 도구 개발",
+            "dependencies": [
+              "14.6"
+            ],
+            "details": "config_migration.py 스크립트 생성, 기존 trading_config.yaml → 환경별 파일 변환, 설정 검증 스크립트 (validate_config.py), 환경 간 설정 차이점 분석 도구, 마이그레이션 가이드 문서 작성",
+            "status": "pending",
+            "testStrategy": "마이그레이션 스크립트 정확성 검증, 변환된 설정 파일 기능성 확인, 검증 도구 테스트"
+          },
+          {
+            "id": 8,
+            "title": "4개 환경 종합 테스트 및 성능 최적화",
+            "description": "모든 환경에서 애플리케이션 시작 테스트, 설정 캐싱, Hot reload, 성능 최적화 구현",
+            "dependencies": [
+              "14.5",
+              "14.6",
+              "14.7"
+            ],
+            "details": "각 환경별 전체 시스템 시작 테스트, 설정 로딩 캐싱 메커니즘 구현, 설정 변경 감지 및 Hot reload, Lazy loading으로 필요한 설정만 로드, Docker 환경에서의 환경 변수 주입 검증, 성능 벤치마크 수립",
+            "status": "pending",
+            "testStrategy": "4개 환경 전체 시작 테스트, 캐싱 효과 측정, Hot reload 기능 검증, Docker 환경 통합 테스트"
+          }
+        ]
       }
     ],
     "metadata": {
       "created": "2025-09-27T09:52:28.484Z",
-      "updated": "2025-10-03T13:58:33.769Z",
+      "updated": "2025-10-03T21:03:43.197Z",
       "description": "Tasks for master context"
     }
   }
