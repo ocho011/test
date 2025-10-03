@@ -13,6 +13,16 @@ from typing import Any, Dict, List, Optional, Tuple
 from pydantic import BaseModel, Field
 
 from ..core.base_component import BaseComponent
+from ..core.event_bus import EventBus
+from ..core.events import (
+    EventPriority,
+    EventType,
+    RiskApprovedOrderEvent,
+    RiskEvent,
+    RiskEventType,
+    RiskSeverity,
+    SignalEvent,
+)
 from .consecutive_loss_tracker import ConsecutiveLossTracker, TradeRecord
 from .drawdown_controller import DrawdownController
 from .position_size_calculator import (
@@ -94,6 +104,7 @@ class RiskManager(BaseComponent):
 
     def __init__(
         self,
+        event_bus: Optional[EventBus] = None,
         name: str = "risk_manager",
         max_risk_score: float = 0.8,
         risk_score_weights: Optional[Dict[str, float]] = None,
@@ -102,11 +113,15 @@ class RiskManager(BaseComponent):
         Initialize risk manager.
 
         Args:
+            event_bus: Event bus for signal event subscriptions
             name: Component name
             max_risk_score: Maximum allowed risk score (0.8 = 80%)
             risk_score_weights: Weights for risk score calculation
         """
         super().__init__(name)
+
+        self.event_bus = event_bus
+        self._subscription_id: Optional[str] = None
 
         self.max_risk_score = max_risk_score
 
@@ -148,11 +163,26 @@ class RiskManager(BaseComponent):
         await self.loss_tracker.start()
         await self.volatility_filter.start()
 
+        # Subscribe to SignalEvent if event_bus is available
+        if self.event_bus is not None:
+            self._subscription_id = await self.event_bus.subscribe(
+                event_type=EventType.SIGNAL,
+                handler=self._handle_signal_event,
+                priority=EventPriority.HIGH,
+            )
+            self.logger.info("Subscribed to SignalEvent")
+
         self.logger.info("Risk management system started successfully")
 
     async def _stop(self) -> None:
         """Stop risk management system."""
         self.logger.info("Stopping risk management system")
+
+        # Unsubscribe from SignalEvent
+        if self.event_bus is not None and self._subscription_id is not None:
+            await self.event_bus.unsubscribe(self._subscription_id)
+            self._subscription_id = None
+            self.logger.info("Unsubscribed from SignalEvent")
 
         # Stop all components
         (
@@ -165,6 +195,89 @@ class RiskManager(BaseComponent):
         await self.volatility_filter.stop()
 
         self.logger.info("Risk management system stopped")
+
+    async def _handle_signal_event(self, event: SignalEvent) -> None:
+        """
+        Handle incoming SignalEvent by performing risk checks and approving orders.
+
+        Args:
+            event: SignalEvent containing trading signal information
+        """
+        self.logger.info(
+            f"Received SignalEvent for {event.symbol}: {event.signal_type.value} "
+            f"(confidence: {event.confidence:.2%})"
+        )
+
+        # Skip if no entry price or stop loss provided
+        if event.entry_price is None or event.stop_loss is None:
+            self.logger.warning(
+                f"Signal missing entry_price or stop_loss - cannot assess risk"
+            )
+            return
+
+        # Create trade request for risk assessment
+        trade_request = TradeRequest(
+            symbol=event.symbol,
+            entry_price=event.entry_price,
+            stop_loss_price=event.stop_loss,
+            account_balance=Decimal("10000"),  # TODO: Get from account manager
+            risk_percentage=0.02,  # 2% risk per trade
+        )
+
+        # Assess trade risk
+        assessment = self.assess_trade_risk(trade_request)
+
+        # Check if trade is allowed
+        if assessment.decision == RiskDecision.ALLOW:
+            # Calculate approved position size
+            approved_quantity = assessment.position_size_result.position_size
+
+            # Publish RiskApprovedOrderEvent
+            if self.event_bus is not None:
+                risk_params = {
+                    "position_size": float(approved_quantity),
+                    "risk_amount": float(assessment.position_size_result.risk_amount),
+                    "risk_percentage": assessment.position_size_result.risk_percentage_actual,
+                    "stop_loss": float(event.stop_loss),
+                    "entry_price": float(event.entry_price),
+                    "risk_score": assessment.risk_score,
+                    "confidence": assessment.confidence,
+                }
+
+                approved_event = RiskApprovedOrderEvent(
+                    source=self.name,
+                    signal=event,
+                    approved_quantity=approved_quantity,
+                    risk_params=risk_params,
+                )
+
+                await self.event_bus.publish(approved_event)
+
+                self.logger.info(
+                    f"Published RiskApprovedOrderEvent for {event.symbol}: "
+                    f"quantity={approved_quantity}, risk={assessment.risk_score:.1%}"
+                )
+        else:
+            # Trade blocked - publish RiskEvent warning
+            if self.event_bus is not None:
+                risk_event = RiskEvent(
+                    source=self.name,
+                    risk_type=RiskEventType.RISK_CHECK_FAILED,
+                    severity=RiskSeverity.WARNING,
+                    symbol=event.symbol,
+                    current_value=assessment.risk_score,
+                    limit_value=self.max_risk_score,
+                    description=f"Signal rejected: {', '.join(assessment.reasons)}",
+                    action_required=False,
+                    suggested_action="Wait for better risk conditions",
+                )
+
+                await self.event_bus.publish(risk_event)
+
+                self.logger.warning(
+                    f"Signal blocked for {event.symbol}: {assessment.decision.value} - "
+                    f"{', '.join(assessment.reasons)}"
+                )
 
     def assess_trade_risk(self, trade_request: TradeRequest) -> RiskAssessment:
         """

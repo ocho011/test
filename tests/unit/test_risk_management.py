@@ -590,6 +590,271 @@ class TestRiskManager:
             await self.risk_manager.stop()
 
 
+    @pytest.mark.asyncio
+    async def test_signal_event_handling_approved(self):
+        """Test SignalEvent handling when trade is approved."""
+        from unittest.mock import AsyncMock, MagicMock
+
+        from src.trading_bot.core.event_bus import EventBus
+        from src.trading_bot.core.events import (
+            EventType,
+            RiskApprovedOrderEvent,
+            SignalEvent,
+            SignalType,
+        )
+
+        # Create event bus mock
+        event_bus = MagicMock(spec=EventBus)
+        event_bus.subscribe = AsyncMock(return_value="sub_123")
+        event_bus.unsubscribe = AsyncMock()
+        event_bus.publish = AsyncMock()
+
+        # Create risk manager with event bus
+        risk_manager = RiskManager(event_bus=event_bus, max_risk_score=0.8)
+        await risk_manager.start()
+
+        try:
+            # Set up favorable conditions
+            initial_balance = Decimal("10000")
+            risk_manager.update_balance(initial_balance)
+
+            symbol = "BTCUSDT"
+            risk_manager.update_volatility(symbol, Decimal("1000"), Decimal("45000"))
+
+            # Create SignalEvent
+            signal_event = SignalEvent(
+                source="test_strategy",
+                symbol=symbol,
+                signal_type=SignalType.BUY,
+                confidence=0.85,
+                entry_price=Decimal("45000"),
+                stop_loss=Decimal("44100"),  # 2% stop loss
+                take_profit=Decimal("46800"),  # 4% take profit
+                strategy_name="ICT_Strategy",
+                reasoning="Strong bullish order block with FVG confirmation",
+            )
+
+            # Handle the signal event
+            await risk_manager._handle_signal_event(signal_event)
+
+            # Verify event_bus.publish was called with RiskApprovedOrderEvent
+            assert event_bus.publish.called
+            published_event = event_bus.publish.call_args[0][0]
+            assert isinstance(published_event, RiskApprovedOrderEvent)
+            assert published_event.signal == signal_event
+            assert published_event.approved_quantity > 0
+            assert "position_size" in published_event.risk_params
+            assert "risk_score" in published_event.risk_params
+
+        finally:
+            await risk_manager.stop()
+
+    @pytest.mark.asyncio
+    async def test_signal_event_handling_blocked(self):
+        """Test SignalEvent handling when trade is blocked by risk checks."""
+        from unittest.mock import AsyncMock, MagicMock
+
+        from src.trading_bot.core.event_bus import EventBus
+        from src.trading_bot.core.events import (
+            EventType,
+            RiskEvent,
+            SignalEvent,
+            SignalType,
+        )
+
+        # Create event bus mock
+        event_bus = MagicMock(spec=EventBus)
+        event_bus.subscribe = AsyncMock(return_value="sub_123")
+        event_bus.unsubscribe = AsyncMock()
+        event_bus.publish = AsyncMock()
+
+        # Create risk manager with low risk tolerance
+        risk_manager = RiskManager(event_bus=event_bus, max_risk_score=0.3)
+        await risk_manager.start()
+
+        try:
+            # Set up unfavorable conditions - drawdown limit
+            initial_balance = Decimal("10000")
+            risk_manager.update_balance(initial_balance)
+            risk_manager.update_balance(Decimal("9300"))  # 7% drawdown - exceeds 5% daily limit
+
+            symbol = "BTCUSDT"
+
+            # Create SignalEvent
+            signal_event = SignalEvent(
+                source="test_strategy",
+                symbol=symbol,
+                signal_type=SignalType.BUY,
+                confidence=0.85,
+                entry_price=Decimal("45000"),
+                stop_loss=Decimal("44100"),
+                strategy_name="ICT_Strategy",
+            )
+
+            # Handle the signal event
+            await risk_manager._handle_signal_event(signal_event)
+
+            # Verify event_bus.publish was called with RiskEvent (warning)
+            assert event_bus.publish.called
+            published_event = event_bus.publish.call_args[0][0]
+            assert isinstance(published_event, RiskEvent)
+            assert published_event.symbol == symbol
+            assert "Signal rejected" in published_event.description
+
+        finally:
+            await risk_manager.stop()
+
+    @pytest.mark.asyncio
+    async def test_signal_event_missing_prices(self):
+        """Test SignalEvent handling when entry_price or stop_loss is missing."""
+        from unittest.mock import AsyncMock, MagicMock
+
+        from src.trading_bot.core.event_bus import EventBus
+        from src.trading_bot.core.events import SignalEvent, SignalType
+
+        # Create event bus mock
+        event_bus = MagicMock(spec=EventBus)
+        event_bus.subscribe = AsyncMock(return_value="sub_123")
+        event_bus.unsubscribe = AsyncMock()
+        event_bus.publish = AsyncMock()
+
+        # Create risk manager
+        risk_manager = RiskManager(event_bus=event_bus)
+        await risk_manager.start()
+
+        try:
+            # Create SignalEvent without stop_loss
+            signal_event = SignalEvent(
+                source="test_strategy",
+                symbol="BTCUSDT",
+                signal_type=SignalType.BUY,
+                confidence=0.85,
+                entry_price=Decimal("45000"),
+                stop_loss=None,  # Missing stop loss
+                strategy_name="ICT_Strategy",
+            )
+
+            # Handle the signal event
+            await risk_manager._handle_signal_event(signal_event)
+
+            # Should not publish any event (early return)
+            assert not event_bus.publish.called
+
+        finally:
+            await risk_manager.stop()
+
+    @pytest.mark.asyncio
+    async def test_signal_event_subscription_lifecycle(self):
+        """Test SignalEvent subscription and unsubscription lifecycle."""
+        from unittest.mock import AsyncMock, MagicMock
+
+        from src.trading_bot.core.event_bus import EventBus
+        from src.trading_bot.core.events import EventType
+
+        # Create event bus mock
+        event_bus = MagicMock(spec=EventBus)
+        event_bus.subscribe = AsyncMock(return_value="sub_signal_123")
+        event_bus.unsubscribe = AsyncMock()
+
+        # Create risk manager
+        risk_manager = RiskManager(event_bus=event_bus)
+
+        # Start should subscribe
+        await risk_manager.start()
+
+        # Verify subscription was called correctly
+        event_bus.subscribe.assert_called_once()
+        call_kwargs = event_bus.subscribe.call_args[1]
+        assert call_kwargs["event_type"] == EventType.SIGNAL
+        assert call_kwargs["handler"] == risk_manager._handle_signal_event
+        assert risk_manager._subscription_id == "sub_signal_123"
+
+        # Stop should unsubscribe
+        await risk_manager.stop()
+
+        # Verify unsubscription
+        event_bus.unsubscribe.assert_called_once_with("sub_signal_123")
+        assert risk_manager._subscription_id is None
+
+    @pytest.mark.asyncio
+    async def test_signal_event_high_confidence(self):
+        """Test SignalEvent handling with high confidence signal."""
+        from unittest.mock import AsyncMock, MagicMock
+
+        from src.trading_bot.core.event_bus import EventBus
+        from src.trading_bot.core.events import RiskApprovedOrderEvent, SignalEvent, SignalType
+
+        event_bus = MagicMock(spec=EventBus)
+        event_bus.subscribe = AsyncMock(return_value="sub_123")
+        event_bus.unsubscribe = AsyncMock()
+        event_bus.publish = AsyncMock()
+
+        risk_manager = RiskManager(event_bus=event_bus)
+        await risk_manager.start()
+
+        try:
+            # Set up conditions
+            risk_manager.update_balance(Decimal("10000"))
+            symbol = "ETHUSDT"
+            risk_manager.update_volatility(symbol, Decimal("50"), Decimal("3000"))
+
+            # Create high-confidence signal
+            signal_event = SignalEvent(
+                source="test_strategy",
+                symbol=symbol,
+                signal_type=SignalType.BUY,
+                confidence=0.95,  # Very high confidence
+                entry_price=Decimal("3000"),
+                stop_loss=Decimal("2940"),  # 2% stop
+                take_profit=Decimal("3120"),  # 4% target
+                strategy_name="High_Probability_Setup",
+                reasoning="Multiple confluence factors aligned",
+            )
+
+            await risk_manager._handle_signal_event(signal_event)
+
+            # Should publish approved order
+            assert event_bus.publish.called
+            published_event = event_bus.publish.call_args[0][0]
+            assert isinstance(published_event, RiskApprovedOrderEvent)
+            assert published_event.risk_params["confidence"] > 0.5
+
+        finally:
+            await risk_manager.stop()
+
+    @pytest.mark.asyncio
+    async def test_signal_event_without_event_bus(self):
+        """Test RiskManager works without event_bus (backward compatibility)."""
+        # Create risk manager without event bus
+        risk_manager = RiskManager(event_bus=None)
+        await risk_manager.start()
+
+        try:
+            # Should not crash - verify it started successfully
+            assert risk_manager.is_running()
+            assert risk_manager._subscription_id is None
+
+            # Normal risk assessment should still work
+            trade_request = TradeRequest(
+                symbol="BTCUSDT",
+                entry_price=Decimal("45000"),
+                stop_loss_price=Decimal("44100"),
+                account_balance=Decimal("10000"),
+                risk_percentage=0.02,
+            )
+
+            assessment = risk_manager.assess_trade_risk(trade_request)
+            assert assessment is not None
+            assert assessment.decision in [
+                RiskDecision.ALLOW,
+                RiskDecision.RESTRICT,
+                RiskDecision.HALT,
+            ]
+
+        finally:
+            await risk_manager.stop()
+
+
 @pytest.mark.asyncio
 async def test_full_system_integration():
     """Test complete system integration with realistic scenario."""

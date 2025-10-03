@@ -964,7 +964,7 @@
             "title": "StrategyCoordinator 컴포넌트 구현",
             "description": "멀티 타임프레임 분석 조율 및 전략 실행",
             "details": "위치: src/trading_bot/strategies/strategy_coordinator.py\n\n기능:\n1. CandleClosedEvent 구독 (모든 interval)\n2. 각 interval별 ICT 분석 실행 (ICTAnalyzer)\n3. 멀티 타임프레임 confluence 체크\n4. 전략 실행 (IntegratedStrategySystem)\n5. SignalEvent 발행\n\n로직:\n- 5m 캔들 종료 → 5m ICT 분석 → 즉시 전략 실행 가능\n- 15m/4h/1d 캔들 종료 → 해당 타임프레임 분석 → confluence 업데이트\n- Confluence 조건 충족 시 고품질 신호 생성\n\n의존성: ICTAnalyzer, IntegratedStrategySystem, EventBus",
-            "status": "pending",
+            "status": "done",
             "dependencies": [],
             "parentTaskId": 13
           },
@@ -973,7 +973,7 @@
             "title": "RiskManager에 SignalEvent 핸들러 추가",
             "description": "SignalEvent 수신 시 리스크 체크 후 RiskApprovedOrderEvent 발행",
             "details": "수정 파일: src/trading_bot/risk/risk_manager.py\n\n추가 기능:\n1. SignalEvent 구독 등록\n2. _handle_signal_event() 메서드 추가:\n   - 포지션 사이즈 계산 (calculate_position_size)\n   - 리스크 체크 (check_new_position_risk)\n   - 통과 시: RiskApprovedOrderEvent 발행\n   - 실패 시: RiskEvent 발행 (위험 경고)\n\n이미 구현된 메서드 활용:\n- calculate_position_size()\n- check_new_position_risk()\n- _calculate_max_position_size()",
-            "status": "pending",
+            "status": "done",
             "dependencies": [],
             "parentTaskId": 13
           },
@@ -1018,7 +1018,7 @@
     ],
     "metadata": {
       "created": "2025-09-27T09:52:28.484Z",
-      "updated": "2025-10-03T08:13:14.398Z",
+      "updated": "2025-10-03T08:50:34.372Z",
       "description": "Tasks for master context"
     }
   }
