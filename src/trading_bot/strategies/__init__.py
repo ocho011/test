@@ -5,6 +5,8 @@ from .ict_strategy import ICTStrategy
 from .traditional_strategy import TraditionalIndicatorStrategy
 from .strategy_registry import StrategyRegistry, get_registry
 from .strategy_selector import StrategySelector
+from .strategy_coordinator import StrategyCoordinator
+from .strategy_system_integration import IntegratedStrategySystem
 from .performance_tracker import StrategyPerformanceTracker, StrategyMetrics, TradeRecord
 from .comparator import StrategyComparator, ComparisonResult
 from .strategy_optimizer import (
@@ -25,6 +27,9 @@ __all__ = [
     "get_registry",
     # Selector
     "StrategySelector",
+    # Coordination
+    "StrategyCoordinator",
+    "IntegratedStrategySystem",
     # Performance Tracking
     "StrategyPerformanceTracker",
     "StrategyMetrics",

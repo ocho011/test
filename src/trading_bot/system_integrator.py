@@ -26,6 +26,7 @@ from .config import setup_logging
 from .data import (
     BinanceClient,
     MarketDataProvider,
+    MarketDataAggregator,
     DataCache,
     RateLimiter,
 )
@@ -47,6 +48,8 @@ from .signals import (
 from .strategies import (
     StrategyRegistry,
     StrategySelector,
+    StrategyCoordinator,
+    IntegratedStrategySystem,
     ICTStrategy,
     TraditionalIndicatorStrategy,
     StrategyPerformanceTracker,
@@ -323,6 +326,26 @@ class SystemIntegrator(BaseComponent):
             startup_order=StartupOrder.DATA,
             dependencies=["BinanceClient"]  # data_cache is not a BaseComponent
         )
+        
+        # Market data aggregator
+        # Uses multiple symbols and intervals for multi-symbol tracking
+        symbols = [symbol]  # Start with main symbol, can be expanded
+        intervals = default_intervals
+        
+        market_data_aggregator = MarketDataAggregator(
+            binance_client=binance_client,
+            event_bus=self.event_bus,
+            symbols=symbols,
+            intervals=intervals,
+            lookback_bars=100
+        )
+        self.di_container.register_instance(MarketDataAggregator, market_data_aggregator)
+        self.components["market_data_aggregator"] = market_data_aggregator
+        self.lifecycle_manager.register_component(
+            market_data_aggregator,
+            startup_order=StartupOrder.DATA,
+            dependencies=["BinanceClient", "MarketDataProvider"]
+        )
 
     async def _register_analysis_components(self) -> None:
         """Register analysis layer components."""
@@ -424,6 +447,23 @@ class SystemIntegrator(BaseComponent):
         performance_tracker = StrategyPerformanceTracker()
         self.di_container.register_instance(StrategyPerformanceTracker, performance_tracker)
         self.components["performance_tracker"] = performance_tracker
+        
+        # Integrated strategy system (no dependencies)
+        integrated_strategy_system = IntegratedStrategySystem()
+        self.di_container.register_instance(IntegratedStrategySystem, integrated_strategy_system)
+        self.components["integrated_strategy_system"] = integrated_strategy_system
+        
+        # Strategy coordinator - requires ICTAnalyzer, IntegratedStrategySystem, EventBus
+        ict_analyzer = self.di_container.resolve(ICTAnalyzer)
+        strategy_coordinator = StrategyCoordinator(
+            event_bus=self.event_bus,
+            ict_analyzer=ict_analyzer,
+            strategy_system=integrated_strategy_system,
+            subscribed_intervals=None,  # Uses default ["5m", "15m", "4h", "1d"]
+            min_confluence_timeframes=2
+        )
+        self.di_container.register_instance(StrategyCoordinator, strategy_coordinator)
+        self.components["strategy_coordinator"] = strategy_coordinator
 
     async def _register_execution_components(self) -> None:
         """Register execution layer components."""
