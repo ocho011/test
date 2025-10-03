@@ -23,6 +23,8 @@ from ..core.events import (
     PositionEvent,
     PositionSide,
     PositionStatus,
+    RiskApprovedOrderEvent,
+    SignalType,
     SlippageEvent,
     TakeProfitEvent,
 )
@@ -109,7 +111,14 @@ class OrderExecutor(BaseComponent):
         }
 
     async def _start(self):
-        """Start the order executor."""
+        """Start the order executor and subscribe to events."""
+        # Subscribe to RiskApprovedOrderEvent
+        if self.event_bus:
+            await self.event_bus.subscribe(
+                self._handle_risk_approved_order, EventType.RISK_APPROVED_ORDER
+            )
+            self.logger.info("Subscribed to RiskApprovedOrderEvent")
+
         self.logger.info("OrderExecutor started")
 
     async def _stop(self):
@@ -123,7 +132,68 @@ class OrderExecutor(BaseComponent):
     async def _emit_event(self, event):
         """Emit an event to the event bus if available."""
         if self.event_bus:
-            await self.event_bus.emit(event)
+            await self.event_bus.publish(event)
+
+    async def _handle_risk_approved_order(self, event: RiskApprovedOrderEvent):
+        """
+        Handle risk-approved order events and execute orders automatically.
+
+        Args:
+            event: RiskApprovedOrderEvent containing approved signal and quantity
+
+        This method:
+        1. Extracts order parameters from the SignalEvent
+        2. Creates OrderRequest with approved quantity
+        3. Executes the order using existing execute_order() method
+        """
+        try:
+            signal = event.signal
+
+            self.logger.info(
+                f"Processing risk-approved order: {signal.signal_type.value} "
+                f"{signal.symbol} quantity={event.approved_quantity}"
+            )
+
+            # Convert signal type to order side
+            if signal.signal_type == SignalType.BUY:
+                order_side = OrderSide.BUY
+            elif signal.signal_type == SignalType.SELL:
+                order_side = OrderSide.SELL
+            elif signal.signal_type == SignalType.CLOSE_LONG:
+                order_side = OrderSide.SELL  # Close long = sell position
+            elif signal.signal_type == SignalType.CLOSE_SHORT:
+                order_side = OrderSide.BUY  # Close short = buy position
+            else:
+                self.logger.warning(
+                    f"Ignoring signal type {signal.signal_type.value} - "
+                    f"not a tradeable signal"
+                )
+                return
+
+            # Create order request with approved quantity
+            # Use MARKET order for immediate execution
+            order_request = OrderRequest(
+                symbol=signal.symbol,
+                side=order_side,
+                order_type=OrderType.MARKET,
+                quantity=event.approved_quantity,
+                # Note: stop_loss and take_profit are managed by PositionTracker
+                # not by the order itself
+            )
+
+            # Execute the order
+            order_event = await self.execute_order(order_request)
+
+            self.logger.info(
+                f"Risk-approved order executed successfully: "
+                f"{order_side.value} {event.approved_quantity} {signal.symbol} "
+                f"(Order ID: {order_event.client_order_id})"
+            )
+
+        except Exception as e:
+            self.logger.error(
+                f"Failed to execute risk-approved order for {event.signal.symbol}: {str(e)}"
+            )
 
     def _validate_order_request(self, order_request: OrderRequest):
         """
