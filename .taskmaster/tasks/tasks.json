@@ -898,7 +898,8 @@
             "title": "systemd 서비스 등록",
             "description": "시스템 부팅 시 자동 실행 및 서비스 관리를 위한 systemd 설정",
             "dependencies": [
-              "12.7"
+              "12.7",
+              "13"
             ],
             "details": "trading-bot.service 파일 작성으로 systemd 서비스 정의. 자동 시작 및 재시작 설정 구현. 서비스 실패 시 복구 정책 설정. 로그 관리 및 회전 설정. 서비스 의존성 및 실행 순서 관리.",
             "status": "pending",
@@ -909,7 +910,8 @@
             "title": "프로덕션 모니터링 설정",
             "description": "운영 환경에서의 시스템 모니터링 및 로그 관리 시스템 구축",
             "dependencies": [
-              "12.8"
+              "12.8",
+              "13"
             ],
             "details": "로그 집중화를 위한 로그 수집기 설정. 시스템 메트릭 수집 및 대시보드 구축. 알림 시스템 연동을 위한 모니터링 설정. 성능 지표 추적 및 리포팅 시스템. 장애 대응을 위한 로그 분석 및 검색 기능.",
             "status": "pending",
@@ -920,18 +922,103 @@
             "title": "운영 문서 및 긴급 대응 절차",
             "description": "시스템 운영 및 긴급 상황 대응을 위한 종합 문서 및 절차 수립",
             "dependencies": [
-              "12.9"
+              "12.9",
+              "13"
             ],
             "details": "docs/deployment.md로 배포 가이드 문서 작성. docs/operations.md로 운영 매뉴얼 작성. scripts/emergency_stop.sh로 긴급 정지 스크립트 구현. 장애 복구 절차 및 체크리스트 문서화. 시스템 백업 및 복원 절차 수립.",
             "status": "pending",
             "testStrategy": ""
           }
         ]
+      },
+      {
+        "id": 13,
+        "title": "라이브 트레이딩 워크플로우 구현",
+        "description": "이벤트 기반 워크플로우 연결: MarketData → ICT Analysis → Signal → Strategy → Order 체인 구현",
+        "details": "현재 상태: 모든 개별 컴포넌트(ICTAnalyzer, SignalGenerator, Strategies, OrderExecutor)는 구현되어 있으나, 이벤트 핸들러가 없어서 서로 연결되지 않음.\n\n구현 필요사항:\n1. MarketDataEvent → CandleClosedEvent 변환 (MarketDataAggregator)\n2. CandleClosedEvent → ICT 분석 → SignalEvent (StrategyCoordinator)\n3. SignalEvent → 리스크 체크 → RiskApprovedOrderEvent (RiskManager)\n4. RiskApprovedOrderEvent → 주문 실행 (OrderExecutor)\n\n새 이벤트 타입:\n- CandleClosedEvent: 캔들이 종료되고 OHLCV 데이터가 준비됨\n- RiskApprovedOrderEvent: 리스크 체크를 통과한 주문\n\n새 컴포넌트:\n- MarketDataAggregator: 실시간 데이터를 OHLCV DataFrame으로 집계\n- StrategyCoordinator: 멀티 타임프레임 분석 조율 및 전략 실행",
+        "testStrategy": "1. Dry-run 모드로 이벤트 체인 검증 (실제 주문 없이)\n2. 각 이벤트 핸들러의 단위 테스트\n3. 통합 테스트: 실제 시장 데이터 → 신호 생성 → 주문 검증\n4. 백테스팅 모드로 과거 데이터 재생 테스트",
+        "status": "pending",
+        "dependencies": [],
+        "priority": "high",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "새 이벤트 타입 정의 (CandleClosedEvent, RiskApprovedOrderEvent)",
+            "description": "events.py에 두 가지 새 이벤트 타입 추가",
+            "details": "CandleClosedEvent:\n- symbol: str\n- interval: str (5m, 15m, 4h, 1d)\n- df: DataFrame (OHLCV 데이터)\n- timestamp: datetime\n- priority: HIGH\n\nRiskApprovedOrderEvent:\n- signal: SignalEvent (원본 신호)\n- approved_quantity: Decimal (리스크 체크 후 승인된 수량)\n- risk_params: Dict (리스크 파라미터)\n- priority: NORMAL",
+            "status": "done",
+            "dependencies": [],
+            "parentTaskId": 13
+          },
+          {
+            "id": 2,
+            "title": "MarketDataAggregator 컴포넌트 구현",
+            "description": "실시간 MarketDataEvent를 OHLCV DataFrame으로 집계하고 CandleClosedEvent 발행",
+            "details": "위치: src/trading_bot/data/market_data_aggregator.py\n\n기능:\n1. MarketDataEvent 구독 (각 symbol/interval 조합별)\n2. 인메모리 캔들 데이터 누적 (pandas DataFrame)\n3. 캔들 종료 감지 (interval 기준)\n4. CandleClosedEvent 발행 (DataFrame 포함)\n5. 과거 데이터 초기화 (BinanceClient 통해)\n\n데이터 구조:\n- self._candles: Dict[str, Dict[str, DataFrame]]\n  예: {\"BTCUSDT\": {\"5m\": df, \"15m\": df, ...}}\n\n의존성: BinanceClient, EventBus",
+            "status": "done",
+            "dependencies": [],
+            "parentTaskId": 13
+          },
+          {
+            "id": 3,
+            "title": "StrategyCoordinator 컴포넌트 구현",
+            "description": "멀티 타임프레임 분석 조율 및 전략 실행",
+            "details": "위치: src/trading_bot/strategies/strategy_coordinator.py\n\n기능:\n1. CandleClosedEvent 구독 (모든 interval)\n2. 각 interval별 ICT 분석 실행 (ICTAnalyzer)\n3. 멀티 타임프레임 confluence 체크\n4. 전략 실행 (IntegratedStrategySystem)\n5. SignalEvent 발행\n\n로직:\n- 5m 캔들 종료 → 5m ICT 분석 → 즉시 전략 실행 가능\n- 15m/4h/1d 캔들 종료 → 해당 타임프레임 분석 → confluence 업데이트\n- Confluence 조건 충족 시 고품질 신호 생성\n\n의존성: ICTAnalyzer, IntegratedStrategySystem, EventBus",
+            "status": "pending",
+            "dependencies": [],
+            "parentTaskId": 13
+          },
+          {
+            "id": 4,
+            "title": "RiskManager에 SignalEvent 핸들러 추가",
+            "description": "SignalEvent 수신 시 리스크 체크 후 RiskApprovedOrderEvent 발행",
+            "details": "수정 파일: src/trading_bot/risk/risk_manager.py\n\n추가 기능:\n1. SignalEvent 구독 등록\n2. _handle_signal_event() 메서드 추가:\n   - 포지션 사이즈 계산 (calculate_position_size)\n   - 리스크 체크 (check_new_position_risk)\n   - 통과 시: RiskApprovedOrderEvent 발행\n   - 실패 시: RiskEvent 발행 (위험 경고)\n\n이미 구현된 메서드 활용:\n- calculate_position_size()\n- check_new_position_risk()\n- _calculate_max_position_size()",
+            "status": "pending",
+            "dependencies": [],
+            "parentTaskId": 13
+          },
+          {
+            "id": 5,
+            "title": "OrderExecutor에 자동 주문 실행 추가",
+            "description": "RiskApprovedOrderEvent 수신 시 자동으로 주문 실행",
+            "details": "수정 파일: src/trading_bot/execution/order_executor.py\n\n추가 기능:\n1. RiskApprovedOrderEvent 구독 등록\n2. _handle_risk_approved_order() 메서드 추가:\n   - SignalEvent에서 주문 파라미터 추출\n   - 승인된 수량으로 주문 생성\n   - 기존 execute_order() 메서드 호출\n\n주문 생성 로직:\n- BUY signal → MARKET BUY order\n- SELL signal → MARKET SELL order\n- stop_loss, take_profit은 PositionTracker가 관리\n\n이미 구현된 메서드 활용:\n- execute_order()\n- _validate_order()",
+            "status": "pending",
+            "dependencies": [],
+            "parentTaskId": 13
+          },
+          {
+            "id": 6,
+            "title": "SystemIntegrator에 새 컴포넌트 등록",
+            "description": "MarketDataAggregator, StrategyCoordinator를 SystemIntegrator에 등록",
+            "details": "수정 파일: src/trading_bot/system_integrator.py\n\n추가 작업:\n1. _register_data_components()에 MarketDataAggregator 등록\n   - MarketDataProvider 다음 순서\n   - BinanceClient, EventBus 의존성 주입\n\n2. _register_strategy_components()에 StrategyCoordinator 등록\n   - ICTAnalyzer, IntegratedStrategySystem, EventBus 의존성 주입\n\n3. 시작 순서 확인:\n   - DATA layer: BinanceClient → MarketDataProvider → MarketDataAggregator\n   - ANALYSIS layer: ICTAnalyzer\n   - SIGNAL layer: StrategyCoordinator\n   - STRATEGY layer: IntegratedStrategySystem",
+            "status": "pending",
+            "dependencies": [],
+            "parentTaskId": 13
+          },
+          {
+            "id": 7,
+            "title": "Dry-run 모드 구현",
+            "description": "실제 주문 없이 전체 워크플로우 검증할 수 있는 dry-run 모드",
+            "details": "수정 파일: \n- src/trading_bot/execution/order_executor.py\n- src/trading_bot/config/settings.py\n\n기능:\n1. Config에 dry_run 플래그 추가\n2. OrderExecutor._handle_risk_approved_order()에서:\n   - dry_run=True: 로그만 출력, 주문 미실행\n   - dry_run=False: 실제 주문 실행\n3. 시뮬레이션 주문 이벤트 발행 (테스트용)\n\n로그 포맷:\n[DRY-RUN] Order would be executed: BUY 0.01 BTCUSDT @ MARKET\n[DRY-RUN] Stop Loss: 95000, Take Profit: 105000",
+            "status": "pending",
+            "dependencies": [],
+            "parentTaskId": 13
+          },
+          {
+            "id": 8,
+            "title": "통합 테스트 및 검증",
+            "description": "전체 이벤트 체인 통합 테스트",
+            "details": "테스트 파일: tests/integration/test_trading_workflow.py\n\n테스트 시나리오:\n1. MarketData 주입 테스트:\n   - 가짜 MarketDataEvent 발행\n   - CandleClosedEvent 생성 확인\n   - ICT 분석 실행 확인\n   - SignalEvent 생성 확인\n\n2. 리스크 체크 테스트:\n   - SignalEvent 발행\n   - RiskApprovedOrderEvent 생성 확인\n   - 리스크 초과 시 거부 확인\n\n3. 주문 실행 테스트 (dry-run):\n   - RiskApprovedOrderEvent 발행\n   - 주문 로그 출력 확인\n   - 실제 API 호출 없음 확인\n\n4. 전체 체인 테스트:\n   - MarketData → Candle → Analysis → Signal → Risk → Order\n   - 각 단계의 이벤트 발행 확인\n   - 타이밍 및 순서 검증",
+            "status": "pending",
+            "dependencies": [],
+            "parentTaskId": 13
+          }
+        ]
       }
     ],
     "metadata": {
       "created": "2025-09-27T09:52:28.484Z",
-      "updated": "2025-10-02T14:10:10.575Z",
+      "updated": "2025-10-03T08:13:14.398Z",
       "description": "Tasks for master context"
     }
   }

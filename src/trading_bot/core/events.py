@@ -12,6 +12,7 @@ from enum import Enum
 from typing import Any, Dict, Literal, Optional, Union
 from uuid import UUID, uuid4
 
+import pandas as pd
 from pydantic import BaseModel, Field, validator
 
 
@@ -26,6 +27,8 @@ class EventType(Enum):
     TAKE_PROFIT = "take_profit"
     TRAILING_STOP = "trailing_stop"
     SLIPPAGE = "slippage"
+    CANDLE_CLOSED = "candle_closed"
+    RISK_APPROVED_ORDER = "risk_approved_order"
 
 
 class EventPriority(Enum):
@@ -63,6 +66,7 @@ class BaseEvent(BaseModel, ABC):
             datetime: lambda dt: dt.isoformat(),
             Decimal: lambda d: str(d),
             UUID: lambda u: str(u),
+            pd.DataFrame: lambda df: df.to_dict(orient="records"),
         }
 
 
@@ -301,8 +305,8 @@ class TakeProfitType(Enum):
     """Take profit trigger types."""
 
     PARTIAL_1_1_RR = "partial_1_1_rr"  # 50% at 1:1 RR
-    FULL_1_2_RR = "full_1_2_rr"       # Remaining at 1:2 RR
-    MANUAL = "manual"                  # Manual trigger
+    FULL_1_2_RR = "full_1_2_rr"  # Remaining at 1:2 RR
+    MANUAL = "manual"  # Manual trigger
 
 
 class TakeProfitEvent(BaseEvent):
@@ -317,7 +321,9 @@ class TakeProfitEvent(BaseEvent):
     position_id: str = Field(..., description="Related position identifier")
     symbol: str = Field(..., description="Trading symbol")
     trigger_type: TakeProfitType = Field(..., description="Type of profit taking")
-    trigger_price: Decimal = Field(..., description="Price that triggered profit taking")
+    trigger_price: Decimal = Field(
+        ..., description="Price that triggered profit taking"
+    )
     target_quantity: Decimal = Field(..., description="Quantity to close")
     current_rr_ratio: float = Field(..., description="Current risk-reward ratio")
     expected_profit: Decimal = Field(..., description="Expected profit amount")
@@ -331,11 +337,15 @@ class TrailingStopEvent(BaseEvent):
     for continued upside participation.
     """
 
-    event_type: Literal[EventType.TRAILING_STOP] = Field(default=EventType.TRAILING_STOP)
+    event_type: Literal[EventType.TRAILING_STOP] = Field(
+        default=EventType.TRAILING_STOP
+    )
     position_id: str = Field(..., description="Related position identifier")
     symbol: str = Field(..., description="Trading symbol")
     new_stop_price: Decimal = Field(..., description="New trailing stop price")
-    previous_stop_price: Optional[Decimal] = Field(None, description="Previous stop price")
+    previous_stop_price: Optional[Decimal] = Field(
+        None, description="Previous stop price"
+    )
     current_price: Decimal = Field(..., description="Current market price")
     trail_distance: Decimal = Field(..., description="Trailing distance")
     is_active: bool = Field(default=True, description="Whether trailing is active")
@@ -358,10 +368,91 @@ class SlippageEvent(BaseEvent):
     slippage_percentage: float = Field(..., description="Slippage as percentage")
     quantity: Decimal = Field(..., description="Order quantity")
     slippage_cost: Decimal = Field(..., description="Cost of slippage")
-    is_limit_exceeded: bool = Field(default=False, description="Whether slippage limit exceeded")
+    is_limit_exceeded: bool = Field(
+        default=False, description="Whether slippage limit exceeded"
+    )
 
 
 # Event type mapping for deserialization
+class CandleClosedEvent(BaseEvent):
+    """
+    Candle closed event containing OHLCV DataFrame for technical analysis.
+
+    Emitted when a candle completes for various timeframes (5m, 15m, 4h, 1d),
+    providing complete OHLCV data for strategy analysis and signal generation.
+    """
+
+    event_type: Literal[EventType.CANDLE_CLOSED] = Field(
+        default=EventType.CANDLE_CLOSED
+    )
+    symbol: str = Field(..., description="Trading symbol (e.g., BTCUSDT)")
+    interval: str = Field(..., description="Timeframe interval (5m, 15m, 4h, 1d)")
+    df: pd.DataFrame = Field(..., description="OHLCV DataFrame with historical data")
+    timestamp: datetime = Field(
+        default_factory=datetime.utcnow, description="Candle close timestamp"
+    )
+    priority: EventPriority = Field(
+        default=EventPriority.HIGH, description="High priority for immediate processing"
+    )
+
+    @validator("interval")
+    def validate_interval(cls, v):
+        valid_intervals = [
+            "1m",
+            "3m",
+            "5m",
+            "15m",
+            "30m",
+            "1h",
+            "2h",
+            "4h",
+            "6h",
+            "8h",
+            "12h",
+            "1d",
+            "3d",
+            "1w",
+        ]
+        if v not in valid_intervals:
+            raise ValueError(f"Invalid interval: {v}. Must be one of {valid_intervals}")
+        return v
+
+    class Config:
+        arbitrary_types_allowed = True  # Allow pandas DataFrame
+
+
+class RiskApprovedOrderEvent(BaseEvent):
+    """
+    Risk-approved order event after risk management validation.
+
+    Emitted when a trading signal passes risk checks and is approved
+    for execution with potentially adjusted quantity and risk parameters.
+    """
+
+    event_type: Literal[EventType.RISK_APPROVED_ORDER] = Field(
+        default=EventType.RISK_APPROVED_ORDER
+    )
+    signal: SignalEvent = Field(
+        ..., description="Original trading signal that was approved"
+    )
+    approved_quantity: Decimal = Field(
+        ..., gt=0, description="Risk-approved quantity for execution"
+    )
+    risk_params: Dict[str, Any] = Field(
+        ...,
+        description="Risk parameters used for approval (max_position_size, stop_loss, etc.)",
+    )
+    priority: EventPriority = Field(
+        default=EventPriority.NORMAL, description="Normal priority for order execution"
+    )
+
+    @validator("approved_quantity")
+    def validate_approved_quantity(cls, v):
+        if v <= 0:
+            raise ValueError("Approved quantity must be positive")
+        return v
+
+
 EVENT_TYPE_MAPPING = {
     EventType.MARKET_DATA: MarketDataEvent,
     EventType.SIGNAL: SignalEvent,
@@ -371,6 +462,8 @@ EVENT_TYPE_MAPPING = {
     EventType.TAKE_PROFIT: TakeProfitEvent,
     EventType.TRAILING_STOP: TrailingStopEvent,
     EventType.SLIPPAGE: SlippageEvent,
+    EventType.CANDLE_CLOSED: CandleClosedEvent,
+    EventType.RISK_APPROVED_ORDER: RiskApprovedOrderEvent,
 }
 
 

@@ -297,9 +297,24 @@ class SystemIntegrator(BaseComponent):
         self.components["data_cache"] = data_cache
         
         # Market data provider
+        # Get symbol and intervals from config
+        symbol = self.config.trading.symbol
+        timeframe = self.config.trading.timeframe
+        
+        # Set up default intervals based on timeframe
+        # Always include the main timeframe plus one higher timeframe for context
+        default_intervals = [timeframe]
+        if timeframe not in ["4h", "1d"]:
+            # Add a higher timeframe for multi-timeframe analysis
+            higher_tf = {"5m": "15m", "15m": "4h", "1h": "4h"}.get(timeframe, "1d")
+            if higher_tf not in default_intervals:
+                default_intervals.append(higher_tf)
+        
         market_data_provider = MarketDataProvider(
             binance_client=binance_client,
-            event_bus=self.event_bus
+            event_bus=self.event_bus,
+            default_symbol=symbol,
+            default_intervals=default_intervals
         )
         self.di_container.register_instance(MarketDataProvider, market_data_provider)
         self.components["market_data_provider"] = market_data_provider

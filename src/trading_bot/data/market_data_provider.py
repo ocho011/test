@@ -62,6 +62,8 @@ class MarketDataProvider(BaseComponent):
         binance_client: BinanceClient,
         event_bus=None,
         max_reconnect_attempts: int = 10,
+        default_symbol: str = "BTCUSDT",
+        default_intervals: Optional[List[str]] = None,
     ):
         """
         Initialize market data provider.
@@ -70,12 +72,18 @@ class MarketDataProvider(BaseComponent):
             binance_client: Binance client instance
             event_bus: Event bus for publishing market data
             max_reconnect_attempts: Maximum reconnection attempts
+            default_symbol: Default trading symbol to subscribe on start
+            default_intervals: Default intervals to subscribe (defaults to ["5m", "15m"])
         """
         super().__init__("MarketDataProvider")
 
         self.binance_client = binance_client
         self.event_bus = event_bus
         self.max_reconnect_attempts = max_reconnect_attempts
+        
+        # Default subscription settings
+        self.default_symbol = default_symbol.upper()
+        self.default_intervals = default_intervals or ["5m", "15m"]
 
         # Stream management
         self._subscriptions: Dict[str, StreamSubscription] = {}
@@ -118,6 +126,27 @@ class MarketDataProvider(BaseComponent):
         self._heartbeat_task = asyncio.create_task(self._heartbeat_monitor())
 
         self.logger.info("MarketDataProvider started")
+        
+        # Auto-subscribe to default symbol and intervals
+        if self.default_symbol and self.default_intervals:
+            self.logger.info(
+                f"Auto-subscribing to {self.default_symbol} "
+                f"with intervals: {self.default_intervals}"
+            )
+            try:
+                await self.subscribe_klines(
+                    self.default_symbol, 
+                    self.default_intervals
+                )
+                self.logger.info(
+                    f"Successfully subscribed to {self.default_symbol} "
+                    f"klines: {self.default_intervals}"
+                )
+            except Exception as e:
+                self.logger.error(
+                    f"Failed to auto-subscribe to {self.default_symbol}: {e}",
+                    exc_info=True
+                )
 
     async def _stop(self) -> None:
         """Stop the market data provider."""
@@ -290,12 +319,16 @@ class MarketDataProvider(BaseComponent):
                 self._connection_state = ConnectionState.CONNECTED
                 self._reconnect_attempts = 0
 
-                async for msg in stream_context:
-                    if not self._subscriptions.get(subscription_key, {}).get(
-                        "active", False
-                    ):
+                while True:
+                    if not self._subscriptions.get(subscription_key):
+                        break
+                    
+                    subscription = self._subscriptions.get(subscription_key)
+                    if not subscription or not subscription.active:
                         break
 
+                    msg = await stream_context.recv()
+                    
                     await self._handle_kline_message(msg, subscription_key)
                     self._last_message_time = time.time()
                     self._message_count += 1
@@ -312,12 +345,16 @@ class MarketDataProvider(BaseComponent):
                 self._connection_state = ConnectionState.CONNECTED
                 self._reconnect_attempts = 0
 
-                async for msg in stream_context:
-                    if not self._subscriptions.get(subscription_key, {}).get(
-                        "active", False
-                    ):
+                while True:
+                    if not self._subscriptions.get(subscription_key):
+                        break
+                    
+                    subscription = self._subscriptions.get(subscription_key)
+                    if not subscription or not subscription.active:
                         break
 
+                    msg = await stream_context.recv()
+                    
                     await self._handle_ticker_message(msg, subscription_key)
                     self._last_message_time = time.time()
                     self._message_count += 1

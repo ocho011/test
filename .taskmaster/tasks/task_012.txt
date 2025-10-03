@@ -9,3 +9,71 @@ SystemIntegrator로 모든 컴포넌트 통합. Docker 컨테이너화로 일관
 
 # Test Strategy:
 End-to-End 통합 테스트, 배포 프로세스 검증, 시스템 복구 시나리오 테스트
+
+# Subtasks:
+## 1. SystemIntegrator 및 메인 실행 파일 구현 [done]
+### Dependencies: None
+### Description: 전체 시스템의 진입점이 되는 main.py와 모든 컴포넌트를 통합 관리하는 SystemIntegrator 클래스 구현
+### Details:
+src/trading_bot/main.py 생성으로 전체 시스템 진입점 마련. SystemIntegrator 클래스로 데이터 수집, 신호 생성, 주문 실행, 리스크 관리 컴포넌트 통합. 컴포넌트 초기화 순서 관리 및 의존성 주입 구현. 시스템 생명주기 관리 (start, stop, restart) 기능. 로컬과 VM 환경 모두에서 실행 가능한 구조로 설계.
+
+## 2. 설정 파일 시스템 완성 [done]
+### Dependencies: 12.1
+### Description: 환경별 설정 관리 및 민감 정보 보안을 위한 종합적인 설정 시스템 구축
+### Details:
+config/trading_config.yaml 템플릿 생성으로 기본 설정 구조 정의. 환경별 설정 분리 (local, paper, production) 구현. API 키, 시크릿 등 민감 정보는 .env 파일로 분리 관리. 설정값 검증 로직 및 기본값 처리 메커니즘 구축. 설정 변경 시 시스템 재시작 없이 반영 가능한 핫 리로드 기능.
+
+## 3. 로컬 실행 가이드 및 스크립트 [done]
+### Dependencies: 12.2
+### Description: 개발자와 사용자를 위한 로컬 환경 실행 스크립트 및 문서 작성
+### Details:
+scripts/run_local.sh로 로컬 개발 환경 실행 스크립트 작성. scripts/run_backtest.sh로 백테스팅 전용 실행 스크립트 구현. scripts/run_paper.sh로 페이퍼 트레이딩 모드 실행 스크립트 작성. docs/development.md로 개발자 가이드 문서 작성. 각 스크립트에 환경 검증 및 오류 처리 로직 포함.
+
+## 4. End-to-End 통합 테스트 [done]
+### Dependencies: 12.3
+### Description: 전체 시스템 통합 및 컴포넌트 간 연동을 검증하는 종합 테스트 구축
+### Details:
+pytest 기반 전체 시스템 통합 테스트 스위트 구현. 로컬에서 실행 가능한 E2E 테스트 환경 구축. 모든 컴포넌트 연동 검증 테스트 작성. 시뮬레이션 데이터를 활용한 전체 플로우 테스트 구현. 테스트 결과 리포팅 및 성능 메트릭 수집 기능.
+<info added on 2025-10-02T06:28:43.755Z>
+구현 완료 - 차단 요소 해결 진행 중: MockBinanceClient(4개 시나리오), EventCapture(이벤트 검증), PerformanceCollector(메트릭 수집), pytest 설정을 포함한 종합적인 E2E 테스트 인프라를 구축했습니다. 총 21개 테스트를 포함한 4개 테스트 파일을 생성했습니다. 10개의 import/config 문제를 수정했습니다. 현재 차단 요소: 설정 검증 문제 - config.data가 Pydantic 모델이 아닌 dict로 되어 있습니다. TradingBotConfig의 중첩 섹션이 모델로 검증되도록 수정이 필요합니다.
+</info added on 2025-10-02T06:28:43.755Z>
+<info added on 2025-10-02T06:40:15.173Z>
+설정 검증 수정 완료: TradingBotConfig의 중첩 섹션(DataConfig, RiskConfig, SignalsConfig, StrategiesConfig, ExecutionConfig)을 dict 대신 적절한 Pydantic 모델로 수정했습니다. SystemIntegrator 컴포넌트 초기화 문제 해결: DataCache 매개변수, MarketDataProvider 클라이언트 매개변수, ICTAnalyzer 초기화를 수정했습니다. BaseComponent가 아닌 클래스(DataCache, ICTAnalyzer)에 대한 lifecycle_manager 등록을 제거했습니다. 현재 차단 요소: SignalGenerator 초기화 시 예상치 못한 키워드 인수 'ict_analyzer' 오류가 발생하고 있어, system_integrator.py의 모든 나머지 컴포넌트 초기화를 체계적으로 수정해야 합니다.
+</info added on 2025-10-02T06:40:15.173Z>
+
+## 5. Docker 컨테이너화 [done]
+### Dependencies: 12.4
+### Description: 일관된 배포 환경을 위한 Docker 컨테이너 및 오케스트레이션 설정
+### Details:
+멀티 스테이지 빌드를 활용한 Dockerfile 작성으로 최적화된 이미지 생성. docker-compose.yml 작성으로 서비스 오케스트레이션 구현. 개발/프로덕션 환경별 Docker 설정 분리. 로컬에서도 Docker로 테스트 가능한 개발 환경 구축. 컨테이너 간 네트워크 및 볼륨 관리 설정.
+
+## 6. 헬스체크 및 모니터링 API [done]
+### Dependencies: 12.5
+### Description: 시스템 상태 모니터링을 위한 헬스체크 엔드포인트 및 상태 API 구현
+### Details:
+/health, /ready 엔드포인트 구현으로 기본 헬스체크 제공. 시스템 상태 모니터링 API 구축. 컴포넌트별 개별 상태 체크 기능 구현. 실시간 메트릭 수집 및 노출 API 작성. 장애 감지 및 알림 연동을 위한 상태 정보 제공.
+
+## 7. Vultr VM 배포 스크립트 [done]
+### Dependencies: 12.6
+### Description: Vultr 클라우드 환경에서의 자동 배포 및 환경 설정 스크립트 구현
+### Details:
+scripts/deploy.sh로 Vultr VM 자동 설정 스크립트 작성. Docker 및 필수 환경 자동 설치 스크립트 구현. SSH 키 기반 보안 접속 설정. 방화벽 및 보안 그룹 자동 설정. 배포 프로세스 자동화 및 롤백 기능 구현.
+
+## 8. systemd 서비스 등록 [pending]
+### Dependencies: 12.7
+### Description: 시스템 부팅 시 자동 실행 및 서비스 관리를 위한 systemd 설정
+### Details:
+trading-bot.service 파일 작성으로 systemd 서비스 정의. 자동 시작 및 재시작 설정 구현. 서비스 실패 시 복구 정책 설정. 로그 관리 및 회전 설정. 서비스 의존성 및 실행 순서 관리.
+
+## 9. 프로덕션 모니터링 설정 [pending]
+### Dependencies: 12.8
+### Description: 운영 환경에서의 시스템 모니터링 및 로그 관리 시스템 구축
+### Details:
+로그 집중화를 위한 로그 수집기 설정. 시스템 메트릭 수집 및 대시보드 구축. 알림 시스템 연동을 위한 모니터링 설정. 성능 지표 추적 및 리포팅 시스템. 장애 대응을 위한 로그 분석 및 검색 기능.
+
+## 10. 운영 문서 및 긴급 대응 절차 [pending]
+### Dependencies: 12.9
+### Description: 시스템 운영 및 긴급 상황 대응을 위한 종합 문서 및 절차 수립
+### Details:
+docs/deployment.md로 배포 가이드 문서 작성. docs/operations.md로 운영 매뉴얼 작성. scripts/emergency_stop.sh로 긴급 정지 스크립트 구현. 장애 복구 절차 및 체크리스트 문서화. 시스템 백업 및 복원 절차 수립.
+

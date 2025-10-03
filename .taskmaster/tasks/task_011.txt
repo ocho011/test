@@ -65,7 +65,7 @@ AbstractStrategy 기본 클래스로 전략 인터페이스 정의. ICTStrategy 
 ### Details:
 
 
-## 10. 전략 프레임워크 통합 테스트 [in-progress]
+## 10. 전략 프레임워크 통합 테스트 [done]
 ### Dependencies: None
 ### Description: test_strategy_integration.py - 21개 테스트 케이스 (현재 15/21 통과)
 ### Details:
