@@ -1099,7 +1099,7 @@
               "14.6"
             ],
             "details": "config_migration.py 스크립트 생성, 기존 trading_config.yaml → 환경별 파일 변환, 설정 검증 스크립트 (validate_config.py), 환경 간 설정 차이점 분석 도구, 마이그레이션 가이드 문서 작성",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "마이그레이션 스크립트 정확성 검증, 변환된 설정 파일 기능성 확인, 검증 도구 테스트"
           },
           {
@@ -1120,7 +1120,7 @@
     ],
     "metadata": {
       "created": "2025-09-27T09:52:28.484Z",
-      "updated": "2025-10-04T03:26:07.638Z",
+      "updated": "2025-10-04T03:42:10.470Z",
       "description": "Tasks for master context"
     }
   }
