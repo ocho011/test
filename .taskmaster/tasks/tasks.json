@@ -1088,7 +1088,7 @@
               "14.4"
             ],
             "details": "TradingBotConfig를 BaseSettings로 변경, 환경 변수 자동 바인딩, 필수 설정값 validator 추가, URL/경로/포트 번호 검증, API 키와 엔드포인트 일치성 검증, 누락 시 명확한 에러 메시지 제공",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Pydantic 모델 검증 테스트, 필수값 누락 에러 처리, 타입 변환 정확성 확인"
           },
           {
@@ -1120,7 +1120,7 @@
     ],
     "metadata": {
       "created": "2025-09-27T09:52:28.484Z",
-      "updated": "2025-10-04T03:18:17.115Z",
+      "updated": "2025-10-04T03:26:07.638Z",
       "description": "Tasks for master context"
     }
   }
