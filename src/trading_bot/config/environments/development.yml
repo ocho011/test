@@ -1,22 +1,20 @@
 # Development Environment Configuration
-# For local development and testing
+# Testnet + Live Trading (for development)
+# Extends: base.yml
+
+extends: base.yml
 
 system:
   environment: development
   debug: true
-  async_workers: 2
-  event_queue_size: 1000
   health_check_interval: 600  # 10 minutes
   memory_threshold_mb: 512
 
 binance:
-  api_key: ${TRADING_BINANCE_API_KEY}
-  api_secret: ${TRADING_BINANCE_API_SECRET}
   testnet: true
   base_url: https://testnet.binance.vision
 
 discord:
-  bot_token: ${TRADING_DISCORD_BOT_TOKEN}
   channel_id: 0  # Disabled for local development
   enable_notifications: false
   spam_protection_seconds: 30
@@ -25,69 +23,27 @@ logging:
   level: DEBUG
   format: text
   output_dir: logs
-  
-  # Rotation settings (smaller for dev)
   max_bytes: 5242880  # 5MB
   backup_count: 3
-  rotation_time: midnight
-  
-  # Trade logs
-  trade_log_enabled: true
-  trade_log_file: trades.log
-  
-  # Performance logs
-  performance_log_enabled: true
-  performance_log_file: performance.log
-  
-  # Sensitive data masking (relaxed for dev)
-  mask_sensitive_data: true
   debug_unmask: true  # Allow unmasking in debug mode
 
 trading:
-  symbol: BTCUSDT
-  timeframe: 1h
   max_position_size: 0.01  # Small size for testing
-  leverage: 1
-  
-  # Risk management (conservative for dev)
   max_risk_per_trade: 0.01  # 1% max risk
   daily_loss_limit: 0.03  # 3% daily limit
 
-# Data layer configuration
 data:
   cache_size: 500
-  cache_ttl: 300  # 5 minutes
   historical_lookback_days: 30
 
-# Risk management configuration
 risk:
-  initial_capital: 10000.0
   max_position_size_pct: 0.05
   max_drawdown_pct: 0.15
-  max_consecutive_losses: 3
-  volatility_threshold: 0.05
 
-# Strategy configuration
-strategy:
-  enabled_strategies:
-    - ict
-    - traditional
-  default_strategy: ict
-  strategy_selection_mode: auto
-
-# Execution configuration
 execution:
   slippage_tolerance_pct: 0.002  # 0.2%
-  max_retry_attempts: 3
-  order_timeout_seconds: 30
-
-# System events configuration
-system_events:
-  event_queue_size: 1000
-  message_hub_max_subscribers: 100
 
 custom:
-  # Add any custom development-specific settings here
+  dry_run: false
   mock_api: false
   enable_backtesting: true
-  dry_run: false

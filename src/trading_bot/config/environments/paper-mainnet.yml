@@ -1,0 +1,38 @@
+# Paper-Mainnet Environment Configuration
+# Mainnet + Simulation (Dry Run)
+# Extends: base.yml
+
+extends: base.yml
+
+system:
+  environment: paper-mainnet
+  debug: false
+  async_workers: 2
+  memory_threshold_mb: 1024
+
+binance:
+  testnet: false
+  base_url: https://api.binance.com
+
+discord:
+  enable_notifications: true
+
+logging:
+  level: INFO
+  format: json
+  output_dir: logs/paper-mainnet
+  trade_log_file: paper_mainnet_trades.log
+  performance_log_file: paper_mainnet_performance.log
+
+trading:
+  leverage: 2
+
+risk:
+  initial_capital: 25000.0
+
+custom:
+  dry_run: true
+  simulate_slippage: true
+  simulate_fees: true
+  track_performance: true
+  paper_mode: true

@@ -1,93 +1,47 @@
 # Production Environment Configuration
-# For live trading on Vultr VM
+# Mainnet + Live Trading
+# Extends: base.yml
+
+extends: base.yml
 
 system:
   environment: production
   debug: false
   async_workers: 4
   event_queue_size: 2000
-  health_check_interval: 300  # 5 minutes
   memory_threshold_mb: 2048
 
 binance:
-  api_key: ${TRADING_BINANCE_API_KEY}
-  api_secret: ${TRADING_BINANCE_API_SECRET}
   testnet: false
   base_url: https://api.binance.com
-
-discord:
-  bot_token: ${TRADING_DISCORD_BOT_TOKEN}
-  channel_id: ${TRADING_DISCORD_CHANNEL_ID}
-  enable_notifications: true
-  spam_protection_seconds: 60
 
 logging:
   level: INFO
   format: json
   output_dir: /var/log/trading-bot
-  
-  # Rotation settings (larger for production)
   max_bytes: 52428800  # 50MB
   backup_count: 10
-  rotation_time: midnight
-  
-  # Trade logs
-  trade_log_enabled: true
-  trade_log_file: trades.log
-  
-  # Performance logs
-  performance_log_enabled: true
-  performance_log_file: performance.log
-  
-  # Sensitive data masking (strict)
-  mask_sensitive_data: true
-  debug_unmask: false
 
 trading:
-  symbol: BTCUSDT
-  timeframe: 1h
-  max_position_size: 0.1
   leverage: 3
-  
-  # Risk management (production settings)
-  max_risk_per_trade: 0.02  # 2% max risk
-  daily_loss_limit: 0.05  # 5% daily limit
 
-# Data layer configuration
 data:
   cache_size: 2000
   cache_ttl: 600  # 10 minutes
   historical_lookback_days: 90
 
-# Risk management configuration
 risk:
   initial_capital: 50000.0
-  max_position_size_pct: 0.1
-  max_drawdown_pct: 0.2
-  max_consecutive_losses: 3
-  volatility_threshold: 0.05
 
-# Strategy configuration
-strategy:
-  enabled_strategies:
-    - ict
-    - traditional
-  default_strategy: ict
-  strategy_selection_mode: auto
-
-# Execution configuration
 execution:
-  slippage_tolerance_pct: 0.001  # 0.1%
   max_retry_attempts: 5
   order_timeout_seconds: 60
 
-# System events configuration
 system_events:
   event_queue_size: 2000
   message_hub_max_subscribers: 200
 
 custom:
-  # Production-specific settings
+  dry_run: false
   enable_monitoring: true
   enable_alerts: true
-  dry_run: false

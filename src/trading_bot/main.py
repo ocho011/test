@@ -2,7 +2,7 @@
 Main entry point for the trading bot system.
 
 This module provides the command-line interface and main execution logic
-for running the trading bot in various modes (trading, backtest, paper).
+for running the trading bot in various environments and modes.
 """
 
 import argparse
@@ -40,20 +40,29 @@ class TradingBotCLI:
             formatter_class=argparse.RawDescriptionHelpFormatter,
             epilog="""
 Examples:
-  # Run in development mode (default)
+  # Run in development mode (default) - testnet + live
   python -m trading_bot.main
 
-  # Run in production mode
+  # Run in production mode - mainnet + live
   python -m trading_bot.main --env production
 
-  # Run in paper trading mode
-  python -m trading_bot.main --mode paper
+  # Run in paper trading mode on mainnet - mainnet + simulation
+  python -m trading_bot.main --env paper-mainnet
+
+  # Run in paper trading mode on testnet - testnet + simulation
+  python -m trading_bot.main --env paper-testnet
 
   # Run backtest
-  python -m trading_bot.main --mode backtest --symbol BTCUSDT --start 2024-01-01 --end 2024-12-31
+  python -m trading_bot.main --backtest --symbol BTCUSDT --start 2024-01-01 --end 2024-12-31
 
   # Run with custom config
   python -m trading_bot.main --config /path/to/config.yml
+
+Environment Mapping:
+  development    : testnet + live trading
+  production     : mainnet + live trading
+  paper-mainnet  : mainnet + simulation (paper trading)
+  paper-testnet  : testnet + simulation (paper trading)
             """
         )
 
@@ -62,7 +71,7 @@ Examples:
             '--env', '--environment',
             type=str,
             default='development',
-            choices=['development', 'production', 'testing'],
+            choices=['development', 'production', 'paper-mainnet', 'paper-testnet'],
             help='Environment to run in (default: development)'
         )
 
@@ -72,13 +81,11 @@ Examples:
             help='Path to custom configuration file'
         )
 
-        # Run mode
+        # Backtest mode
         parser.add_argument(
-            '--mode',
-            type=str,
-            default='trading',
-            choices=['trading', 'paper', 'backtest'],
-            help='Execution mode (default: trading)'
+            '--backtest',
+            action='store_true',
+            help='Run in backtest mode (requires --start and --end)'
         )
 
         # Backtest options
@@ -114,12 +121,6 @@ Examples:
             help='Enable debug logging'
         )
 
-        parser.add_argument(
-            '--dry-run',
-            action='store_true',
-            help='Dry run mode (no actual trading)'
-        )
-
         # Health check
         parser.add_argument(
             '--health-check',
@@ -136,17 +137,23 @@ Examples:
 
         return parser
 
-    async def run_trading_mode(self, args: argparse.Namespace) -> int:
+    async def run_trading(self, args: argparse.Namespace) -> int:
         """
-        Run the bot in live or paper trading mode.
-        
+        Run the bot in trading mode.
+
+        The environment determines the execution mode:
+        - development: testnet + live
+        - production: mainnet + live
+        - paper-mainnet: mainnet + simulation
+        - paper-testnet: testnet + simulation
+
         Args:
             args: Command-line arguments
-            
+
         Returns:
             Exit code (0 for success, non-zero for failure)
         """
-        logger.info(f"Starting trading bot in {args.mode} mode...")
+        logger.info(f"Starting trading bot in '{args.env}' environment...")
         
         try:
             # Create and start system
@@ -175,12 +182,12 @@ Examples:
             return 0
             
         except Exception as e:
-            logger.error(f"Fatal error in trading mode: {e}", exc_info=True)
+            logger.error(f"Fatal error in trading: {e}", exc_info=True)
             if self.system:
                 await self.system.stop()
             return 1
 
-    async def run_backtest_mode(self, args: argparse.Namespace) -> int:
+    async def run_backtest(self, args: argparse.Namespace) -> int:
         """
         Run the bot in backtest mode.
         
@@ -223,7 +230,7 @@ Examples:
             return 0
             
         except Exception as e:
-            logger.error(f"Fatal error in backtest mode: {e}", exc_info=True)
+            logger.error(f"Fatal error in backtest: {e}", exc_info=True)
             return 1
 
     async def run_health_check(self, args: argparse.Namespace) -> int:
@@ -285,11 +292,11 @@ Examples:
             return await self.run_health_check(args)
 
         # Backtest mode
-        if args.mode == 'backtest':
-            return await self.run_backtest_mode(args)
+        if args.backtest:
+            return await self.run_backtest(args)
 
-        # Trading or paper mode
-        return await self.run_trading_mode(args)
+        # Trading mode (environment-based)
+        return await self.run_trading(args)
 
     def main(self) -> int:
         """

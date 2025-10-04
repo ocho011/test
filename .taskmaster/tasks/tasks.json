@@ -1033,7 +1033,7 @@
             "description": "PyYAML SafeLoader 확장을 통한 ${ENV_VAR} 패턴 지원 구현. 기본값, 중첩 치환, 순환 참조 방지, 타입 보존 기능 포함",
             "dependencies": [],
             "details": "yaml.safe_load 호출을 대체하는 CustomYAMLLoader 클래스 구현. ${ENV_VAR:default_value} 형식 지원, 환경 변수 존재 검증, 중첩 치환 방지를 위한 depth 추적, 타입 변환 로직(string, int, float, bool) 구현. config_manager.py 내 _load_yaml_with_env_substitution 메서드 추가",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "환경 변수 치환 단위 테스트, 기본값 처리 검증, 순환 참조 오류 테스트, 타입 보존 확인"
           },
           {
@@ -1044,7 +1044,7 @@
               "14.1"
             ],
             "details": "환경별 YAML 설정 파일 생성 (base.yml, production.yml, paper-mainnet.yml, paper-testnet.yml, development.yml), 환경 상속 구조 구현, TRADING_ENV 환경 변수 기반 환경 전환 로직 추가, binance testnet/mainnet + dry_run/live execution 매핑 로직 구현",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "각 환경별 설정 로딩 테스트, 환경 상속 검증, testnet/mainnet 자동 선택 확인"
           },
           {
@@ -1055,7 +1055,7 @@
               "14.2"
             ],
             "details": "main.py의 argparse에서 --mode 제거, --env choices에 paper-mainnet, paper-testnet 추가, 기존 paper mode 처리 로직 삭제, environment 기반 단일 실행 경로로 통합, 모드 관련 조건문 및 변수 정리",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "CLI 인자 파싱 테스트, 각 환경별 시작 프로세스 검증, 모드 관련 코드 잔재 확인"
           },
           {
@@ -1120,7 +1120,7 @@
     ],
     "metadata": {
       "created": "2025-09-27T09:52:28.484Z",
-      "updated": "2025-10-03T21:03:43.197Z",
+      "updated": "2025-10-03T21:57:24.772Z",
       "description": "Tasks for master context"
     }
   }
