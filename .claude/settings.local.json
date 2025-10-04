@@ -42,7 +42,8 @@
       "mcp__task-master-ai__expand_task",
       "mcp__serena__replace_symbol_body",
       "mcp__task-master-ai__add_subtask",
-      "Bash(chmod:*)"
+      "Bash(chmod:*)",
+      "Bash(cat:*)"
     ]
   },
   "enableAllProjectMcpServers": true,
