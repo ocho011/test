@@ -22,6 +22,11 @@ from binance.exceptions import BinanceAPIException
 from ..core.base_component import BaseComponent
 
 
+# Type checking imports
+if False:  # TYPE_CHECKING
+    from ..config.models import BinanceConfig
+
+
 class BinanceClientError(Exception):
     """Custom exception for Binance client errors."""
 
@@ -42,21 +47,30 @@ class BinanceClient(BaseComponent):
         api_secret: Optional[str] = None,
         testnet: bool = False,
         event_bus=None,
+        config: Optional["BinanceConfig"] = None,
     ):
         """
         Initialize the Binance client.
 
         Args:
-            api_key: Binance API key
-            api_secret: Binance API secret
-            testnet: Whether to use testnet
+            api_key: Binance API key (deprecated - use config)
+            api_secret: Binance API secret (deprecated - use config)
+            testnet: Whether to use testnet (deprecated - use config)
             event_bus: Event bus for publishing market data events
+            config: BinanceConfig instance (preferred method)
         """
         super().__init__("BinanceClient")
 
-        self.api_key = api_key
-        self.api_secret = api_secret
-        self.testnet = testnet
+        # Use config if provided, otherwise fall back to parameters
+        if config is not None:
+            self.api_key = config.api_key
+            self.api_secret = config.api_secret
+            self.testnet = config.testnet
+        else:
+            self.api_key = api_key
+            self.api_secret = api_secret
+            self.testnet = testnet
+
         self.event_bus = event_bus
 
         self._client: Optional[AsyncClient] = None

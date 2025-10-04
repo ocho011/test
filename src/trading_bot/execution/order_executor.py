@@ -31,6 +31,11 @@ from ..core.events import (
 from ..data.binance_client import BinanceClient
 
 
+# Type checking imports
+if False:  # TYPE_CHECKING
+    from ..config.models import ExecutionConfig
+
+
 class OrderExecutionError(Exception):
     """Custom exception for order execution errors."""
 
@@ -80,6 +85,7 @@ class OrderExecutor(BaseComponent):
         retry_delay: float = 1.0,
         slippage_limit: float = 0.005,  # 0.5% default slippage limit
         dry_run: bool = False,
+        config: Optional["ExecutionConfig"] = None,
     ):
         """
         Initialize the order executor.
@@ -87,18 +93,27 @@ class OrderExecutor(BaseComponent):
         Args:
             binance_client: Binance API client for order operations
             event_bus: Event bus for system communication
-            max_retries: Maximum retry attempts for failed orders
-            retry_delay: Base delay between retries (exponential backoff)
-            slippage_limit: Maximum allowed slippage percentage
-            dry_run: Enable dry-run mode (log orders without execution)
+            max_retries: Maximum retry attempts for failed orders (deprecated - use config)
+            retry_delay: Base delay between retries (deprecated - use config)
+            slippage_limit: Maximum allowed slippage percentage (deprecated - use config)
+            dry_run: Enable dry-run mode (deprecated - use config)
+            config: ExecutionConfig instance (preferred method)
         """
         super().__init__(name=self.__class__.__name__)
         self.event_bus = event_bus
         self.binance_client = binance_client
-        self.max_retries = max_retries
-        self.retry_delay = retry_delay
-        self.slippage_limit = slippage_limit
-        self.dry_run = dry_run
+
+        # Use config if provided, otherwise fall back to parameters
+        if config is not None:
+            self.max_retries = config.max_retries
+            self.retry_delay = config.retry_delay_ms / 1000.0  # Convert ms to seconds
+            self.slippage_limit = config.slippage_tolerance_pct
+            self.dry_run = config.dry_run
+        else:
+            self.max_retries = max_retries
+            self.retry_delay = retry_delay
+            self.slippage_limit = slippage_limit
+            self.dry_run = dry_run
 
         # Active order tracking
         self.active_orders: Dict[str, OrderEvent] = {}

@@ -1077,7 +1077,7 @@
               "14.3"
             ],
             "details": "BinanceClient에서 환경 기반 testnet/mainnet 자동 선택, OrderExecutor에서 dry_run 모드 처리, production/paper-mainnet → mainnet, paper-testnet/development → testnet 매핑, live/simulation 실행 모드 구분 로직",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "각 환경별 Binance 연결 테스트, dry_run 모드 주문 시뮬레이션 검증, 실제 API 호출 제한 확인"
           },
           {
@@ -1120,7 +1120,7 @@
     ],
     "metadata": {
       "created": "2025-09-27T09:52:28.484Z",
-      "updated": "2025-10-04T03:08:28.755Z",
+      "updated": "2025-10-04T03:18:17.115Z",
       "description": "Tasks for master context"
     }
   }
